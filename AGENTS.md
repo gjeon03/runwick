@@ -8,6 +8,7 @@
 - Keep the existing CLI interaction experience while supporting durable conversation search and pins. The record panel and provider adapters are design proposals, not implemented features.
 - The approved navigation model is project > workspace > session. Start in an automatic default workspace; create a separate Git worktree only when the user chooses to separate work. Files and document tabs follow the selected workspace.
 - Closing the window preserves running CLI processes; reopening reconnects to live runs. An explicit stop-and-quit action shows managed running work before stopping it. After an OS restart, restore records and layout, and let the user select supported sessions to resume. Keep background execution visible and stoppable.
+- Automatically save conversation changes and update keyword indexes incrementally. Automatic AI wiki maintenance, timeline summaries, and embeddings require project-level opt-in. On battery, defer new automatic analysis while allowing explicit user requests. Expose each job's reason, status, recent result, and stop control.
 - Pinloom source is research material; compatibility means deliberate data import or interoperability, not shared writable storage.
 - Keep confirmed observations, user decisions, and proposed designs distinguishable. Cite source revisions for implementation claims.
 - Do not put credentials, local databases, provider transcripts, or personal wiki content in this repository.
