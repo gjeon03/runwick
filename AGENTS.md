@@ -4,6 +4,8 @@
 - Runwick is a new independent Rust product, not a Pinloom refactor or branch.
 - Do not modify the running Pinloom installation, its repository, or its data as part of Runwick work.
 - Read `docs/decisions.md` before proposing architecture. Recommendations in research documents are not approved implementation decisions.
+- Plan the complete product before narrowing release scope. Read `docs/product-spec.md`, `docs/orchestration.md`, `docs/ui-spec.md`, and `docs/user-flows.md` together. Their detailed policies are review drafts, not approved implementation choices.
+- Evaluate collaboration from the existing CLI session outward. Do not assume a mandatory team, goal form, fixed role hierarchy, or separate orchestration mode. Preserve confirmed decisions while reviewing the proposed delegation model.
 - The user chose a Rust-based native GUI. Electron is excluded; the Rust UI framework remains open.
 - Keep the existing CLI interaction experience while supporting durable conversation search and pins. The record panel and provider adapters are design proposals, not implemented features.
 - The approved navigation model is project > workspace > session. Start in an automatic default workspace; create a separate Git worktree only when the user chooses to separate work. Files and document tabs follow the selected workspace.
