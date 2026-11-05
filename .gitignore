@@ -1,0 +1,11 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+/target/
+/local-data/
+/research-private/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
