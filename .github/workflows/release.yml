@@ -23,7 +23,6 @@ jobs:
     timeout-minutes: 45
     env:
       RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
-      RUNWICK_HOME: ${{ runner.temp }}/runwick-release
     defaults:
       run:
         shell: bash
@@ -41,6 +40,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - name: Build and verify app bundle
+        env:
+          RUNWICK_HOME: ${{ runner.temp }}/runwick-release
         run: sh scripts/bundle-macos.sh
       - name: Package app and checksum
         run: |
