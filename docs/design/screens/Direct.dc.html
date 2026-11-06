@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>직접 대화</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="3" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="direct" hint-size="264px,100%"></dc-import></nav>
+    <main style="position:relative;flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="delegate" next="Collab2.dc.html" label="대표 터미널" hint-size="100%,100%"></dc-import></div>
+      <div style="flex:none"><dc-import name="SessionBar" state="idle" label="응답 완료 · 협업 2개 진행" meta="입력할 수 있어요" collab="협업 2" need="직접 조작 1" need-color="#BBA2FF" hint-size="100%,34px"></dc-import></div>
+      <div aria-hidden="true" style="position:absolute;inset:38px 0 34px 0;background:rgba(8,9,11,.62)"></div>
+      <div style="position:absolute;left:24px;right:24px;top:62px;bottom:58px;display:flex;flex-direction:column"><dc-import name="WorkerPeek" mode="direct" hint-size="100%,100%"></dc-import></div>
+    </main>
+    <aside aria-label="상세 패널" style="flex:1 1 380px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#17181C;border-left:1px solid #25262B">
+      <div style="flex:none"><dc-import name="PanelHead" tab="collab" hint-size="100%,44px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="CollabPanel" scene="direct" selected="review" hint-size="100%,100%"></dc-import></div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'direct', sel: true, href: 'Collab1.dc.html' },
+        { t: 'zsh', k: '$', href: 'Session.dc.html' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

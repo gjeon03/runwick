@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>여러 기기 검색</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" machine="집 Mac mini" needs="1" running="3" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="hosts" tool="history" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="remote" caret="true" label="집 Mac mini의 터미널. 검색 중에도 입력과 스크롤은 그대로예요" hint-size="100%,100%"></dc-import></div>
+      <div style="flex:none"><dc-import name="SessionBar" state="idle" label="응답 완료" meta="검색은 CLI에 영향을 주지 않아요" hint-size="100%,34px"></dc-import></div>
+    </main>
+    <aside aria-label="상세 패널" style="flex:1 1 400px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#17181C;border-left:1px solid #25262B">
+      <div style="flex:none"><dc-import name="PanelHead" tab="history" close-href="RemoteSpace.dc.html" hint-size="100%,44px"></dc-import></div>
+      <div style="flex:none;display:flex;flex-direction:column;gap:8px;padding:12px 12px 10px">
+        <label style="display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:8px;background:#26272D;box-shadow:0 0 0 1px #4A4B54">
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#B0B1B8;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M7 12.500a5.500 5.500 0 1 0 0-11 5.500 5.500 0 0 0 0 11ZM14.500 14.500 11 11"></path></svg>
+          <input aria-label="대화 기록 검색" value="재시도" style="flex:1;width:100%;min-width:0;padding:0;background:transparent;border:0;outline:0;color:#EDEDF0;font:inherit">
+          <span style="flex:none;font-size:11.500px;color:#8E8F98">⌘⇧F</span>
+        </label>
+        <div style="display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+          <a href="#" style="flex:1;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;color:#8E8F98;font-size:12px">현재 세션</a>
+          <a href="#" style="flex:1;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;color:#8E8F98;font-size:12px">프로젝트</a>
+          <a href="#" aria-current="page" style="flex:1;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#33343B;font-size:12px">전체</a>
+        </div>
+        <div role="group" aria-label="검색한 기기" style="display:flex;flex-direction:column;gap:6px;padding:9px 10px;border-radius:8px;background:#1F2025">
+          <span style="font-size:12px;color:#8E8F98">검색한 곳 · 눌러서 그 기기 결과만 보기</span>
+          <div style="display:flex;flex-wrap:wrap;gap:4px">
+            <sc-for list="{{hosts}}" as="h" hint-placeholder-count="3">
+              <button type="button" aria-pressed="{{h.on}}" onClick="{{h.pick}}" style="height:26px;display:flex;align-items:center;gap:6px;padding:0 9px;border:0;border-radius:13px;background:{{h.bg}};box-shadow:{{h.ring}};color:#EDEDF0;font:inherit;font-size:12px;cursor:pointer">
+                <span aria-hidden="true" style="width:6px;height:6px;border-radius:50%;background:{{h.dot}}"></span>{{h.t}}<span style="color:#8E8F98">{{h.n}}</span>
+              </button>
+            </sc-for>
+          </div>
+          <span style="display:flex;gap:6px;font-size:12px;color:#F6DFAE">
+            <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:2px;fill:none;stroke:#F2C66D;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01"></path></svg>
+            <span style="flex:1;min-width:0">개발 서버는 연결이 안 돼서 오늘 09:12까지 받아 둔 사본만 찾았어요. 그 뒤 기록은 빠졌을 수 있어요. <a href="Devices.dc.html" style="color:#EDEDF0;text-decoration:underline">기기 확인</a></span>
+          </span>
+        </div>
+        <p style="margin:0;font-size:12px;color:#8E8F98">{{summary}}</p>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:0 8px 8px">
+        <sc-for list="{{results}}" as="r" hint-placeholder-count="4">
+          <button type="button" aria-pressed="{{r.on}}" onClick="{{r.pick}}" style="display:flex;flex-direction:column;gap:5px;padding:10px;border:0;border-radius:8px;background:{{r.bg}};box-shadow:{{r.ring}};color:inherit;font:inherit;text-align:left;cursor:pointer">
+            <span style="font-size:12.500px;line-height:1.55;color:#D6D7DC">{{r.pre}}<mark style="padding:0 2px;border-radius:3px;background:#5A3417;color:#FFE3CF">{{r.hit}}</mark>{{r.post}}</span>
+            <span style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:11.500px;color:#8E8F98">
+              <span style="height:17px;display:flex;align-items:center;padding:0 5px;border-radius:4px;background:#26272D;color:{{r.devFg}};font-size:10.500px">{{r.dev}}</span>
+              <span style="color:#B0B1B8">{{r.session}}</span><span>{{r.tool}}</span><span>{{r.when}}</span>
+              <sc-if value="{{r.pinned}}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:3px;color:#D6D7DC"><svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M9.500 1.500l5 5-2.500.8-3 3-.5 3-6-6 3-.5 3-3ZM5 11l-3.500 3.500"></path></svg>{{r.pinLabel}}</span></sc-if>
+            </span>
+          </button>
+        </sc-for>
+      </div>
+      <section aria-label="고른 기록" style="flex:none;display:flex;flex-direction:column;gap:8px;padding:12px 14px 14px;border-top:1px solid #25262B;background:#15161A">
+        <span style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px">
+          <span style="font-weight:600">{{d.t}}</span>
+          <span style="font-size:12px;color:#8E8F98">{{d.owner}}</span>
+        </span>
+        <span style="font-size:12.500px;color:{{d.mc}}">{{d.m}}</span>
+        <span style="display:flex;flex-wrap:wrap;gap:6px">
+          <button type="button" onClick="{{d.go}}" aria-disabled="{{d.dis}}" style="height:30px;padding:0 12px;border:0;border-radius:7px;background:{{d.abg}};color:{{d.afg}};font:inherit;font-size:12.500px;font-weight:{{d.afw}};cursor:pointer">{{d.act}}</button>
+          <a href="{{d.href}}" style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">{{d.open}}</a>
+        </span>
+      </section>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { host: 'all', sel: 'r4', done: {} };
+  renderVals() {
+    const { host, sel, done } = this.state;
+    const H = {
+      local: { t: '이 Mac', dot: '#5AD6A4', devFg: '#D6D7DC' },
+      mini: { t: '집 Mac mini', dot: '#5AD6A4', devFg: '#D6D7DC' },
+      dev: { t: '개발 서버 · 사본', dot: '#F2C66D', devFg: '#F6DFAE' }
+    };
+    const R = [
+      { id: 'r1', h: 'mini', pre: '', hit: '재시도', post: ' 간격은 2^n초로 늘리고 60초를 넘지 않게 했어요.', session: '결제 웹훅 재시도 구현', tool: 'Claude Code', when: '오늘 11:41', pin: '“재시도 상한” 핀', proj: 'payments-api' },
+      { id: 'r2', h: 'mini', pre: '5번 ', hit: '재시도', post: '한 뒤 dead-letter 큐로 옮기는 코드가 없어요.', session: '웹훅 회귀 검토', tool: 'Codex', when: '오늘 12:01', pin: '', proj: 'payments-api' },
+      { id: 'r3', h: 'local', pre: '', hit: '재시도', post: '할 때 멱등 키가 새로 만들어져서 같은 이벤트가 두 번 처리돼요.', session: '웹훅 재시도 조사', tool: 'Claude Code', when: '11월 2일', pin: '“멱등 키 누락” 핀', proj: 'payments-api' },
+      { id: 'r4', h: 'dev', pre: '배치가 실패하면 30분 뒤 한 번만 ', hit: '재시도', post: '하고, 그래도 실패하면 아침에 알려요.', session: '야간 정산 배치 검증', tool: 'Claude Code', when: '오늘 03:10', pin: '', proj: '사내 정산 리포트 자동화 및 문서 정리 프로젝트' }
+    ];
+    const shown = R.filter((x) => host === 'all' || x.h === host);
+    const count = (k) => R.filter((x) => x.h === k).length;
+    const s = R.find((x) => x.id === sel) ?? R[0];
+    const did = done[s.id];
+    const mark = (id) => this.setState({ done: { ...this.state.done, [id]: true } });
+
+    const DETAIL = {
+      local: did
+        ? { m: '핀 메모를 이 Mac에 저장했어요.', mc: '#5AD6A4', act: '저장됨', dis: 'true' }
+        : { m: '이 Mac의 기록이에요. 핀 메모를 고치면 바로 저장해요.', mc: '#B0B1B8', act: '핀 메모 고치기', dis: 'false' },
+      mini: did
+        ? { m: s.pin ? '집 Mac mini에 저장했어요 · 12:09. 그쪽 기록에 붙은 핀이라 집 Mac mini에서 열어도 같아요.' : '집 Mac mini에 핀을 고정했어요 · 12:09.', mc: '#5AD6A4', act: '저장됨', dis: 'true' }
+        : { m: '집 Mac mini에 있는 기록이에요. 핀을 고치면 집 Mac mini에 저장해요. 지금 연결돼 있어요.', mc: '#B0B1B8', act: s.pin ? '핀 메모 고치기' : '핀 고정', dis: 'false' },
+      dev: did
+        ? { m: '이 Mac에 초안으로 남겼어요. 개발 서버에 연결되면 그쪽 최신 버전과 대조한 뒤 저장할지 물어볼게요.', mc: '#F6DFAE', act: '초안 · 저장 대기', dis: 'true' }
+        : { m: '개발 서버에 있는 기록의 사본이에요 · 09:12에 받음. 핀은 개발 서버에 저장해야 하는데 지금 연결이 안 돼요.', mc: '#B0B1B8', act: '초안으로 핀 고정', dis: 'false' }
+    }[s.h];
+    const ownerT = { local: '이 Mac에 있음', mini: '집 Mac mini에 있음 · 연결됨', dev: '개발 서버에 있음 · 연결 안 됨' }[s.h];
+
+    return {
+      tabs: [
+        { t: '결제 웹훅 재시도 구현', k: 'Cl', st: 'need', sel: true, href: 'RemoteSpace.dc.html' },
+        { t: 'zsh', k: '$', href: 'RemoteSpace.dc.html' }
+      ],
+      hosts: [['all', '모두', R.length, '#B0B1B8'], ['local', '이 Mac', count('local'), '#5AD6A4'], ['mini', '집 Mac mini', count('mini'), '#5AD6A4'], ['dev', '개발 서버 · 09:12까지', count('dev'), '#F2C66D']].map((x) => ({
+        t: x[1], n: String(x[2]), dot: x[3],
+        on: host === x[0] ? 'true' : 'false',
+        bg: host === x[0] ? '#33343B' : '#26272D',
+        ring: host === x[0] ? 'inset 0 0 0 1px #8E8F98' : 'none',
+        pick: () => this.setState({ host: x[0], sel: x[0] === 'all' ? this.state.sel : (R.find((r) => r.h === x[0]) ?? R[0]).id })
+      })),
+      summary: host === 'all' ? '기기 3곳에서 4건 찾음 · 프로젝트 2곳' : H[host].t + '에서 ' + shown.length + '건 찾음',
+      results: shown.map((x) => ({
+        pre: x.pre, hit: x.hit, post: x.post, session: x.session, tool: x.tool, when: x.when,
+        dev: H[x.h].t, devFg: H[x.h].devFg,
+        pinned: !!x.pin || !!done[x.id], pinLabel: x.pin || (x.h === 'dev' ? '초안 핀' : '핀'),
+        on: x.id === sel ? 'true' : 'false',
+        bg: x.id === sel ? '#26272D' : '#1F2025',
+        ring: x.id === sel ? 'inset 0 0 0 1px #4A4B54' : 'none',
+        pick: () => this.setState({ sel: x.id })
+      })),
+      d: {
+        t: s.session, owner: s.proj + ' · ' + ownerT,
+        m: DETAIL.m, mc: DETAIL.mc, act: DETAIL.act, dis: DETAIL.dis,
+        go: () => { if (!did) mark(s.id); },
+        abg: did ? '#26272D' : '#FF8B3E', afg: did ? '#8E8F98' : '#1B0F06', afw: did ? '400' : '600',
+        open: s.h === 'dev' ? '사본 보기' : '원문 보기',
+        href: s.h === 'mini' ? 'RemoteSpace.dc.html' : 'Context.dc.html'
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>

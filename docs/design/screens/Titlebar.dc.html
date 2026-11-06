@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>제목 막대</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<header style="width:100%;height:44px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 10px 0 14px;background:#15161A;border-bottom:1px solid #25262B;color:#B0B1B8;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:12.5px;white-space:nowrap">
+  <div style="flex:1 1 0;min-width:0;display:flex;align-items:center;gap:12px">
+    <div style="flex:none;display:flex;gap:8px">
+      <a href="{{closeHref}}" aria-label="창 닫기, 실행은 유지됩니다" title="창 닫기 — 실행은 유지됩니다" style="display:block;width:12px;height:12px;border-radius:50%;background:#FF5F57"></a>
+      <span aria-hidden="true" style="display:block;width:12px;height:12px;border-radius:50%;background:#FEBC2E"></span>
+      <span aria-hidden="true" style="display:block;width:12px;height:12px;border-radius:50%;background:#28C840"></span>
+    </div>
+    <div title="{{crumbTitle}}" style="min-width:0;display:flex;align-items:center;gap:6px;overflow:hidden">
+      <span style="color:#EDEDF0;font-weight:500;overflow:hidden;text-overflow:ellipsis">{{project}}</span>
+      <span aria-hidden="true" style="color:#6F7078">/</span>
+      <span style="overflow:hidden;text-overflow:ellipsis">{{space}}</span>
+      <sc-if value="{{hasMachine}}" hint-placeholder-val="{{ false }}">
+        <span title="실행 기기" style="flex:none;height:20px;display:flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#26272D;color:#D6D7DC;font-size:11.500px"><svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="M1.500 3h13v8.500h-13ZM5.500 14h5M8 11.500V14"></path></svg>{{machine}}</span>
+      </sc-if>
+      <span style="flex:none;font-family:'JetBrains Mono',Menlo,monospace;font-size:11.5px;color:#8E8F98">{{branch}}</span>
+    </div>
+  </div>
+  <a href="{{commandHref}}" aria-label="명령 검색" style="flex:0 1 340px;min-width:120px;height:28px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:7px;background:#1F2025;color:#8E8F98">
+    <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"><path d="M7 12.500a5.500 5.500 0 1 0 0-11 5.500 5.500 0 0 0 0 11ZM14.500 14.500 11 11"></path></svg>
+    <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">프로젝트, 세션, 명령 검색</span>
+    <span style="flex:none;font-size:11.500px">⌘K</span>
+  </a>
+  <div style="flex:1 1 0;min-width:0;display:flex;justify-content:flex-end;align-items:center;gap:4px">
+    <a href="{{activityHref}}" aria-label="{{activityLabel}}" title="전체 활동" style="flex:none;height:28px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:7px;background:{{pillBg}};font-size:12px">
+      <sc-if value="{{hasNeeds}}" hint-placeholder-val="{{ true }}">
+        <span style="display:flex;align-items:center;gap:5px;color:#FF8B3E;font-weight:600"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#FF8B3E;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"><path d="M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01"></path></svg>확인 {{needs}}</span>
+      </sc-if>
+      <span style="display:flex;align-items:center;gap:6px;color:#B0B1B8"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:{{runDot}};animation:{{runAnim}}"></span>실행 {{running}}</span>
+    </a>
+    <a href="{{settingsHref}}" aria-label="설정" title="설정" style="flex:none;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:7px;color:#B0B1B8">
+      <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"><path d="M2 5h7M12 5h2M2 11h2M7 11h7M9 3.500h3v3H9ZM4 9.500h3v3H4Z"></path></svg>
+    </a>
+  </div>
+</header>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"project":{"editor":null},"space":{"editor":null},"branch":{"editor":null},"needs":{"editor":null},"running":{"editor":null},"machine":{"editor":null},"$preview":{"width":1440,"height":44}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const needs = Number(this.props.needs ?? 0);
+    const running = Number(this.props.running ?? 0);
+    const project = this.props.project ?? 'payments-api';
+    const space = this.props.space ?? '기본 공간';
+    const branch = this.props.branch ?? 'main';
+    const machine = this.props.machine ?? '';
+    return {
+      project, space, branch, needs, running, machine,
+      hasMachine: machine !== '',
+      crumbTitle: project + ' / ' + space + (machine ? ' · ' + machine : '') + ' (' + branch + ')',
+      hasNeeds: needs > 0,
+      pillBg: needs > 0 ? '#2B1C12' : '#1F2025',
+      runDot: running > 0 ? '#5AD6A4' : '#6F7078',
+      runAnim: running > 0 ? 'wick 1.8s ease-in-out infinite' : 'none',
+      activityLabel: '전체 활동: 확인할 일 ' + needs + '개, 실행 중 ' + running + '개',
+      closeHref: this.props.closeHref ?? 'MenuBar.dc.html',
+      commandHref: this.props.commandHref ?? 'FlowMap.dc.html',
+      activityHref: this.props.activityHref ?? 'Activity.dc.html',
+      settingsHref: this.props.settingsHref ?? 'Settings.dc.html'
+    };
+  }
+}
+</script>
+</body>
+</html>

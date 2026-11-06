@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>분리해서 작업</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="position:relative;width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="1" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="daily" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="daily" next="SplitWork.dc.html" label="터미널" hint-size="100%,100%"></dc-import></div>
+      <div style="flex:none"><dc-import name="SessionBar" state="idle" label="입력 대기" meta="로그인 오류 수정" hint-size="100%,34px"></dc-import></div>
+    </main>
+  </div>
+  <div aria-hidden="true" style="position:absolute;inset:0;background:rgba(8,9,11,.6)"></div>
+  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;overflow:auto">
+    <section role="dialog" aria-modal="true" aria-label="분리해서 작업" style="width:100%;max-width:820px;display:flex;flex-direction:column;border-radius:14px;background:#1B1C20;box-shadow:0 0 0 1px #33343B,0 24px 64px rgba(0,0,0,.55)">
+      <header style="display:flex;flex-direction:column;gap:3px;padding:18px 20px 14px">
+        <h1 style="margin:0;font-size:17px;font-weight:600">분리해서 작업</h1>
+        <p style="margin:0;font-size:12.500px;color:#B0B1B8">별도 폴더와 branch에서 일합니다. 기본 공간의 파일은 건드리지 않아요.</p>
+      </header>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:20px;padding:0 20px 18px">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#8E8F98">작업 이름
+            <input value="auth-tests" style="height:32px;box-sizing:border-box;padding:0 10px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:13px">
+          </label>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+            <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#8E8F98">출발 기준
+              <input value="main @ a41f3c2" style="height:32px;box-sizing:border-box;padding:0 10px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font-family:'JetBrains Mono',Menlo,monospace;font-size:12px">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:#8E8F98">새 branch
+              <input value="feat/refresh-tests" style="height:32px;box-sizing:border-box;padding:0 10px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font-family:'JetBrains Mono',Menlo,monospace;font-size:12px">
+            </label>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px;font-size:12px;color:#8E8F98">만들어질 폴더
+            <span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:11.500px;color:#D6D7DC;overflow-wrap:anywhere">~/work/payments-api.worktrees/auth-tests</span>
+          </div>
+          <fieldset style="margin:0;padding:0;border:0;display:flex;flex-direction:column;gap:4px">
+            <legend style="padding:0 0 4px;font-size:12px;color:#8E8F98">아직 커밋하지 않은 변경 3개 파일</legend>
+            <label style="display:flex;align-items:center;gap:8px;min-height:30px;padding:0 10px;border-radius:7px;background:#26272D">
+              <input type="radio" name="dirty" checked style="margin:0;accent-color:#FF8B3E"><span>포함하지 않음</span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;min-height:30px;padding:0 10px;border-radius:7px;background:#1F2025">
+              <input type="radio" name="dirty" style="margin:0;accent-color:#FF8B3E"><span>확인한 patch만 포함</span>
+              <a href="#" style="margin-left:auto;font-size:12px;color:#B0B1B8;text-decoration:underline">변경 보기</a>
+            </label>
+          </fieldset>
+          <a href="#" style="display:flex;align-items:center;gap:5px;font-size:12.500px;color:#B0B1B8">
+            <svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.800;stroke-linecap:round;stroke-linejoin:round"><path d="M6 4l4 4-4 4"></path></svg>고급: 기존 branch 쓰기, 준비 명령, 시작할 CLI
+          </a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:10px;background:#17181C">
+          <h2 style="margin:0;font-size:13px;font-weight:600">{{stepsTitle}}</h2>
+          <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+              <li style="display:flex;align-items:flex-start;gap:8px">
+                <svg width="14" height="14" viewBox="0 0 16 16" role="img" aria-label="{{s.state}}" style="flex:none;margin-top:2px;fill:none;stroke:{{s.c}};stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="{{s.i}}"></path></svg>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+                  <span style="color:{{s.fg}}">{{s.t}}</span>
+                  <sc-if value="{{s.m}}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:#B0B1B8">{{s.m}}</span></sc-if>
+                </span>
+              </li>
+            </sc-for>
+          </ol>
+          <p style="margin:0;padding-top:10px;border-top:1px solid #25262B;font-size:12.500px;color:#B0B1B8">의존성 설치와 .env 복사는 하지 않아요. 준비 명령을 정해 두면 내용을 보여준 뒤 실행합니다.</p>
+        </div>
+      </div>
+      <footer style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;padding:12px 20px;border-top:1px solid #33343B">
+        <a href="Session.dc.html" style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">{{closeLabel}}</a>
+        <sc-if value="{{failed}}" hint-placeholder-val="{{ false }}">
+          <a href="Space.dc.html" style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">공간만 열기</a>
+          <a href="Space.dc.html" style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:7px;background:#FF8B3E;color:#1B0F06;font-size:12.500px;font-weight:600">CLI만 다시 시도</a>
+        </sc-if>
+        <sc-if value="{{isForm}}" hint-placeholder-val="{{ true }}">
+          <a href="SplitFail.dc.html" style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:7px;background:#FF8B3E;color:#1B0F06;font-size:12.500px;font-weight:600">공간 만들기</a>
+        </sc-if>
+      </footer>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["form","failed"],"default":"form"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const failed = (this.props.step ?? 'form') === 'failed';
+    const ok = 'M3 8.500l3.500 3.500L13 4.500';
+    const wait = 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13Z';
+    const warn = 'M8 2 14.500 13.500h-13ZM8 6.500V10M8 12h.01';
+    const row = (t, doneNow) => doneNow
+      ? { t, m: '', state: '완료', c: '#5AD6A4', fg: '#D6D7DC', i: ok }
+      : { t, m: '', state: '대기', c: '#6F7078', fg: '#B0B1B8', i: wait };
+    const steps = failed ? [
+      row('Git 저장소 확인', true),
+      row('worktree 생성', true),
+      row('공간 연결', true),
+      { t: 'Claude Code 시작 실패', m: '인증이 만료됐어요. 만들어진 공간은 그대로 있고, 기본 공간으로 돌아가 실행하지 않았습니다.', state: '실패', c: '#FF7B86', fg: '#FFFFFF', i: warn }
+    ] : [
+      row('Git 저장소 확인', false),
+      row('worktree 생성', false),
+      row('공간 연결', false),
+      row('Claude Code 시작', false)
+    ];
+    return {
+      failed,
+      isForm: !failed,
+      steps,
+      stepsTitle: failed ? '공간은 만들어졌고, CLI만 시작하지 못했어요' : '만들기를 누르면 이 순서로 진행해요',
+      closeLabel: failed ? '닫기' : '취소',
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', sel: true, href: 'Session.dc.html' },
+        { t: 'zsh', k: '$', href: 'Session.dc.html' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

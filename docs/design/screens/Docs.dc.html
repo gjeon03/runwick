@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>터미널과 문서 나란히</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="1" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="files" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap">
+        <div style="flex:1 1 420px;min-width:0;min-height:320px;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #25262B">
+          <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="daily" caret="true" next="Session.dc.html" label="터미널. 터미널만 보기로 이동" hint-size="100%,100%"></dc-import></div>
+          <div style="flex:none"><dc-import name="SessionBar" state="run" label="실행 중" meta="auth-notes.md 수정" hint-size="100%,34px"></dc-import></div>
+        </div>
+        <section aria-label="문서 편집" style="flex:1 1 420px;min-width:0;min-height:320px;display:flex;flex-direction:column;background:#101114">
+          <header style="flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px 8px 14px;border-bottom:1px solid #25262B">
+            <div style="flex:1 1 180px;min-width:0;display:flex;flex-direction:column">
+              <span style="display:flex;align-items:center;gap:6px"><span style="font-weight:500">auth-notes.md</span><span style="font-size:12px;color:#B0B1B8">미저장</span></span>
+              <span title="~/work/payments-api/docs/auth-notes.md" style="font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;color:#8E8F98;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">기본 공간 · docs/auth-notes.md</span>
+            </div>
+            <div style="flex:none;display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+              <a href="#" aria-current="page" style="height:24px;display:flex;align-items:center;padding:0 8px;border-radius:5px;background:#33343B;font-size:12px">편집</a>
+              <a href="#" style="height:24px;display:flex;align-items:center;padding:0 8px;border-radius:5px;color:#8E8F98;font-size:12px">미리보기</a>
+            </div>
+            <a href="#" style="flex:none;height:28px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:6px;background:#26272D;font-size:12px">저장<span style="color:#8E8F98">⌘S</span></a>
+          </header>
+          <div role="status" style="flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 10px 8px 14px;background:#2B1C12;color:#FFD9BF;font-size:12.500px">
+            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#FF8B3E;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01"></path></svg>
+            <span style="flex:1 1 200px;min-width:0">Claude Code가 이 파일을 방금 바꿨어요. 내 편집은 그대로 있고, 자동으로 덮어쓰지 않았습니다.</span>
+            <a href="DocConflict.dc.html" style="flex:none;height:26px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:#FF8B3E;color:#1B0F06;font-size:12px;font-weight:600">비교하기</a>
+          </div>
+          <div style="flex:1;min-height:0;overflow:auto;padding:14px 0">
+            <sc-for list="{{doc}}" as="l" hint-placeholder-count="10">
+              <div style="display:flex;gap:12px;min-height:24px;padding:0 14px 0 0;background:{{l.bg}}">
+                <span aria-hidden="true" style="flex:none;width:36px;text-align:right;font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;line-height:24px;color:#6F7078">{{l.n}}</span>
+                <span style="flex:1;min-width:0;font-family:'JetBrains Mono','SF Mono',Menlo,'Apple SD Gothic Neo',monospace;font-size:13px;line-height:24px;color:{{l.c}};font-weight:{{l.w}};white-space:pre-wrap">{{l.t}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const src = [
+      ['# 로그인 세션 메모', '#FFFFFF', 600],
+      ['', '#D6D7DC', 400],
+      ['## 원인', '#FFFFFF', 600],
+      ['- 만료 시각(expiresAt)은 초 단위인데', '#D6D7DC', 400],
+      ['  밀리초 값과 그대로 비교했다.', '#D6D7DC', 400],
+      ['', '#D6D7DC', 400],
+      ['## 수정 방향', '#FFFFFF', 600],
+      ['- 비교 전에 단위를 맞춘다.', '#D6D7DC', 400],
+      ['- refresh 경로의 단위도 함께 확인한다.', '#D6D7DC', 400],
+      ['- 팀 공유 전에 재현 절차를 적어 둔다.', '#EDEDF0', 400]
+    ];
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'run', sel: true, href: 'Session.dc.html' },
+        { t: 'auth-notes.md', k: 'md', st: 'mod', sel: true, href: 'Docs.dc.html', full: 'docs/auth-notes.md · 미저장' },
+        { t: 'zsh', k: '$', href: 'Session.dc.html' }
+      ],
+      doc: src.map((x, i) => ({ n: i + 1, t: x[0] || ' ', c: x[1], w: x[2], bg: i === 9 ? '#1B1C20' : 'transparent' }))
+    };
+  }
+}
+</script>
+</body>
+</html>

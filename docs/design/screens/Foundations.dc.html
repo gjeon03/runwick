@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>시각 기준</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;min-height:100vh;box-sizing:border-box;padding:48px;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:32px">
+    <header style="display:flex;flex-direction:column;gap:6px">
+      <h1 style="margin:0;font-size:30px;line-height:1.2;font-weight:600;letter-spacing:-0.02em">Graphite Wick</h1>
+      <p style="margin:0;font-size:14px;color:#B0B1B8">흑연색 작업실에 심지 불씨 하나. 터미널이 주인공이고, 사람이 봐야 할 때만 불씨 색이 켜집니다.</p>
+    </header>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:32px">
+      <section aria-label="상태" style="display:flex;flex-direction:column;gap:12px">
+        <h2 style="margin:0;font-size:13px;font-weight:600;color:#D6D7DC">상태는 색, 모양, 글자로 함께 표시</h2>
+        <div style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+          <sc-for list="{{states}}" as="s" hint-placeholder-count="7">
+            <div style="display:flex;align-items:center;gap:12px;min-height:42px;padding:6px 14px;border-bottom:1px solid #25262B">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:{{s.c}};stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round;animation:{{s.a}}"><path d="{{s.i}}"></path></svg>
+              <span style="flex:0 0 112px;font-weight:500;color:{{s.c}}">{{s.t}}</span>
+              <span style="flex:1;min-width:0;font-size:12.500px;color:#B0B1B8">{{s.m}}</span>
+              <span style="flex:none;font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;color:#8E8F98">{{s.c}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+      <div style="display:flex;flex-direction:column;gap:32px">
+        <section aria-label="바탕색" style="display:flex;flex-direction:column;gap:12px">
+          <h2 style="margin:0;font-size:13px;font-weight:600;color:#D6D7DC">바탕은 테두리보다 명도 차이로 구분</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px">
+            <sc-for list="{{grounds}}" as="g" hint-placeholder-count="6">
+              <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:1px;height:92px;box-sizing:border-box;padding:8px 10px;border-radius:8px;background:{{g.c}};box-shadow:0 0 0 1px #25262B">
+                <span style="font-size:12px;font-weight:500">{{g.t}}</span>
+                <span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:10.500px;color:#B0B1B8">{{g.c}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+        <section aria-label="글자" style="display:flex;flex-direction:column;gap:10px">
+          <h2 style="margin:0;font-size:13px;font-weight:600;color:#D6D7DC">글자</h2>
+          <div style="display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:12px;background:#17181C">
+            <span style="font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.01em">화면 제목 24 · Geist + 시스템 한글</span>
+            <span style="font-size:15px;font-weight:600">패널 제목 15</span>
+            <span style="font-size:13px">본문과 목록 13 · 작업 도구의 기본 밀도</span>
+            <span style="font-size:12px;color:#B0B1B8">보조 정보 12 · 경과 시간, 위치, 이유</span>
+            <span style="font-family:'JetBrains Mono','SF Mono',Menlo,'Apple SD Gothic Neo',monospace;font-size:12.500px;color:#7CCFE6">src/auth/session.ts · 터미널과 경로 12.5</span>
+          </div>
+        </section>
+        <section aria-label="조작 요소" style="display:flex;flex-direction:column;gap:10px">
+          <h2 style="margin:0;font-size:13px;font-weight:600;color:#D6D7DC">선택, 포커스, 실행은 서로 다른 표시</h2>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:14px;border-radius:12px;background:#17181C">
+            <span style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:7px;background:#FF8B3E;color:#1B0F06;font-weight:600">주 행동</span>
+            <span style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D">보조 행동</span>
+            <span style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#33343B">선택됨</span>
+            <span style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#1F2025;outline:2px solid #EDEDF0;outline-offset:1px">키보드 포커스</span>
+            <span style="height:32px;display:flex;align-items:center;gap:7px;padding:0 12px;border-radius:7px;background:#1F2025"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:#5AD6A4;animation:wick 1.8s ease-in-out infinite"></span>실행 중</span>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      states: [
+        { t: '답변·승인 필요', m: '사람이 해야 할 일. 가장 먼저 보여요', c: '#FF8B3E', a: 'none', i: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01' },
+        { t: '복구 필요', m: '실패, 저장한 결과에서 이어갈 수 있어요', c: '#FF7B86', a: 'none', i: 'M8 2 14.500 13.500h-13ZM8 6.500V10M8 12h.01' },
+        { t: '새 결과', m: '읽음 처리가 검증 통과를 뜻하지 않아요', c: '#74B7FF', a: 'none', i: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM5.200 8.200l2 2 3.600-4' },
+        { t: '실행 중', m: '실제 관측한 상태. 심지처럼 천천히 깜빡여요', c: '#5AD6A4', a: 'wick 1.8s ease-in-out infinite', i: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z' },
+        { t: '직접 조작 중', m: '내가 입력권을 가진 상태, 자동 지시는 대기', c: '#BBA2FF', a: 'none', i: 'M1.500 4h13v8h-13ZM4 7h.01M6.500 7h.01M9 7h.01M11.500 7h.01M5 9.500h6' },
+        { t: '대기·보류', m: '이유를 함께 표시해요', c: '#9B9CA5', a: 'none', i: 'M5.500 3.500v9M10.500 3.500v9' }
+      ],
+      grounds: [
+        { t: '터미널', c: '#0B0C0E' },
+        { t: '창', c: '#0F1012' },
+        { t: '탐색', c: '#15161A' },
+        { t: '패널', c: '#17181C' },
+        { t: '행', c: '#1F2025' },
+        { t: '조작', c: '#26272D' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

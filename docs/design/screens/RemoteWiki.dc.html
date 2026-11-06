@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>다른 기기에 있는 위키</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" project="사내 정산 리포트 자동화 및 문서 정리 프로젝트" needs="0" running="3" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="hostsSettle" tool="wiki" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#101114">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:hidden">
+        <nav aria-label="위키 문서" style="flex:0 0 248px;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;gap:2px;padding:12px 8px;overflow-y:auto;border-right:1px solid #25262B">
+          <a href="WikiHome.dc.html" style="height:28px;display:flex;align-items:center;gap:6px;margin-bottom:4px;padding:0 8px;border-radius:6px;font-size:12.500px;color:#B0B1B8">
+            <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="M13 8H3M7 4 3 8l4 4"></path></svg>모든 문서
+          </a>
+          <dl style="margin:0 0 10px;display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:8px;background:#17181C">
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <dt style="font-size:11.500px;color:#8E8F98">이 위키를 보관한 기기</dt>
+              <dd style="margin:0;display:flex;align-items:center;gap:6px;font-size:12.500px"><span aria-hidden="true" style="width:6px;height:6px;border-radius:50%;background:#F2C66D"></span>개발 서버 · 연결 안 됨</dd>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:1px">
+              <dt style="font-size:11.500px;color:#8E8F98">AI 정리 담당</dt>
+              <dd style="margin:0;font-size:12.500px">개발 서버 · 지금은 쉬어요</dd>
+              <dd style="margin:0;font-size:12px;color:#8E8F98">같은 정리를 다른 기기가 대신 돌리지 않아요.</dd>
+            </div>
+          </dl>
+          <sc-for list="{{docs}}" as="d" hint-placeholder-count="3">
+            <a href="#" aria-current="{{d.cur}}" style="display:flex;flex-direction:column;padding:7px 9px;border-radius:6px;background:{{d.bg}}">
+              <span style="display:flex;align-items:center;gap:6px;color:{{d.fg}}"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{d.t}}</span><sc-if value="{{d.badge}}" hint-placeholder-val="{{ false }}"><span style="flex:none;font-size:11px;color:#D9CCFF">{{d.badge}}</span></sc-if></span>
+              <span style="font-size:11.500px;color:#8E8F98">{{d.m}}</span>
+            </a>
+          </sc-for>
+        </nav>
+        <article style="flex:999 1 420px;min-width:0;height:100%;overflow-y:auto;padding:24px 28px">
+          <div style="max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+            <header style="display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:flex-start;gap:10px">
+                <h1 style="flex:1;min-width:0;margin:0;font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.01em">야간 배치 실패 대응</h1>
+                <sc-if value="{{canEdit}}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{startEdit}}" style="flex:none;height:30px;padding:0 12px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">편집</button>
+                </sc-if>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:#8E8F98">
+                <span>직접 작성 · 11월 4일 수정</span>
+                <a href="#evidence" style="color:#B0B1B8;text-decoration:underline">근거 세션 3</a>
+                <a href="#" style="color:#B0B1B8;text-decoration:underline">변경 이력</a>
+              </div>
+            </header>
+
+            <div role="status" style="display:flex;gap:10px;padding:11px 12px;border-radius:10px;background:{{b.bg}}">
+              <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:2px;fill:none;stroke:{{b.c}};stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="{{b.i}}"></path></svg>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:12.500px;font-weight:600;color:{{b.fg}}">{{b.t}}</span>
+                <span style="font-size:12.500px;color:#B0B1B8">{{b.m}}</span>
+              </span>
+              <sc-if value="{{b.hasAct}}" hint-placeholder-val="{{ false }}">
+                <button type="button" onClick="{{b.go}}" style="flex:none;align-self:flex-start;height:28px;padding:0 10px;border:0;border-radius:6px;background:#33343B;color:#EDEDF0;font:inherit;font-size:12px;cursor:pointer">{{b.act}}</button>
+              </sc-if>
+            </div>
+
+            <p style="margin:0;font-size:14.500px;line-height:1.7;color:#D6D7DC">야간 정산 배치(02:00)가 실패하면 먼저 원천 데이터가 다 들어왔는지 확인한다.</p>
+            <h2 style="margin:10px 0 0;font-size:16px;font-weight:600">재시도</h2>
+            <sc-if value="{{viewing}}" hint-placeholder-val="{{ true }}">
+              <p style="margin:0;padding:{{pPad}};border-radius:8px;background:{{pBg}};font-size:14.500px;line-height:1.7;color:{{pFg}}">{{para}}</p>
+            </sc-if>
+            <sc-if value="{{editing}}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:10px;background:#17181C;box-shadow:inset 0 0 0 1px #4A4B54">
+                <div aria-label="편집 중인 문단" style="padding:4px 4px 6px;font-size:14.500px;line-height:1.7;color:#EDEDF0">{{after}}<span aria-hidden="true" style="display:inline-block;width:2px;height:18px;margin-left:1px;vertical-align:-3px;background:#EDEDF0;animation:wick 1s step-end infinite"></span></div>
+                <span style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+                  <span style="flex:1 1 200px;min-width:0;font-size:12px;color:#8E8F98">개발 서버에 연결이 안 돼서 이 Mac에 초안으로 저장해요.</span>
+                  <button type="button" onClick="{{cancelEdit}}" style="height:28px;padding:0 10px;border:0;border-radius:6px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12px;cursor:pointer">취소</button>
+                  <button type="button" onClick="{{saveDraft}}" style="height:28px;padding:0 10px;border:0;border-radius:6px;background:#FF8B3E;color:#1B0F06;font:inherit;font-size:12px;font-weight:600;cursor:pointer">초안으로 저장</button>
+                </span>
+              </div>
+            </sc-if>
+            <h2 style="margin:10px 0 0;font-size:16px;font-weight:600">알림</h2>
+            <p style="margin:0;font-size:14.500px;line-height:1.7;color:#D6D7DC">실패 알림은 #settlement-alerts 채널로 보내고, 같은 날 두 번 이상 보내지 않는다.</p>
+
+            <section id="evidence" aria-label="근거" style="display:flex;flex-direction:column;gap:6px;margin-top:10px;padding-top:14px;border-top:1px solid #25262B">
+              <h2 style="margin:0;font-size:13px;font-weight:600;color:#D6D7DC">근거 세션 3</h2>
+              <sc-for list="{{evidence}}" as="e" hint-placeholder-count="3">
+                <a href="{{e.href}}" style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-height:34px;padding:4px 10px;border-radius:7px;background:#17181C">
+                  <span style="flex:1 1 200px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{e.t}}</span>
+                  <span style="flex:none;height:18px;display:flex;align-items:center;padding:0 6px;border-radius:4px;background:#26272D;color:{{e.devFg}};font-size:11px">{{e.dev}}</span>
+                  <span style="flex:none;font-size:12px;color:#8E8F98">{{e.when}}</span>
+                </a>
+              </sc-for>
+            </section>
+          </div>
+        </article>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { edit: 'view' };
+  renderVals() {
+    const { edit } = this.state;
+    const before = '실패하면 30분 뒤 한 번만 재시도한다.';
+    const after = '실패하면 30분 뒤 한 번만 재시도한다. 두 번째도 실패하면 07:00 전에 담당자에게 알린다.';
+    const I = {
+      warn: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01',
+      draft: 'M11 2.500l2.500 2.500L5.500 13H3v-2.500Z'
+    };
+    const draft = edit === 'draft';
+    const b = draft
+      ? { bg: '#211B33', c: '#BBA2FF', fg: '#D9CCFF', i: I.draft, t: '초안 1개 · 이 Mac에만 있어요 · 12:12', m: '개발 서버에는 아직 저장하지 않았어요. 연결되면 그쪽 최신 버전과 대조한 뒤 저장할지 물어볼게요. 그사이 바뀐 게 있으면 비교 화면을 먼저 보여 드려요.', hasAct: true, act: '초안 버리기', go: () => this.setState({ edit: 'view' }) }
+      : { bg: '#2A2416', c: '#F2C66D', fg: '#F6DFAE', i: I.warn, t: '개발 서버에 있는 위키의 사본을 보고 있어요 · 오늘 09:12에 받음', m: '개발 서버는 Runwick 버전이 달라 연결이 안 돼요. 읽기는 그대로 되고, 고친 내용은 이 Mac에 초안으로 남겨요.', hasAct: false, act: '', go: () => {} };
+    const d = (t, m, sel, badge) => ({ t, m, badge: badge ?? '', cur: sel ? 'page' : 'false', bg: sel ? '#26272D' : 'transparent', fg: sel ? '#EDEDF0' : '#D6D7DC' });
+    const ev = (t, dev, when, href) => ({ t, dev, when, href, devFg: dev.startsWith('개발 서버') ? '#F6DFAE' : '#D6D7DC' });
+    return {
+      tabs: [
+        { t: '정산 리포트 초안 작성', k: 'Cl', href: 'Session.dc.html' },
+        { t: '위키: 야간 배치 실패 대응', k: 'wk', st: draft ? 'mod' : '', sel: true, href: 'RemoteWiki.dc.html' }
+      ],
+      docs: [
+        d('야간 배치 실패 대응', draft ? '초안 · 저장 대기' : '직접 작성 · 11월 4일', true, draft ? '초안' : ''),
+        d('대사 예외 기준', '직접 작성 · 11월 3일', false),
+        d('환불 건 처리', 'AI 초안 · 검토 전', false)
+      ],
+      b,
+      canEdit: edit === 'view',
+      startEdit: () => this.setState({ edit: 'editing' }),
+      viewing: edit !== 'editing',
+      editing: edit === 'editing',
+      para: draft ? after : before,
+      pPad: draft ? '4px 8px' : '0',
+      pBg: draft ? '#211B33' : 'transparent',
+      pFg: draft ? '#D9CCFF' : '#D6D7DC',
+      after,
+      cancelEdit: () => this.setState({ edit: 'view' }),
+      saveDraft: () => this.setState({ edit: 'draft' }),
+      evidence: [
+        ev('야간 정산 배치 검증', '개발 서버 · 사본', '오늘 03:10', 'RemoteSearch.dc.html'),
+        ev('배치 실패 알림 설정', '개발 서버 · 사본', '11월 4일', 'RemoteSearch.dc.html'),
+        ev('월말 정산 쿼리 점검', '이 Mac', '11월 3일', 'Context.dc.html')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

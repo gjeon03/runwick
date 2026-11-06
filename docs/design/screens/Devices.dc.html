@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>기기</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="1" running="4" settings-href="Session.dc.html" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="설정 분류" style="flex:0 0 232px;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;gap:1px;padding:12px 8px;background:#15161A;border-right:1px solid #25262B">
+      <a href="Session.dc.html" style="height:30px;display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:0 8px;border-radius:6px;font-size:12.500px;color:#B0B1B8">
+        <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="M13 8H3M7 4 3 8l4 4"></path></svg>작업실로 돌아가기
+      </a>
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="9">
+        <a href="{{n.href}}" aria-current="{{n.cur}}" style="height:30px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:{{n.bg}};color:{{n.fg}}">{{n.t}}</a>
+      </sc-for>
+    </nav>
+    <main style="flex:999 1 520px;min-width:0;overflow-y:auto;padding:24px 32px 40px;background:#101114">
+      <div style="max-width:900px;margin:0 auto;display:flex;flex-direction:column;gap:18px">
+        <header style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px">
+          <div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:4px">
+            <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.01em">기기</h1>
+            <p style="margin:0;color:#B0B1B8">이 Mac은 등록 없이 바로 써요. 다른 기기를 추가하면 그 기기의 작업 공간이 같은 사이드바에 함께 보이고, 실행은 각 기기에서 계속돼요.</p>
+          </div>
+          <a href="DeviceAdd.dc.html" style="flex:none;height:32px;display:flex;align-items:center;gap:5px;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">
+            <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.700;stroke-linecap:round"><path d="M8 3v10M3 8h10"></path></svg>기기 추가
+          </a>
+        </header>
+
+        <div role="tablist" aria-label="기기 목록" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:8px">
+          <sc-for list="{{devs}}" as="d" hint-placeholder-count="3">
+            <button type="button" role="tab" aria-selected="{{d.on}}" onClick="{{d.pick}}" style="display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:12px 14px;border:0;border-radius:11px;background:{{d.bg}};box-shadow:{{d.ring}};color:#EDEDF0;font:inherit;text-align:left;cursor:pointer">
+              <span style="display:flex;align-items:center;gap:7px;width:100%">
+                <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#B0B1B8;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{d.i}}"></path></svg>
+                <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600">{{d.t}}</span>
+                <span aria-hidden="true" style="flex:none;width:7px;height:7px;border-radius:50%;background:{{d.dot}}"></span>
+              </span>
+              <span style="font-size:12px;color:{{d.sc}}">{{d.st}}</span>
+              <span style="font-size:12px;color:#8E8F98">{{d.m}}</span>
+            </button>
+          </sc-for>
+        </div>
+
+        <section aria-label="{{sel.t}}" style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:14px 16px;border-radius:12px;background:#17181C">
+            <span style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:15px;font-weight:600">{{sel.t}}</span>
+              <span style="font-size:12.500px;color:#B0B1B8;overflow-wrap:anywhere">{{sel.addr}}</span>
+            </span>
+            <sc-if value="{{sel.remote}}" hint-placeholder-val="{{ true }}">
+              <span style="flex:none;display:flex;flex-wrap:wrap;gap:6px">
+                <button type="button" onClick="{{checkNow}}" style="height:30px;padding:0 12px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">{{checkT}}</button>
+                <sc-if value="{{sel.connected}}" hint-placeholder-val="{{ true }}"><a href="RemoteSpace.dc.html" style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">공간 열기</a></sc-if>
+                <button type="button" onClick="{{unpairOpen}}" style="height:30px;padding:0 12px;border:0;border-radius:7px;background:transparent;box-shadow:inset 0 0 0 1px #33343B;color:#B0B1B8;font:inherit;font-size:12.500px;cursor:pointer">등록 해제…</button>
+              </span>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{unpairAsk}}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 16px;border-radius:12px;background:#2A1719;box-shadow:inset 0 0 0 1px #4A2428">
+              <span style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:2px">
+                <span style="font-weight:600">{{sel.t}} 등록을 해제할까요?</span>
+                <span style="font-size:12.500px;color:#D6D7DC">이 Mac은 다시 추가하기 전까지 접속할 수 없어요. {{sel.t}}의 실행과 기록은 그쪽에 그대로 남아요.</span>
+              </span>
+              <span style="flex:none;display:flex;gap:6px">
+                <button type="button" onClick="{{unpairCancel}}" style="height:30px;padding:0 12px;border:0;border-radius:7px;background:#33343B;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">취소</button>
+                <button type="button" onClick="{{unpairCancel}}" style="height:30px;padding:0 12px;border:0;border-radius:7px;background:#FF7B86;color:#2A0D10;font:inherit;font-size:12.500px;font-weight:600;cursor:pointer">등록 해제</button>
+              </span>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{sel.problem}}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:8px 12px;padding:12px 16px;border-radius:12px;background:#17181C;box-shadow:inset 0 0 0 1px #4A3A1C">
+              <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:1px;fill:none;stroke:#F2C66D;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2 14.500 13.500h-13ZM8 6.500V10M8 12h.01"></path></svg>
+              <span style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:2px">
+                <span style="font-weight:600">Runwick 버전이 달라 연결하지 않았어요</span>
+                <span style="font-size:12.500px;color:#B0B1B8">개발 서버 0.3.8 · 이 Mac 0.4.1. 기기에 닿았고 로그인도 됐어요. 네트워크나 로그인 문제는 아니에요.</span>
+                <span style="font-size:12.500px;color:#B0B1B8">마지막 확인 09:12 · 그때 실행 1개(정산 배치 검증)가 돌고 있었어요.</span>
+              </span>
+              <a href="#" style="flex:none;height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">업데이트 방법</a>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{sel.hasDetail}}" hint-placeholder-val="{{ true }}">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:12px;align-items:start">
+              <section aria-label="도구와 로그인" style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+                <header style="display:flex;flex-direction:column;gap:1px;padding:12px 16px 8px">
+                  <h2 style="margin:0;font-size:13px;font-weight:600">도구와 로그인</h2>
+                  <span style="font-size:12px;color:#8E8F98">{{sel.toolNote}}</span>
+                </header>
+                <sc-for list="{{sel.tools}}" as="r" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 16px;border-top:1px solid #25262B">
+                    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:2px;fill:none;stroke:{{r.c}};stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="{{r.i}}"></path></svg>
+                    <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+                      <span>{{r.t}}</span>
+                      <span style="font-size:12px;color:#8E8F98">{{r.m}}</span>
+                    </span>
+                  </div>
+                </sc-for>
+              </section>
+
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <section aria-label="공통 환경변수 적용" style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+                  <header style="display:flex;flex-direction:column;gap:1px;padding:12px 16px 8px">
+                    <h2 style="margin:0;font-size:13px;font-weight:600">공통 환경변수</h2>
+                    <span style="font-size:12px;color:#8E8F98">값 목록은 하나예요. 기기마다 적용된 버전만 달라요.</span>
+                  </header>
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:10px 16px;border-top:1px solid #25262B">
+                    <span style="flex:1 1 200px;min-width:0;display:flex;flex-direction:column">
+                      <span style="color:{{env.c}}">{{env.t}}</span>
+                      <span style="font-size:12px;color:#8E8F98">{{env.m}}</span>
+                    </span>
+                    <sc-if value="{{env.canApply}}" hint-placeholder-val="{{ true }}">
+                      <button type="button" onClick="{{applyEnv}}" style="flex:none;height:28px;padding:0 10px;border:0;border-radius:6px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12px;cursor:pointer">{{sel.t}}에 적용</button>
+                    </sc-if>
+                    <sc-if value="{{env.refresh}}" hint-placeholder-val="{{ false }}">
+                      <a href="Refresh.dc.html" style="flex:none;font-size:12px;color:#B0B1B8;text-decoration:underline">세션 새로고침</a>
+                    </sc-if>
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:10px 16px;border-top:1px solid #25262B">
+                    <span style="flex:1 1 200px;min-width:0;display:flex;flex-direction:column">
+                      <span><span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12.500px">GITHUB_TOKEN</span> <span style="font-size:12px;color:#8E8F98">비밀값</span></span>
+                      <span style="font-size:12px;color:#8E8F98">{{secret.m}}</span>
+                    </span>
+                    <sc-if value="{{secret.canToggle}}" hint-placeholder-val="{{ true }}">
+                      <button type="button" onClick="{{toggleSecret}}" style="flex:none;height:28px;padding:0 10px;border:0;border-radius:6px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12px;cursor:pointer">{{secret.act}}</button>
+                    </sc-if>
+                  </div>
+                </section>
+
+                <section aria-label="자동 작업과 전원" style="display:flex;flex-direction:column;gap:3px;padding:12px 16px;border-radius:12px;background:#17181C">
+                  <h2 style="margin:0;font-size:13px;font-weight:600">자동 작업과 전원</h2>
+                  <span style="font-size:12.500px;color:#D6D7DC">{{sel.power}}</span>
+                  <span style="font-size:12px;color:#8E8F98">{{sel.powerNote}}</span>
+                </section>
+              </div>
+            </div>
+          </sc-if>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { sel: 'mini', applied: false, secret: false, unpair: false, checked: false };
+  renderVals() {
+    const { sel, applied, secret, unpair, checked } = this.state;
+    const I = {
+      ok: 'M3 8.500l3.200 3L13 4.500',
+      no: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM5.500 8h5',
+      laptop: 'M3 3h10v7H3ZM1.500 12.500h14',
+      mini: 'M2 5h12v6H2ZM5 13h6',
+      server: 'M2 2.500h12v4H2ZM2 9.500h12v4H2ZM4.500 4.500h.01M4.500 11.500h.01'
+    };
+    const tool = (st, t, m) => ({ c: st === 'ok' ? '#5AD6A4' : '#9B9CA5', i: st === 'ok' ? I.ok : I.no, t, m });
+    const D = {
+      local: {
+        t: 'MacBook Pro', i: I.laptop, st: '이 Mac · 로컬', sc: '#B0B1B8', dot: '#5AD6A4', m: '공간 2 · 실행 2',
+        addr: '지금 쓰는 Mac이에요. 등록 없이 바로 써요.', remote: false, connected: true, problem: false, hasDetail: true,
+        toolNote: '이 Mac의 로그인과 설정이에요.',
+        tools: [tool('ok', 'Claude Code 2.0.14 · 로그인됨', '이 Mac'), tool('ok', 'Codex 0.46 · 로그인됨', '이 Mac'), tool('ok', 'MCP · github, postgres-local', '이 Mac에 설정됨')],
+        power: '배터리 사용 중 · 새 자동 분석은 보류해요',
+        powerNote: '직접 요청한 작업은 실행해요. 다른 기기의 자동 작업에는 영향이 없어요.'
+      },
+      mini: {
+        t: '집 Mac mini', i: I.mini, st: '연결됨 · Tailscale 직접 · 42ms', sc: '#5AD6A4', dot: '#5AD6A4', m: '공간 1 · 실행 2 · Runwick 0.4.1',
+        addr: 'home-mac-mini.tail3f2a.ts.net · SSH 키 · 지문 SHA256:k3J9vX2mQe8…Lw2', remote: true, connected: true, problem: false, hasDetail: true,
+        toolNote: '집 Mac mini에서 실행할 때 쓰는 로그인과 설정이에요. 이 Mac에서 옮기지 않아요.',
+        tools: [
+          tool('ok', 'Claude Code 2.0.14 · 로그인됨', '집 Mac mini에서 로그인'),
+          tool('ok', 'Codex 0.46 · 로그인됨', '집 Mac mini에서 로그인'),
+          tool('ok', 'MCP · github', '집 Mac mini에 설정됨'),
+          tool('no', 'MCP · postgres-local은 없어요', '이 Mac의 로컬 경로라 옮기지 않았어요. 필요하면 집 Mac mini에서 따로 설정해요.')
+        ],
+        power: '전원 연결 · 위키 정리와 타임라인 요약을 맡고 있어요',
+        powerNote: '이 Mac이 배터리여도 집 Mac mini의 자동 작업은 계속돼요. 같은 정리를 두 기기가 중복으로 하지 않아요.'
+      },
+      dev: {
+        t: '개발 서버', i: I.server, st: '연결 안 됨 · 버전 확인 필요', sc: '#F2C66D', dot: '#F2C66D', m: '공간 1 · 마지막 확인 09:12',
+        addr: 'dev-server.tail3f2a.ts.net · SSH 키', remote: true, connected: false, problem: true, hasDetail: false,
+        toolNote: '', tools: [], power: '', powerNote: ''
+      }
+    };
+    const d = D[sel];
+    const nav = [
+      ['일반', '#'], ['CLI 도구', '#'], ['공통 환경변수', 'Settings.dc.html'], ['MCP', '#'],
+      ['협업', '#'], ['역할·작업 방식', '#'], ['자동 작업', 'Automation.dc.html'], ['기기', 'Devices.dc.html', true], ['저장·가져오기', 'Backup.dc.html']
+    ];
+    const env = sel === 'local'
+      ? { t: 'v12 적용 · 최신', m: '방금 바꾼 HTTP_PROXY까지 적용됐어요.', c: '#EDEDF0', canApply: false, refresh: false }
+      : applied
+        ? { t: 'v12 적용 · 최신', m: '실행 중인 세션 2개는 새로고침해야 새 값을 써요.', c: '#EDEDF0', canApply: false, refresh: true }
+        : { t: 'v11 적용 · 변경 1개 미적용', m: 'HTTP_PROXY가 바뀌었어요. 적용 전에는 집 Mac mini의 새 세션도 이전 값을 써요.', c: '#F2C66D', canApply: true, refresh: false };
+    const sec = sel === 'local'
+      ? { m: '이 Mac의 보안 저장소에 있어요.', canToggle: false, act: '' }
+      : secret
+        ? { m: '집 Mac mini에 보내기로 했어요 · 그쪽 보안 저장소에 보관해요.', canToggle: true, act: '보내지 않기' }
+        : { m: '집 Mac mini에는 보내지 않아요. 비밀값은 기기마다 직접 허용해야 보내요.', canToggle: true, act: '보내기 허용' };
+
+    return {
+      nav: nav.map((x) => ({ t: x[0], href: x[1], cur: x[2] ? 'page' : 'false', bg: x[2] ? '#26272D' : 'transparent', fg: x[2] ? '#EDEDF0' : '#B0B1B8' })),
+      devs: ['local', 'mini', 'dev'].map((k) => {
+        const x = D[k]; const on = sel === k;
+        return {
+          t: x.t, i: x.i, st: x.st, sc: x.sc, dot: x.dot, m: x.m,
+          on: on ? 'true' : 'false',
+          bg: on ? '#1F2025' : '#17181C',
+          ring: on ? 'inset 0 0 0 1.500px #D6D7DC' : 'none',
+          pick: () => this.setState({ sel: k, unpair: false, checked: false })
+        };
+      }),
+      sel: d,
+      env, secret: sec,
+      checkT: checked ? (d.connected ? '방금 확인함 · 42ms' : '다시 확인함 · 버전 다름') : '연결 확인',
+      checkNow: () => this.setState({ checked: true }),
+      unpairAsk: unpair && d.remote,
+      unpairOpen: () => this.setState({ unpair: true }),
+      unpairCancel: () => this.setState({ unpair: false }),
+      applyEnv: () => this.setState({ applied: true }),
+      toggleSecret: () => this.setState({ secret: !secret })
+    };
+  }
+}
+</script>
+</body>
+</html>

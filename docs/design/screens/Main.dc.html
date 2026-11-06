@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>첫 시작</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:auto;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.5">
+  <header style="flex:none;height:44px;display:flex;align-items:center;gap:8px;padding:0 14px">
+    <span aria-hidden="true" style="width:12px;height:12px;border-radius:50%;background:#FF5F57"></span>
+    <span aria-hidden="true" style="width:12px;height:12px;border-radius:50%;background:#FEBC2E"></span>
+    <span aria-hidden="true" style="width:12px;height:12px;border-radius:50%;background:#28C840"></span>
+  </header>
+  <main style="flex:1;display:flex;align-items:center;justify-content:center;padding:24px 32px 72px">
+    <div style="width:100%;max-width:960px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(380px,100%),1fr));gap:56px;align-items:center">
+      <section style="display:flex;flex-direction:column;align-items:flex-start;gap:20px">
+        <svg width="40" height="40" viewBox="0 0 24 24" role="img" aria-label="Runwick" style="fill:none"><path d="M12 2c1 3.6 5 5.6 5 10a5 5 0 0 1-10 0c0-2.2 1.2-3.4 2-4.4.3 1.4 1.1 2.1 1.8 2.1C10.600 7.200 10.600 4.600 12 2Z" style="fill:#FF8B3E"></path><path d="M12 18v4" style="stroke:#8E8F98;stroke-width:1.5;stroke-linecap:round"></path></svg>
+        <h1 style="margin:0;font-size:36px;line-height:1.2;font-weight:600;letter-spacing:-0.02em;text-wrap:pretty">폴더를 열면<br>바로 시작합니다</h1>
+        <p style="margin:0;max-width:420px;font-size:15px;color:#B0B1B8;text-wrap:pretty">쓰던 CLI를 그대로 열고, 필요하면 여러 AI로 넓혀 갑니다. 대화와 결과는 Runwick이 이어 둡니다.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+          <a href="Start.dc.html" style="display:flex;align-items:center;gap:10px;height:40px;padding:0 16px;border-radius:8px;background:#FF8B3E;color:#1B0F06;font-size:14px;font-weight:600">폴더 열기<span style="font-size:12px;font-weight:500;color:#4A2810">⌘O</span></a>
+          <a href="Import.dc.html" style="display:flex;align-items:center;height:40px;padding:0 16px;border-radius:8px;background:#1F2025;color:#EDEDF0;font-size:14px">Pinloom 기록 가져오기</a>
+        </div>
+        <p style="margin:0;font-size:12.5px;color:#8E8F98">이 창으로 폴더를 끌어다 놓아도 됩니다. Git이 아닌 폴더도 열 수 있어요.</p>
+      </section>
+      <section aria-label="이 컴퓨터의 도구" style="display:flex;flex-direction:column;gap:14px">
+        <h2 style="margin:0;font-size:12.5px;font-weight:500;color:#8E8F98">이 컴퓨터에서 쓸 수 있는 도구</h2>
+        <div style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+          <sc-for list="{{tools}}" as="t" hint-placeholder-count="3">
+            <div style="display:flex;align-items:center;gap:12px;min-height:56px;padding:8px 14px;border-bottom:1px solid {{t.line}}">
+              <span aria-hidden="true" style="flex:none;width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#26272D;font-family:'JetBrains Mono',Menlo,monospace;font-size:11.5px;font-weight:500">{{t.k}}</span>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+                <span style="font-weight:500">{{t.name}}</span>
+                <span style="display:flex;align-items:center;gap:5px;font-size:12px;color:{{t.c}}"><svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:{{t.c}};stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"><path d="{{t.i}}"></path></svg>{{t.state}}</span>
+              </div>
+              <sc-if value="{{t.action}}" hint-placeholder-val="{{ true }}">
+                <a href="Automation.dc.html" style="flex:none;height:28px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:#26272D;font-size:12px">{{t.action}}</a>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin:0;font-size:12.5px;color:#8E8F98">도구가 준비되지 않아도 파일과 기록은 열 수 있어요. AI는 필요할 때 허용한 범위 안에서 다른 CLI에 일을 맡기며, 범위는 <a href="Settings.dc.html" style="color:#B0B1B8;text-decoration:underline">설정</a>에서 바꿀 수 있습니다.</p>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ok = 'M3 8.5l3.500 3.500L13 4.500';
+    const warn = 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01';
+    return {
+      tools: [
+        { k: 'Cl', name: 'Claude Code', state: '설치됨 · 인증 완료', c: '#5AD6A4', i: ok, action: '', line: '#25262B' },
+        { k: 'Cx', name: 'Codex', state: '설치됨 · 로그인 필요', c: '#FF8B3E', i: warn, action: '로그인 방법', line: '#25262B' },
+        { k: '$', name: '셸 (zsh)', state: '사용 가능', c: '#5AD6A4', i: ok, action: '', line: 'transparent' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

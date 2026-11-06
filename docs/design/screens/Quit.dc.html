@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>작업까지 종료</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="position:relative;width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="1" running="3" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="collab" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="delegate" next="Quit.dc.html" label="터미널" hint-size="100%,100%"></dc-import></div>
+      <div style="flex:none"><dc-import name="SessionBar" state="idle" label="응답 완료 · 협업 2개 진행" collab="협업 2" need="확인 필요 1" hint-size="100%,34px"></dc-import></div>
+    </main>
+  </div>
+  <div aria-hidden="true" style="position:absolute;inset:0;background:rgba(8,9,11,.6)"></div>
+  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;overflow:auto">
+    <section role="dialog" aria-modal="true" aria-label="작업까지 종료" style="width:100%;max-width:560px;display:flex;flex-direction:column;border-radius:14px;background:#1B1C20;box-shadow:0 0 0 1px #33343B,0 24px 64px rgba(0,0,0,.55)">
+      <header style="display:flex;flex-direction:column;gap:3px;padding:18px 20px 12px">
+        <h1 style="margin:0;font-size:17px;font-weight:600">실행 4개를 종료할까요?</h1>
+        <p style="margin:0;font-size:12.500px;color:#B0B1B8">창만 닫으면 모두 계속 실행돼요. 대화와 기록은 어느 쪽이든 지워지지 않습니다.</p>
+      </header>
+      <div style="display:flex;flex-direction:column;gap:12px;padding:0 20px 16px">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+          <section aria-label="{{g.t}}" style="display:flex;flex-direction:column;gap:4px">
+            <h2 style="margin:0;font-size:12px;font-weight:500;color:#8E8F98">{{g.t}}</h2>
+            <div style="display:flex;flex-direction:column;border-radius:8px;background:#26272D">
+              <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:10px;min-height:44px;padding:6px 12px;border-bottom:1px solid #33343B">
+                  <span aria-hidden="true" style="flex:none;width:7px;height:7px;border-radius:50%;background:#5AD6A4;animation:wick 1.8s ease-in-out infinite"></span>
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+                    <span style="font-weight:500">{{r.t}}</span>
+                    <span title="{{r.m}}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#B0B1B8">{{r.m}}</span>
+                  </span>
+                  <span style="flex:none;font-size:12px;color:#B0B1B8">{{r.after}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-for>
+        <p style="margin:0;font-size:12.500px;color:#D6D7DC">저장하지 않은 문서 auth-notes.md는 복원용으로 보관합니다. 실제로 멈췄는지 확인한 뒤에 종료로 표시해요.</p>
+      </div>
+      <footer style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;padding:12px 20px;border-top:1px solid #33343B">
+        <a href="Session.dc.html" style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">취소</a>
+        <a href="MenuBar.dc.html" style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#33343B;font-size:12.500px;font-weight:500">창만 닫기</a>
+        <a href="Reboot.dc.html" style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:7px;background:#FF7B86;color:#2B0A0E;font-size:12.500px;font-weight:600">작업까지 종료</a>
+      </footer>
+    </section>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'need', sel: true, href: 'Collab1.dc.html' },
+        { t: 'zsh', k: '$', href: 'Session.dc.html' }
+      ],
+      groups: [
+        { t: '로그인 오류 수정과 연결된 실행', rows: [
+          { t: '로그인 오류 수정', m: 'Claude Code · 기본 공간', after: '나중에 재개 가능' },
+          { t: '회귀 검토', m: 'Codex · 기본 공간 · 승인 대기 중', after: '나중에 재개 가능' },
+          { t: 'refresh 토큰 테스트 작성', m: 'Claude Code · auth-tests · 진행 중', after: '나중에 재개 가능' }
+        ] },
+        { t: '독립 실행', rows: [
+          { t: 'zsh', m: 'payments-api / 기본 공간', after: '다시 시작만 가능' }
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

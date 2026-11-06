@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>상세 패널 머리</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width:100%;height:44px;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:0 6px 0 8px;background:#17181C;border-bottom:1px solid #25262B;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:12.5px;white-space:nowrap">
+  <nav aria-label="상세 패널 항목" style="flex:1;min-width:0;display:flex;gap:2px">
+    <sc-for list="{{items}}" as="p" hint-placeholder-count="3">
+      <a href="{{p.href}}" aria-current="{{p.cur}}" style="height:28px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:6px;background:{{p.bg}};color:{{p.fg}};font-weight:{{p.w}}">{{p.t}}</a>
+    </sc-for>
+  </nav>
+  <a href="{{closeHref}}" aria-label="패널 닫기, 실행과 검색 상태는 유지됩니다" title="패널 닫기 (Esc)" style="flex:none;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;color:#B0B1B8">
+    <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+  </a>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"tab":{"editor":"enum","options":["history","collab","result"],"default":"collab"},"closeHref":{"editor":null},"$preview":{"width":380,"height":44}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const tab = this.props.tab ?? 'collab';
+    const item = (id, t, href) => ({
+      t, href,
+      cur: tab === id ? 'page' : 'false',
+      bg: tab === id ? '#26272D' : 'transparent',
+      fg: tab === id ? '#EDEDF0' : '#B0B1B8',
+      w: tab === id ? 500 : 400
+    });
+    return {
+      items: [
+        item('history', '기록·핀', 'History.dc.html'),
+        item('collab', '협업', 'Collab2.dc.html'),
+        item('result', '변경·결과', 'Result.dc.html')
+      ],
+      closeHref: this.props.closeHref ?? 'Collab1.dc.html'
+    };
+  }
+}
+</script>
+</body>
+</html>

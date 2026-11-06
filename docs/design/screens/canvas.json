@@ -1,0 +1,731 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-06T09:00:00Z"
+  },
+  "title": "Runwick 디자인 시안",
+  "launch": {
+    "view": "canvas",
+    "page": "flows"
+  },
+  "pages": [
+    {
+      "id": "flows",
+      "name": "화면 흐름"
+    },
+    {
+      "id": "parts",
+      "name": "공통 부품"
+    }
+  ],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 1300,
+      "w": 1440,
+      "h": 900,
+      "title": "S00 · 첫 시작",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "FlowMap.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "흐름 지도",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Foundations.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "시각 기준",
+      "expand": "fill",
+      "radius": 12
+    },
+    "Start.dc.html": {
+      "x": 1520,
+      "y": 1300,
+      "w": 1440,
+      "h": 900,
+      "title": "S01 · 기본 공간에서 CLI 고르기",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Session.dc.html": {
+      "x": 3040,
+      "y": 1300,
+      "w": 1440,
+      "h": 900,
+      "title": "S02 · 평소 CLI 세션",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Docs.dc.html": {
+      "x": 4560,
+      "y": 1300,
+      "w": 1440,
+      "h": 900,
+      "title": "S03 · 터미널과 문서 나란히",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "DocConflict.dc.html": {
+      "x": 6080,
+      "y": 1300,
+      "w": 1440,
+      "h": 900,
+      "title": "S03 · 외부 변경 비교",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Space.dc.html": {
+      "x": 7600,
+      "y": 1300,
+      "w": 1440,
+      "h": 900,
+      "title": "S01 · 즐겨찾기와 공간 전환",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Collab1.dc.html": {
+      "x": 0,
+      "y": 2600,
+      "w": 1440,
+      "h": 900,
+      "title": "S02 · 위임이 나타나는 순간",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Collab2.dc.html": {
+      "x": 1520,
+      "y": 2600,
+      "w": 1440,
+      "h": 900,
+      "title": "S04 · 협업 상세",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Peek.dc.html": {
+      "x": 3040,
+      "y": 2600,
+      "w": 1440,
+      "h": 900,
+      "title": "S05 · 작업자 미리보기",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Direct.dc.html": {
+      "x": 4560,
+      "y": 2600,
+      "w": 1440,
+      "h": 900,
+      "title": "S05 · 직접 대화",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Result.dc.html": {
+      "x": 6080,
+      "y": 2600,
+      "w": 1440,
+      "h": 900,
+      "title": "S11 · 결과 반환과 확인",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Activity.dc.html": {
+      "x": 0,
+      "y": 3900,
+      "w": 1440,
+      "h": 900,
+      "title": "S06 · 전체 활동",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Stale.dc.html": {
+      "x": 1520,
+      "y": 3900,
+      "w": 1440,
+      "h": 900,
+      "title": "S02 · 오래된 승인 요청",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Uncertain.dc.html": {
+      "x": 3040,
+      "y": 3900,
+      "w": 1440,
+      "h": 900,
+      "title": "S04 · 전달 불확실과 배정 보류",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Failed.dc.html": {
+      "x": 4560,
+      "y": 3900,
+      "w": 1440,
+      "h": 900,
+      "title": "S11 · 일부 결과 후 실패",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "History.dc.html": {
+      "x": 0,
+      "y": 5200,
+      "w": 1440,
+      "h": 900,
+      "title": "S07 · 대화 검색",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Context.dc.html": {
+      "x": 1520,
+      "y": 5200,
+      "w": 1440,
+      "h": 900,
+      "title": "S07 · 원문 문맥과 핀",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "WikiHome.dc.html": {
+      "x": 3040,
+      "y": 5200,
+      "w": 1440,
+      "h": 900,
+      "title": "S08 · 위키 모아보기",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "WikiGraph.dc.html": {
+      "x": 4560,
+      "y": 5200,
+      "w": 1440,
+      "h": 900,
+      "title": "S08 · 위키 관계 그래프",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Wiki.dc.html": {
+      "x": 6080,
+      "y": 5200,
+      "w": 1440,
+      "h": 900,
+      "title": "S08 · 위키 변경 제안",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "TimelineHome.dc.html": {
+      "x": 7600,
+      "y": 5200,
+      "w": 1440,
+      "h": 900,
+      "title": "S09 · 타임라인 모아보기",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Timeline.dc.html": {
+      "x": 9120,
+      "y": 5200,
+      "w": 1440,
+      "h": 900,
+      "title": "S09 · 프로젝트 타임라인과 이어하기",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Settings.dc.html": {
+      "x": 0,
+      "y": 6500,
+      "w": 1440,
+      "h": 900,
+      "title": "S13 · 공통 환경변수",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Refresh.dc.html": {
+      "x": 1520,
+      "y": 6500,
+      "w": 1440,
+      "h": 900,
+      "title": "S12 · 세션 새로고침",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "RefreshPartial.dc.html": {
+      "x": 3040,
+      "y": 6500,
+      "w": 1440,
+      "h": 900,
+      "title": "S12 · 일부 MCP 실패",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "SplitWork.dc.html": {
+      "x": 4560,
+      "y": 6500,
+      "w": 1440,
+      "h": 900,
+      "title": "S10 · 분리해서 작업",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "SplitFail.dc.html": {
+      "x": 6080,
+      "y": 6500,
+      "w": 1440,
+      "h": 900,
+      "title": "S10 · 공간은 만들고 CLI만 실패",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Merge.dc.html": {
+      "x": 7600,
+      "y": 6500,
+      "w": 1440,
+      "h": 900,
+      "title": "S11 · 통합 충돌과 정리",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "MenuBar.dc.html": {
+      "x": 0,
+      "y": 7800,
+      "w": 1440,
+      "h": 900,
+      "title": "S06 · 창을 닫은 뒤 메뉴 막대",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Quit.dc.html": {
+      "x": 1520,
+      "y": 7800,
+      "w": 1440,
+      "h": 900,
+      "title": "작업까지 종료",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Reboot.dc.html": {
+      "x": 3040,
+      "y": 7800,
+      "w": 1440,
+      "h": 900,
+      "title": "재부팅 후 재개 선택",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Automation.dc.html": {
+      "x": 4560,
+      "y": 7800,
+      "w": 1440,
+      "h": 900,
+      "title": "S13 · 자동 작업과 배터리",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Import.dc.html": {
+      "x": 6080,
+      "y": 7800,
+      "w": 1440,
+      "h": 900,
+      "title": "S14 · Pinloom 가져오기",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Narrow1100.dc.html": {
+      "x": 0,
+      "y": 9100,
+      "w": 1100,
+      "h": 760,
+      "title": "폭 1100 · 덮개 패널",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Narrow860.dc.html": {
+      "x": 1180,
+      "y": 9100,
+      "w": 860,
+      "h": 760,
+      "title": "폭 860 · 접힌 탐색",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "DeviceAdd.dc.html": {
+      "x": 0,
+      "y": 10400,
+      "w": 1440,
+      "h": 900,
+      "title": "S13 · 기기 추가",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "RemoteSpace.dc.html": {
+      "x": 1520,
+      "y": 10400,
+      "w": 1440,
+      "h": 900,
+      "title": "S01 · 같은 사이드바의 원격 공간",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "RemoteInput.dc.html": {
+      "x": 3040,
+      "y": 10400,
+      "w": 1440,
+      "h": 900,
+      "title": "S02 · 입력은 한 기기에서",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "RemoteLost.dc.html": {
+      "x": 4560,
+      "y": 10400,
+      "w": 1440,
+      "h": 900,
+      "title": "S02 · 원격 연결 끊김과 복구",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Devices.dc.html": {
+      "x": 6080,
+      "y": 10400,
+      "w": 1440,
+      "h": 900,
+      "title": "S13 · 기기별 도구·설정 적용",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "RemotePhone.dc.html": {
+      "x": 7600,
+      "y": 10400,
+      "w": 390,
+      "h": 844,
+      "title": "모바일 (별도 판단) · 확인 홈",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 28
+    },
+    "RemotePhoneSession.dc.html": {
+      "x": 8070,
+      "y": 10400,
+      "w": 390,
+      "h": 844,
+      "title": "모바일 (별도 판단) · 답하기와 중지",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 28
+    },
+    "Titlebar.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 44,
+      "title": "제목 막대",
+      "page": "parts"
+    },
+    "Tabs.dc.html": {
+      "x": 0,
+      "y": 164,
+      "w": 900,
+      "h": 38,
+      "title": "탭",
+      "page": "parts"
+    },
+    "PanelHead.dc.html": {
+      "x": 980,
+      "y": 164,
+      "w": 380,
+      "h": 44,
+      "title": "상세 패널 머리",
+      "page": "parts"
+    },
+    "SessionBar.dc.html": {
+      "x": 0,
+      "y": 322,
+      "w": 900,
+      "h": 34,
+      "title": "세션 바",
+      "page": "parts"
+    },
+    "Sidebar.dc.html": {
+      "x": 0,
+      "y": 476,
+      "w": 264,
+      "h": 856,
+      "title": "탐색",
+      "page": "parts"
+    },
+    "Term.dc.html": {
+      "x": 344,
+      "y": 476,
+      "w": 900,
+      "h": 760,
+      "title": "터미널",
+      "page": "parts"
+    },
+    "CollabPanel.dc.html": {
+      "x": 1324,
+      "y": 476,
+      "w": 380,
+      "h": 812,
+      "title": "협업 패널",
+      "page": "parts"
+    },
+    "WorkerPeek.dc.html": {
+      "x": 1784,
+      "y": 476,
+      "w": 860,
+      "h": 640,
+      "title": "작업자 미리보기 창",
+      "page": "parts"
+    },
+    "RemoteDoc.dc.html": {
+      "x": 0,
+      "y": 11700,
+      "w": 1440,
+      "h": 900,
+      "title": "S03 · 원격 파일 저장과 충돌",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "RemoteResult.dc.html": {
+      "x": 1520,
+      "y": 11700,
+      "w": 1440,
+      "h": 900,
+      "title": "S11 · 원격에서 실행한 검증",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "RemoteActivity.dc.html": {
+      "x": 3040,
+      "y": 11700,
+      "w": 1440,
+      "h": 900,
+      "title": "S06 · 기기별 활동",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "RemoteSearch.dc.html": {
+      "x": 4560,
+      "y": 11700,
+      "w": 1440,
+      "h": 900,
+      "title": "S07 · 여러 기기 검색과 소유 기기",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "RemoteWiki.dc.html": {
+      "x": 6080,
+      "y": 11700,
+      "w": 1440,
+      "h": 900,
+      "title": "S08 · 연결 안 된 기기의 위키",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "RemoteTimeline.dc.html": {
+      "x": 7600,
+      "y": 11700,
+      "w": 1440,
+      "h": 900,
+      "title": "S09 · 기기별 타임라인과 못 받은 기록",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    },
+    "Backup.dc.html": {
+      "x": 9120,
+      "y": 11700,
+      "w": 1440,
+      "h": 900,
+      "title": "S14 · 기기별 백업",
+      "expand": "fill",
+      "is_interactive": true,
+      "radius": 12
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "FlowMap.dc.html",
+    "Foundations.dc.html",
+    "Start.dc.html",
+    "Session.dc.html",
+    "Docs.dc.html",
+    "DocConflict.dc.html",
+    "Space.dc.html",
+    "Collab1.dc.html",
+    "Collab2.dc.html",
+    "Peek.dc.html",
+    "Direct.dc.html",
+    "Result.dc.html",
+    "Activity.dc.html",
+    "Stale.dc.html",
+    "Uncertain.dc.html",
+    "Failed.dc.html",
+    "History.dc.html",
+    "Context.dc.html",
+    "WikiHome.dc.html",
+    "WikiGraph.dc.html",
+    "Wiki.dc.html",
+    "TimelineHome.dc.html",
+    "Timeline.dc.html",
+    "Settings.dc.html",
+    "Refresh.dc.html",
+    "RefreshPartial.dc.html",
+    "SplitWork.dc.html",
+    "SplitFail.dc.html",
+    "Merge.dc.html",
+    "MenuBar.dc.html",
+    "Quit.dc.html",
+    "Reboot.dc.html",
+    "Automation.dc.html",
+    "Import.dc.html",
+    "Narrow1100.dc.html",
+    "Narrow860.dc.html",
+    "DeviceAdd.dc.html",
+    "RemoteSpace.dc.html",
+    "RemoteInput.dc.html",
+    "RemoteLost.dc.html",
+    "Devices.dc.html",
+    "RemotePhone.dc.html",
+    "RemotePhoneSession.dc.html",
+    "RemoteDoc.dc.html",
+    "RemoteResult.dc.html",
+    "RemoteActivity.dc.html",
+    "RemoteSearch.dc.html",
+    "RemoteWiki.dc.html",
+    "RemoteTimeline.dc.html",
+    "Backup.dc.html",
+    "Titlebar.dc.html",
+    "Tabs.dc.html",
+    "PanelHead.dc.html",
+    "SessionBar.dc.html",
+    "Sidebar.dc.html",
+    "Term.dc.html",
+    "CollabPanel.dc.html",
+    "WorkerPeek.dc.html"
+  ],
+  "notes": {
+    "t0": {
+      "x": 0,
+      "y": -270,
+      "text": "개요",
+      "kind": "title1",
+      "maxW": 2960
+    },
+    "t1": {
+      "x": 0,
+      "y": 1030,
+      "text": "1. 기본 작업 — 폴더 열기부터 공간 전환까지",
+      "kind": "title1",
+      "maxW": 9040
+    },
+    "t2": {
+      "x": 0,
+      "y": 2330,
+      "text": "2. 협업 — 평소 세션에서 위임, 개입, 결과 확인까지",
+      "kind": "title1",
+      "maxW": 7520
+    },
+    "t3": {
+      "x": 0,
+      "y": 3630,
+      "text": "3. 주의와 복구 — 놓치지 않고 처음부터 반복하지 않기",
+      "kind": "title1",
+      "maxW": 6000
+    },
+    "t4": {
+      "x": 0,
+      "y": 4930,
+      "text": "4. 기억 — 검색, 핀, 위키 모아보기와 관계, 타임라인, 다음 날 재개",
+      "kind": "title1",
+      "maxW": 10560
+    },
+    "t5": {
+      "x": 0,
+      "y": 6230,
+      "text": "5. 환경과 분리 — 같은 대화에 설정 적용, worktree와 통합",
+      "kind": "title1",
+      "maxW": 9040
+    },
+    "t6": {
+      "x": 0,
+      "y": 7530,
+      "text": "6. 가벼움과 종료 — 창 닫기, 재부팅, 자동 작업, 가져오기",
+      "kind": "title1",
+      "maxW": 7520
+    },
+    "t7": {
+      "x": 0,
+      "y": 8830,
+      "text": "7. 좁은 화면",
+      "kind": "title1",
+      "maxW": 2040
+    },
+    "t8": {
+      "x": 0,
+      "y": 10130,
+      "text": "8. 여러 기기 — 한 번 등록하고 같은 사이드바에서 원격 공간 전환 · 모바일은 별도 판단",
+      "kind": "title1",
+      "maxW": 8460
+    },
+    "t9": {
+      "x": 0,
+      "y": 11430,
+      "text": "9. 여러 기기와 기존 화면 — 파일·결과·활동·검색·위키·타임라인·백업에 실행 기기 표시",
+      "kind": "title1",
+      "maxW": 10560
+    }
+  },
+  "designSystems": []
+}

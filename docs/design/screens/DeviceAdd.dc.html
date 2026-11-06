@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>기기 추가</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="2" settings-href="Session.dc.html" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="설정 분류" style="flex:0 0 232px;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;gap:1px;padding:12px 8px;background:#15161A;border-right:1px solid #25262B">
+      <a href="Session.dc.html" style="height:30px;display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:0 8px;border-radius:6px;font-size:12.500px;color:#B0B1B8">
+        <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="M13 8H3M7 4 3 8l4 4"></path></svg>작업실로 돌아가기
+      </a>
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="9">
+        <a href="{{n.href}}" aria-current="{{n.cur}}" style="height:30px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:{{n.bg}};color:{{n.fg}}">{{n.t}}</a>
+      </sc-for>
+    </nav>
+    <main style="flex:999 1 520px;min-width:0;overflow-y:auto;padding:24px 32px 40px;background:#101114">
+      <div style="max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:18px">
+        <header style="display:flex;flex-direction:column;gap:4px">
+          <a href="Devices.dc.html" style="align-self:flex-start;display:flex;align-items:center;gap:5px;margin-bottom:4px;font-size:12.500px;color:#B0B1B8"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="M13 8H3M7 4 3 8l4 4"></path></svg>기기</a>
+          <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.01em">기기 추가</h1>
+          <p style="margin:0;color:#B0B1B8">다른 컴퓨터를 한 번 등록하면 그 컴퓨터의 작업 공간을 이 사이드바에서 열 수 있어요. 실행은 그 컴퓨터에서 계속돼요.</p>
+        </header>
+
+        <ol aria-label="단계" style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px">
+          <sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+            <li aria-current="{{s.cur}}" style="display:flex;flex-direction:column;gap:6px;min-width:0">
+              <span aria-hidden="true" style="height:3px;border-radius:2px;background:{{s.bar}}"></span>
+              <span style="display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;color:{{s.fg}}">
+                <span style="flex:none;width:18px;height:18px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:{{s.dotBg}};color:{{s.dotFg}};font-size:10.500px;font-weight:600">{{s.n}}</span>
+                <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{s.t}}</span>
+              </span>
+            </li>
+          </sc-for>
+        </ol>
+
+        <section aria-label="{{stepName}}" style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+          <sc-if value="{{s1}}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:2px;padding:14px 16px 8px">
+              <h2 style="margin:0;font-size:14px;font-weight:600">어떤 컴퓨터를 추가할까요?</h2>
+              <span style="font-size:12.500px;color:#8E8F98">Tailscale에서 찾은 내 기기예요. Tailscale 없이 SSH 주소로도 추가할 수 있어요.</span>
+            </div>
+            <div role="radiogroup" aria-label="Tailscale 기기" style="display:flex;flex-direction:column;padding:4px 8px 8px">
+              <sc-for list="{{found}}" as="f" hint-placeholder-count="4">
+                <button type="button" role="radio" aria-checked="{{f.on}}" aria-disabled="{{f.dis}}" onClick="{{f.pick}}" style="display:flex;align-items:center;gap:10px;min-height:46px;padding:6px 10px;border:0;border-radius:8px;background:{{f.bg}};color:{{f.fg}};font:inherit;text-align:left;cursor:{{f.cursor}}">
+                  <span aria-hidden="true" style="flex:none;width:14px;height:14px;box-sizing:border-box;border-radius:50%;border:{{f.ring}}"></span>
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+                    <span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12.500px">{{f.host}}</span>
+                    <span style="font-size:12px;color:#8E8F98">{{f.m}}</span>
+                  </span>
+                  <span style="flex:none;font-size:12px;color:{{f.sc}}">{{f.st}}</span>
+                </button>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;padding:12px 16px 14px;border-top:1px solid #25262B">
+              <label style="flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:5px;font-size:12px;color:#B0B1B8">이 기기를 부를 이름
+                <input value="집 Mac mini" style="height:32px;box-sizing:border-box;padding:0 10px;border:0;border-radius:7px;background:#1F2025;color:#EDEDF0;font:inherit;font-size:13px;outline:0">
+              </label>
+              <label style="flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:5px;font-size:12px;color:#B0B1B8">또는 SSH 주소로 추가
+                <input placeholder="user@host 또는 192.168.0.12" style="height:32px;box-sizing:border-box;padding:0 10px;border:0;border-radius:7px;background:#1F2025;color:#EDEDF0;font-family:'JetBrains Mono',Menlo,monospace;font-size:12.500px;outline:0">
+              </label>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{s2}}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:2px;padding:14px 16px 8px">
+              <h2 style="margin:0;font-size:14px;font-weight:600">집 Mac mini에 연결할 수 있는지 확인해요</h2>
+              <span style="font-size:12.500px;color:#8E8F98">실패하면 이 단계에서 다시 확인해요. 이 Mac에서 대신 실행하지 않아요.</span>
+            </div>
+            <sc-for list="{{checks}}" as="c" hint-placeholder-count="3">
+              <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 12px;padding:11px 16px;border-top:1px solid #25262B">
+                <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:2px;fill:none;stroke:{{c.c}};stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="{{c.i}}"></path></svg>
+                <span style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-weight:500">{{c.t}}</span>
+                  <span style="font-size:12.500px;color:#B0B1B8;overflow-wrap:anywhere">{{c.m}}</span>
+                </span>
+                <sc-if value="{{c.hasAct}}" hint-placeholder-val="{{ false }}">
+                  <span style="flex:none;display:flex;gap:6px">
+                    <sc-if value="{{c.hasAlt}}" hint-placeholder-val="{{ false }}"><a href="#" style="height:28px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:transparent;font-size:12px;color:#B0B1B8;text-decoration:underline">{{c.alt}}</a></sc-if>
+                    <button type="button" onClick="{{c.go}}" style="height:28px;padding:0 10px;border:0;border-radius:6px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12px;cursor:pointer">{{c.act}}</button>
+                  </span>
+                </sc-if>
+              </div>
+            </sc-for>
+          </sc-if>
+
+          <sc-if value="{{s3}}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:2px;padding:14px 16px 8px">
+              <h2 style="margin:0;font-size:14px;font-weight:600">집 Mac mini에서 쓸 준비</h2>
+              <span style="font-size:12.500px;color:#8E8F98">도구와 로그인은 집 Mac mini 기준이에요. 이 Mac의 로그인과 설정을 옮기지 않아요.</span>
+            </div>
+            <sc-for list="{{prep}}" as="c" hint-placeholder-count="4">
+              <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 12px;padding:11px 16px;border-top:1px solid #25262B">
+                <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:2px;fill:none;stroke:{{c.c}};stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="{{c.i}}"></path></svg>
+                <span style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:2px">
+                  <span style="font-weight:500">{{c.t}}</span>
+                  <span style="font-size:12.500px;color:#B0B1B8">{{c.m}}</span>
+                </span>
+                <sc-if value="{{c.hasAct}}" hint-placeholder-val="{{ false }}">
+                  <button type="button" onClick="{{c.go}}" style="flex:none;height:28px;padding:0 10px;border:0;border-radius:6px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12px;cursor:pointer">{{c.act}}</button>
+                </sc-if>
+              </div>
+            </sc-for>
+          </sc-if>
+
+          <sc-if value="{{s4}}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:2px;padding:14px 16px 8px">
+              <h2 style="margin:0;font-size:14px;font-weight:600">집 Mac mini의 폴더를 골라요</h2>
+              <span style="font-size:12.500px;color:#8E8F98">고른 폴더가 작업 공간이 돼요.</span>
+            </div>
+            <div style="display:flex;flex-direction:column;padding:0 8px 8px">
+              <sc-for list="{{folders}}" as="f" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:10px;min-height:46px;padding:6px 10px;border-radius:8px;background:{{f.bg}}">
+                  <span aria-hidden="true" style="flex:none;width:14px;height:14px;box-sizing:border-box;border-radius:50%;border:{{f.ring}}"></span>
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+                    <span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12.500px">{{f.p}}</span>
+                    <span style="font-size:12px;color:#8E8F98">{{f.m}}</span>
+                  </span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;padding:12px 16px 14px;border-top:1px solid #25262B">
+              <span style="font-weight:500">이 Mac의 payments-api와 같은 저장소예요</span>
+              <span style="font-size:12.500px;color:#8E8F98">주소가 같아도 자동으로 합치지 않아요. 고른 대로만 연결해요.</span>
+              <div role="radiogroup" aria-label="연결 방식" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:8px">
+                <sc-for list="{{joins}}" as="j" hint-placeholder-count="2">
+                  <button type="button" role="radio" aria-checked="{{j.on}}" onClick="{{j.pick}}" style="display:flex;flex-direction:column;align-items:flex-start;gap:3px;padding:10px 12px;border:0;border-radius:9px;background:{{j.bg}};box-shadow:{{j.ring}};color:#EDEDF0;font:inherit;text-align:left;cursor:pointer">
+                    <span style="font-weight:500">{{j.t}}</span>
+                    <span style="font-size:12px;color:#B0B1B8">{{j.d}}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{s5}}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-wrap:wrap;gap:18px 24px;padding:16px">
+              <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:8px">
+                <h2 style="margin:0;display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:#5AD6A4;stroke-width:1.700;stroke-linecap:round;stroke-linejoin:round"><path d="M3 8.500l3.200 3L13 4.500"></path></svg>집 Mac mini를 추가했어요</h2>
+                <p style="margin:0;color:#D6D7DC">{{doneText}}</p>
+                <p style="margin:0;font-size:12.500px;color:#8E8F98">이 Mac의 기존 공간과 실행은 그대로예요. 기존 프로젝트의 실행 위치도 바꾸지 않았어요.</p>
+                <sc-if value="{{codexLater}}" hint-placeholder-val="{{ true }}">
+                  <p style="margin:0;font-size:12.500px;color:#B0B1B8">Codex 로그인이 남아 있어요. 집 Mac mini에서 로그인하면 바로 쓸 수 있어요.</p>
+                </sc-if>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+                  <a href="RemoteSpace.dc.html" style="height:32px;display:flex;align-items:center;padding:0 14px;border-radius:7px;background:#FF8B3E;color:#1B0F06;font-size:12.500px;font-weight:600">공간 열기</a>
+                  <button type="button" onClick="{{restart}}" style="height:32px;padding:0 12px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">다른 기기 추가</button>
+                </div>
+              </div>
+              <div aria-label="사이드바 미리보기" style="flex:0 1 250px;min-width:220px;display:flex;flex-direction:column;gap:1px;padding:8px 6px;border-radius:10px;background:#15161A;font-size:12.500px;color:#B0B1B8">
+                <span style="display:flex;align-items:center;gap:5px;height:26px;padding:0 6px;color:#EDEDF0;font-weight:500"><svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:#8E8F98;stroke-width:1.700;stroke-linecap:round;stroke-linejoin:round"><path d="M4 6l4 4 4-4"></path></svg>{{previewProject}}</span>
+                <sc-for list="{{preview}}" as="w" hint-placeholder-count="3">
+                  <span style="display:flex;align-items:center;gap:6px;height:26px;margin-left:12px;padding:0 8px;border-radius:6px;background:{{w.bg}};color:{{w.fg}}">{{w.t}}<sc-if value="{{w.dev}}" hint-placeholder-val="{{ false }}"><span style="height:16px;display:flex;align-items:center;padding:0 5px;border-radius:4px;background:#1F2025;color:#D6D7DC;font-size:10.500px">집 Mac mini</span></sc-if></span>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{hasFoot}}" hint-placeholder-val="{{ true }}">
+            <footer style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 16px;background:#1B1C20;border-top:1px solid #25262B">
+              <span style="flex:1 1 200px;min-width:0;font-size:12px;color:#8E8F98">{{footNote}}</span>
+              <sc-if value="{{hasPrev}}" hint-placeholder-val="{{ false }}">
+                <button type="button" onClick="{{prev}}" style="height:32px;padding:0 12px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">이전</button>
+              </sc-if>
+              <button type="button" onClick="{{next}}" aria-disabled="{{nextDis}}" style="height:32px;padding:0 14px;border:0;border-radius:7px;background:{{nextBg}};color:{{nextFg}};font:inherit;font-size:12.500px;font-weight:600;cursor:pointer">{{nextT}}</button>
+            </footer>
+          </sc-if>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { step: 1, host: 'mini', hk: false, auth: 'fail', core: 'none', codex: 'later', join: 'project' };
+  renderVals() {
+    const { step, host, hk, auth, core, codex, join } = this.state;
+    const I = {
+      ok: 'M3 8.500l3.200 3L13 4.500',
+      bad: 'M8 2 14.500 13.500h-13ZM8 6.500V10M8 12h.01',
+      ask: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM6.200 6.300a1.900 1.900 0 1 1 2.600 1.800c-.5.200-.8.600-.8 1.100v.4M8 11.600h.01',
+      wait: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM5.500 8h5'
+    };
+    const C = { ok: '#5AD6A4', bad: '#FF7B86', ask: '#F2C66D', wait: '#9B9CA5' };
+    const NAMES = ['기기 고르기', '연결 확인', '쓸 준비', '폴더 고르기', '완료'];
+    const nav = [
+      ['일반', '#'], ['CLI 도구', '#'], ['공통 환경변수', 'Settings.dc.html'], ['MCP', '#'],
+      ['협업', '#'], ['역할·작업 방식', '#'], ['자동 작업', 'Automation.dc.html'], ['기기', 'Devices.dc.html', true], ['저장·가져오기', 'Import.dc.html']
+    ];
+
+    const FOUND = [
+      { k: 'mini', host: 'home-mac-mini', m: 'macOS · Tailscale 직접 연결', st: '온라인', sc: '#5AD6A4' },
+      { k: 'dev', host: 'dev-server', m: 'Linux · Tailscale 중계 연결', st: '온라인', sc: '#5AD6A4' },
+      { k: 'phone', host: 'iphone', m: 'iOS · 휴대폰은 실행 기기로 쓸 수 없어요', st: '', sc: '#8E8F98', dis: true },
+      { k: 'self', host: 'macbook-pro', m: '지금 쓰는 Mac · 등록 없이 이미 쓰고 있어요', st: '', sc: '#8E8F98', dis: true }
+    ];
+    const chk = (st, t, m, act, go, alt) => ({ c: C[st], i: I[st], t, m, hasAct: !!act, act: act ?? '', go: go ?? (() => {}), hasAlt: !!alt, alt: alt ?? '' });
+    const checks = [
+      chk('ok', '닿아요', 'home-mac-mini.tail3f2a.ts.net · Tailscale 직접 연결 · 42ms'),
+      hk ? chk('ok', '처음 보는 기기를 확인했어요', 'SHA256:k3J9vX2mQe8…Lw2 · 다음부터는 이 지문이 다르면 연결하지 않아요')
+         : chk('ask', '처음 보는 기기예요', '지문이 집 Mac mini에서 보이는 값과 같은지 확인하세요 · SHA256:k3J9vX2mQe8…Lw2', '같아요', () => this.setState({ hk: true })),
+      auth === 'ok' ? chk('ok', '로그인됨', 'gyeongyeon 계정 · SSH 키')
+         : chk('bad', 'SSH 로그인 실패', '이 Mac의 공개 키가 집 Mac mini에 등록되지 않았어요. 네트워크 문제는 아니에요.', '다시 확인', () => this.setState({ auth: 'ok' }), '등록 방법 보기')
+    ];
+    const prep = [
+      core === 'done' ? chk('ok', 'Runwick 0.4.1 설치됨', '이 Mac과 같은 버전이에요. 창을 닫거나 연결이 끊겨도 실행을 유지해요.')
+        : core === 'busy' ? chk('wait', 'Runwick 설치 중', '집 Mac mini에 실행 유지용 Runwick만 설치해요. 화면 앱은 설치하지 않아요.')
+        : chk('ask', 'Runwick이 없어요', '실행을 유지하려면 집 Mac mini에 Runwick이 필요해요.', '설치', () => this.setState({ core: 'busy' })),
+      chk('ok', 'Claude Code 2.0.14 · 로그인됨', '집 Mac mini의 로그인을 써요.'),
+      codex === 'ok' ? chk('ok', 'Codex 0.46 · 로그인됨', '집 Mac mini의 로그인을 써요.')
+        : chk('wait', 'Codex 0.46 · 로그인 필요', '집 Mac mini에서 로그인해야 해요. 지금 안 해도 추가할 수 있어요.', '다시 확인', () => this.setState({ codex: 'ok' })),
+      chk('ok', 'zsh · git 2.47', '기본 셸과 Git을 확인했어요.')
+    ];
+    if (core === 'busy') {
+      prep[0] = { ...prep[0], hasAct: true, act: '완료 보기', go: () => this.setState({ core: 'done' }) };
+    }
+
+    const canNext = step === 1 ? true
+      : step === 2 ? (hk && auth === 'ok')
+      : step === 3 ? core === 'done'
+      : true;
+    const seg = (on) => on ? { bg: '#26272D', ring: 'inset 0 0 0 1.500px #D6D7DC', on: 'true' } : { bg: '#1F2025', ring: 'none', on: 'false' };
+    const asProject = join === 'project';
+
+    return {
+      nav: nav.map((x) => ({ t: x[0], href: x[1], cur: x[2] ? 'page' : 'false', bg: x[2] ? '#26272D' : 'transparent', fg: x[2] ? '#EDEDF0' : '#B0B1B8' })),
+      steps: NAMES.map((t, i) => {
+        const n = i + 1; const done = n < step; const cur = n === step;
+        return {
+          t, n: done ? '✓' : String(n), cur: cur ? 'step' : 'false',
+          bar: done ? '#5AD6A4' : (cur ? '#D6D7DC' : '#26272D'),
+          fg: cur ? '#EDEDF0' : (done ? '#B0B1B8' : '#6F7078'),
+          dotBg: done ? '#173A2C' : (cur ? '#EDEDF0' : '#26272D'),
+          dotFg: done ? '#5AD6A4' : (cur ? '#101114' : '#8E8F98')
+        };
+      }),
+      stepName: NAMES[step - 1],
+      s1: step === 1, s2: step === 2, s3: step === 3, s4: step === 4, s5: step === 5,
+      found: FOUND.map((f) => {
+        const on = host === f.k;
+        return {
+          host: f.host, m: f.m, st: f.st, sc: f.sc,
+          on: on ? 'true' : 'false', dis: f.dis ? 'true' : 'false',
+          bg: on ? '#26272D' : 'transparent', fg: f.dis ? '#6F7078' : '#EDEDF0',
+          ring: on ? '4.500px solid #EDEDF0' : '1.500px solid ' + (f.dis ? '#33343B' : '#6F7078'),
+          cursor: f.dis ? 'default' : 'pointer',
+          pick: () => { if (!f.dis) this.setState({ host: f.k }); }
+        };
+      }),
+      checks, prep,
+      folders: [
+        { p: '~/work/payments-api', m: 'Git · main · github.com/acme/payments-api', bg: '#26272D', ring: '4.500px solid #EDEDF0' },
+        { p: '~/work/data-batch', m: 'Git · main · github.com/acme/data-batch', bg: 'transparent', ring: '1.500px solid #6F7078' }
+      ],
+      joins: [
+        { k: 'project', t: 'payments-api의 공간으로 추가', d: '사이드바의 payments-api 아래에 함께 보여요.' },
+        { k: 'new', t: '별도 프로젝트로 추가', d: '이름이 같아도 다른 프로젝트로 다뤄요.' }
+      ].map((j) => ({ t: j.t, d: j.d, ...seg(join === j.k), pick: () => this.setState({ join: j.k }) })),
+      doneText: asProject
+        ? '사이드바 payments-api 아래에 ‘기본 공간 · 집 Mac mini’가 생겼어요.'
+        : '사이드바에 ‘payments-api (집 Mac mini)’ 프로젝트가 생겼어요.',
+      previewProject: asProject ? 'payments-api' : 'payments-api (집 Mac mini)',
+      preview: asProject
+        ? [{ t: '기본 공간', dev: false, bg: 'transparent', fg: '#B0B1B8' }, { t: 'auth-tests', dev: false, bg: 'transparent', fg: '#B0B1B8' }, { t: '기본 공간', dev: true, bg: '#26272D', fg: '#EDEDF0' }]
+        : [{ t: '기본 공간', dev: true, bg: '#26272D', fg: '#EDEDF0' }],
+      codexLater: codex !== 'ok',
+      restart: () => this.setState({ step: 1, hk: false, auth: 'fail', core: 'none', codex: 'later' }),
+      hasFoot: step < 5,
+      footNote: step === 2 && !canNext ? '모든 확인이 끝나야 다음으로 갈 수 있어요.'
+        : step === 3 && !canNext ? 'Runwick이 설치돼야 실행을 유지할 수 있어요.'
+        : step === 4 ? '추가해도 기존 공간과 실행은 바뀌지 않아요.'
+        : '',
+      hasPrev: step > 1,
+      prev: () => this.setState({ step: step - 1 }),
+      next: () => { if (canNext) this.setState({ step: step + 1 }); },
+      nextT: step === 4 ? '추가' : '다음',
+      nextDis: canNext ? 'false' : 'true',
+      nextBg: canNext ? '#FF8B3E' : '#26272D',
+      nextFg: canNext ? '#1B0F06' : '#6F7078'
+    };
+  }
+}
+</script>
+</body>
+</html>

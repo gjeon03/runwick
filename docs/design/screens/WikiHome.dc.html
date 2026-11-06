@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>위키 모아보기</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="1" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="daily" tool="wiki" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#101114">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:22px 28px 28px">
+        <div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:16px">
+          <header style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px">
+            <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:4px">
+              <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.01em">위키</h1>
+              <p style="margin:0;color:#B0B1B8">{{subtitle}}</p>
+            </div>
+            <div style="flex:0 1 auto;display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+              <label style="width:230px;max-width:100%;height:32px;box-sizing:border-box;display:flex;align-items:center;gap:7px;padding:0 10px;border-radius:7px;background:#1F2025;color:#8E8F98">
+                <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M7 12.500a5.500 5.500 0 1 0 0-11 5.500 5.500 0 0 0 0 11ZM14.500 14.500 11 11"></path></svg>
+                <input aria-label="위키 문서 검색" placeholder="제목, 본문, 태그 검색" style="flex:1;width:100%;min-width:0;padding:0;background:transparent;border:0;outline:0;color:#EDEDF0;font:inherit;font-size:12.500px">
+              </label>
+              <a href="#" style="height:32px;display:flex;align-items:center;gap:5px;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">
+                <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.700;stroke-linecap:round"><path d="M8 3v10M3 8h10"></path></svg>새 문서
+              </a>
+              <a href="History.dc.html" style="height:32px;display:flex;align-items:center;gap:5px;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">
+                <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{icons.spark}}"></path></svg>세션으로 초안
+              </a>
+              <a href="#" title="더 보기" aria-label="더 보기: 코드에서 규칙 정리, 가져오기, 내보내기, 폴더 열기" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#26272D">
+                <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:2.200;stroke-linecap:round"><path d="M3.500 8h.01M8 8h.01M12.500 8h.01"></path></svg>
+              </a>
+            </div>
+          </header>
+
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px">
+            <div role="group" aria-label="보기" style="flex:none;display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+              <span aria-current="page" style="height:26px;display:flex;align-items:center;gap:5px;padding:0 10px;border-radius:5px;background:#33343B;color:#EDEDF0;font-size:12px">
+                <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round"><path d="M5.500 4h8M5.500 8h8M5.500 12h8M2.500 4h.01M2.500 8h.01M2.500 12h.01"></path></svg>목록
+              </span>
+              <a href="WikiGraph.dc.html" style="height:26px;display:flex;align-items:center;gap:5px;padding:0 10px;border-radius:5px;color:#8E8F98;font-size:12px">
+                <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M4 4.500a1.800 1.800 0 1 0 0-.01ZM12 3a1.800 1.800 0 1 0 0-.01ZM11 12.500a1.800 1.800 0 1 0 0-.01ZM5.600 4.200 10.200 3.300M5.200 5.800l4.400 5.300M12 4.800l-.6 6"></path></svg>관계
+              </a>
+            </div>
+            <div role="group" aria-label="범위"style="flex:none;display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+              <sc-for list="{{scopes}}" as="s" hint-placeholder-count="2">
+                <button type="button" aria-pressed="{{s.on}}" onClick="{{s.pick}}" style="height:26px;padding:0 10px;border:0;border-radius:5px;background:{{s.bg}};color:{{s.fg}};font:inherit;font-size:12px;cursor:pointer">{{s.t}}</button>
+              </sc-for>
+            </div>
+            <div role="group" aria-label="주제" style="flex:1 1 300px;min-width:0;display:flex;flex-wrap:wrap;gap:4px">
+              <sc-for list="{{topics}}" as="t" hint-placeholder-count="6">
+                <button type="button" aria-pressed="{{t.on}}" onClick="{{t.pick}}" style="height:26px;padding:0 10px;border:0;border-radius:13px;background:{{t.bg}};color:{{t.fg}};font:inherit;font-size:12px;cursor:pointer">{{t.t}}</button>
+              </sc-for>
+            </div>
+            <span style="flex:none;display:flex;align-items:center;gap:4px;font-size:12px;color:#B0B1B8">최근 수정순<svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.800;stroke-linecap:round;stroke-linejoin:round"><path d="M4 6l4 4 4-4"></path></svg></span>
+          </div>
+
+          <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:20px">
+            <div style="flex:999 1 560px;min-width:0;display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+                <section aria-label="{{g.t}} 문서" style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+                  <header style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-height:40px;box-sizing:border-box;padding:6px 14px">
+                    <span title="{{g.t}}" style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600">{{g.t}}</span>
+                    <span style="flex:none;font-size:12px;color:#8E8F98">{{g.n}}</span>
+                    <span style="flex:1 1 auto;min-width:0;text-align:right;font-size:12px;color:{{g.ac}}">{{g.auto}}</span>
+                  </header>
+                  <sc-for list="{{g.docs}}" as="d" hint-placeholder-count="3">
+                    <a href="{{d.href}}" style="display:grid;grid-template-columns:minmax(0,1fr) 150px 92px 76px;align-items:center;gap:0 14px;min-height:52px;box-sizing:border-box;padding:7px 14px;border-top:1px solid #25262B">
+                      <span style="min-width:0;display:flex;flex-direction:column;gap:2px">
+                        <span title="{{d.t}}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;color:#EDEDF0">{{d.t}}</span>
+                        <span title="{{d.sum}}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#8E8F98"><span style="color:#B0B1B8">{{d.tags}}</span> · {{d.sum}}</span>
+                      </span>
+                      <span style="min-width:0;display:flex;align-items:center;gap:6px;font-size:12px;color:{{d.sc}}">
+                        <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="{{d.si}}"></path></svg>
+                        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{d.st}}</span>
+                      </span>
+                      <span title="근거" style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#B0B1B8">{{d.src}}</span>
+                      <span style="text-align:right;white-space:nowrap;font-size:12px;color:#8E8F98">{{d.when}}</span>
+                    </a>
+                  </sc-for>
+                  <sc-if value="{{g.hasMore}}" hint-placeholder-val="{{ true }}">
+                    <a href="#" style="display:flex;align-items:center;min-height:36px;padding:0 14px;border-top:1px solid #25262B;font-size:12px;color:#B0B1B8">{{g.more}}</a>
+                  </sc-if>
+                </section>
+              </sc-for>
+              <sc-if value="{{empty}}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:32px 20px;border-radius:12px;background:#17181C;text-align:center">
+                  <p style="margin:0;font-weight:500">이 범위에는 ‘{{topicName}}’ 문서가 없어요.</p>
+                  <p style="margin:0;font-size:12.500px;color:#8E8F98">다른 프로젝트 문서까지 찾아보거나 새로 만들 수 있어요.</p>
+                  <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:6px;margin-top:6px">
+                    <button type="button" onClick="{{showAll}}" style="height:30px;padding:0 12px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">모든 프로젝트에서 보기</button>
+                    <a href="#" style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">새 문서</a>
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+
+            <aside aria-label="검토와 최근 변경" style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:12px">
+              <section aria-label="검토할 것" style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+                <header style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-height:40px;box-sizing:border-box;padding:6px 14px">
+                  <h2 style="margin:0;font-size:13px;font-weight:600">검토할 것</h2>
+                  <span style="font-size:12px;color:#8E8F98">3</span>
+                  <span style="flex:1 1 auto;text-align:right;font-size:11.500px;color:#8E8F98">적용하기 전에는 문서가 바뀌지 않아요</span>
+                </header>
+                <sc-for list="{{reviews}}" as="r" hint-placeholder-count="3">
+                  <a href="{{r.href}}" style="display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-top:1px solid #25262B">
+                    <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:2px;fill:none;stroke:{{r.c}};stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="{{r.i}}"></path></svg>
+                    <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                      <span style="display:flex;align-items:baseline;gap:8px">
+                        <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">{{r.t}}</span>
+                        <span style="flex:none;font-size:11.500px;color:#8E8F98">{{r.when}}</span>
+                      </span>
+                      <span style="font-size:12px;color:#B0B1B8"><span style="color:{{r.c}}">{{r.kind}}</span> · {{r.m}}</span>
+                    </span>
+                  </a>
+                </sc-for>
+              </section>
+
+              <section aria-label="최근 변경" style="display:flex;flex-direction:column;padding:12px 14px;border-radius:12px;background:#17181C">
+                <h2 style="margin:0 0 4px;font-size:13px;font-weight:600">최근 변경</h2>
+                <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column">
+                  <sc-for list="{{recent}}" as="e" hint-placeholder-count="5">
+                    <li style="display:flex;gap:10px;padding:6px 0">
+                      <span style="flex:0 0 66px;font-size:11.500px;line-height:18px;color:#8E8F98">{{e.when}}</span>
+                      <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+                        <span style="font-size:12.500px;color:#EDEDF0">{{e.t}}</span>
+                        <span style="font-size:12px;color:#8E8F98">{{e.m}}</span>
+                      </span>
+                    </li>
+                  </sc-for>
+                </ol>
+                <a href="TimelineHome.dc.html" style="align-self:flex-start;margin-top:6px;font-size:12px;color:#B0B1B8;text-decoration:underline">타임라인에서 날짜별로 보기</a>
+              </section>
+
+              <p style="margin:0;padding:0 4px;font-size:12px;color:#8E8F98">AI 정리는 payments-api만 켜져 있어요. 지금은 배터리라 새 분석을 보류 중이에요. <a href="Automation.dc.html" style="color:#B0B1B8;text-decoration:underline">자동 작업 설정</a></p>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { scope: 'all', topic: '전체' };
+  renderVals() {
+    const { scope, topic } = this.state;
+    const I = {
+      ask: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM6.200 6.300a1.900 1.900 0 1 1 2.600 1.800c-.5.200-.8.600-.8 1.100v.4M8 11.600h.01',
+      diff: 'M2.500 4.500h5M5 2v5M8.500 11.500h5M12.500 2.500l-9 11',
+      spark: 'M8 1.500l1.300 3.700L13 6.500 9.300 7.800 8 11.500 6.700 7.800 3 6.500l3.700-1.300ZM12.500 11v3.500M10.750 12.750h3.500',
+      pen: 'M10.500 2.500l3 3L6 13H3v-3Z',
+      inbox: 'M8 2v7.500M4.800 6.300 8 9.500l3.200-3.200M2.500 10.500v3h11v-3'
+    };
+    const ST = {
+      conflict: { c: '#F2C66D', i: I.ask, t: '제안 1건 · 확인 필요' },
+      proposal: { c: '#74B7FF', i: I.diff, t: '제안 1건' },
+      draft: { c: '#74B7FF', i: I.spark, t: 'AI 초안 · 검토 전' },
+      manual: { c: '#8E8F98', i: I.pen, t: '직접 작성' },
+      imported: { c: '#8E8F98', i: I.inbox, t: 'Pinloom에서 가져옴' }
+    };
+    const doc = (t, tags, sum, st, src, when, href) => ({ t, tags, sum, st, src, when, href: href ?? '#' });
+    const GROUPS = [
+      { k: 'pay', t: 'payments-api', total: 9, auto: 'AI 정리 켜짐 · 배터리라 보류', ac: '#9B9CA5', docs: [
+        doc('로그인과 세션', ['인증', '세션'], '서버 만료 시각을 기준으로 삼고 갱신은 만료 전에만', 'conflict', '세션 2 · 핀 1', '10월 28일', 'Wiki.dc.html'),
+        doc('결제 웹훅 재시도', ['결제'], '실패한 웹훅의 재시도 간격과 멱등 키', 'draft', '세션 1', '오늘 10:12'),
+        doc('배포 절차', ['배포'], '스테이징 확인부터 태그와 롤백까지', 'proposal', '핀 1', '10월 12일'),
+        doc('주요 결정', ['결정'], '쿠키 만료는 서버 기준, 재시도는 세 번까지', 'manual', '세션 1 · 핀 1', '10월 30일')
+      ] },
+      { k: 'docs', t: 'docs-site', total: 4, auto: 'AI 정리 꺼짐', ac: '#8E8F98', docs: [
+        doc('인증 가이드 초안', ['인증'], 'payments-api의 핀과 협업 결과를 참조해 작성', 'manual', '협업 참조 1', '어제 17:20'),
+        doc('문서 사이트 빌드 규칙', ['규칙'], '링크 검사, 미리보기 배포, 버전 표기', 'manual', '세션 1', '11월 3일')
+      ] },
+      { k: 'calc', t: '사내 정산 리포트 자동화 및 문서 정리 프로젝트', total: 7, auto: 'AI 정리 꺼짐', ac: '#8E8F98', docs: [
+        doc('월말 정산 쿼리 모음', ['결제'], '대사 쿼리와 환불 건 예외 처리 메모', 'imported', '원문 연결 1', '10월 30일')
+      ] },
+      { k: 'common', t: '공통 문서', total: 3, auto: '특정 프로젝트에 묶이지 않은 문서', ac: '#8E8F98', docs: [
+        doc('Git 커밋 규칙', ['규칙'], '커밋 메시지와 브랜치 이름 규칙', 'imported', '원문 없음', '10월 30일'),
+        doc('디버깅 순서', ['규칙'], '자주 나는 실패와 먼저 볼 곳', 'imported', '원문 없음', '10월 30일')
+      ] }
+    ];
+    const all = topic === '전체';
+    const groups = GROUPS
+      .filter((g) => scope === 'all' || g.k === 'pay')
+      .map((g) => {
+        const docs = g.docs.filter((d) => all || d.tags.includes(topic));
+        return {
+          t: g.t, auto: g.auto, ac: g.ac,
+          n: all ? '문서 ' + g.total + '개' : docs.length + '개 일치',
+          docs: docs.map((d) => {
+            const s = ST[d.st];
+            return { t: d.t, tags: d.tags.map((x) => '#' + x).join(' '), sum: d.sum, st: s.t, sc: s.c, si: s.i, src: d.src, when: d.when, href: d.href };
+          }),
+          hasMore: all && g.total > g.docs.length,
+          more: '문서 ' + (g.total - g.docs.length) + '개 더 보기'
+        };
+      })
+      .filter((g) => g.docs.length > 0);
+    const seg = (on) => on ? { on: 'true', bg: '#33343B', fg: '#EDEDF0' } : { on: 'false', bg: 'transparent', fg: '#8E8F98' };
+    const chip = (on) => on ? { on: 'true', bg: '#33343B', fg: '#EDEDF0' } : { on: 'false', bg: '#1F2025', fg: '#B0B1B8' };
+    return {
+      icons: I,
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'run', href: 'Session.dc.html' },
+        { t: '위키', k: 'wk', sel: true, href: 'WikiHome.dc.html' }
+      ],
+      subtitle: scope === 'all'
+        ? '프로젝트 3곳과 공통 문서 23개. 직접 쓴 글은 AI가 바로 고치지 않고 제안으로 남겨요.'
+        : 'payments-api 문서 9개. 직접 쓴 글은 AI가 바로 고치지 않고 제안으로 남겨요.',
+      scopes: [['all', '모든 프로젝트'], ['pay', 'payments-api']].map((x) => ({
+        t: x[1], ...seg(scope === x[0]), pick: () => this.setState({ scope: x[0] })
+      })),
+      topics: ['전체', '인증', '결제', '배포', '결정', '규칙'].map((t) => ({
+        t, ...chip(topic === t), pick: () => this.setState({ topic: t })
+      })),
+      groups,
+      empty: groups.length === 0,
+      topicName: topic,
+      showAll: () => this.setState({ scope: 'all' }),
+      reviews: [
+        { t: '로그인과 세션', kind: '확인 필요', m: 'AI 변경 제안이 기존 결정과 범위가 겹쳐요', when: '오늘 11:20', c: '#F2C66D', i: I.ask, href: 'Wiki.dc.html' },
+        { t: '결제 웹훅 재시도', kind: 'AI 초안', m: '세션 1개를 근거로 만든 새 문서', when: '오늘 10:12', c: '#74B7FF', i: I.spark, href: '#' },
+        { t: '배포 절차', kind: '변경 제안', m: '스테이징 확인 단계 추가', when: '어제 19:02', c: '#74B7FF', i: I.diff, href: '#' }
+      ],
+      recent: [
+        { when: '오늘 11:20', t: '로그인과 세션', m: 'AI 변경 제안 · 근거: 로그인 오류 수정' },
+        { when: '오늘 10:12', t: '결제 웹훅 재시도', m: 'AI 초안 · 직접 요청' },
+        { when: '어제 19:02', t: '배포 절차', m: 'AI 변경 제안 · 자동 정리' },
+        { when: '어제 17:20', t: '인증 가이드 초안', m: '직접 편집 · docs-site' },
+        { when: '10월 30일', t: 'Pinloom 문서 41개', m: '가져옴 · 누락 없음' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

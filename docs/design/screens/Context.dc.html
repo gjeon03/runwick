@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>원문 문맥과 핀</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="1" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="daily" tool="history" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#101114">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <header style="flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 20px;border-bottom:1px solid #25262B">
+        <div style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column">
+          <h1 style="margin:0;font-size:15px;font-weight:600">로그인 오류 수정</h1>
+          <span style="font-size:12px;color:#8E8F98">Claude Code · 기본 공간 · 오늘 11:04 메시지로 이동함</span>
+        </div>
+        <a href="Session.dc.html" style="flex:none;height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">살아 있는 실행 열기</a>
+        <a href="Session.dc.html" style="flex:none;height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">같은 대화 재개</a>
+      </header>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:20px">
+        <div style="max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:18px">
+          <a href="#" style="align-self:center;font-size:12px;color:#8E8F98">이전 메시지 더 읽기</a>
+          <article style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-size:12px;color:#8E8F98">나 · 11:01</span>
+            <p style="margin:0;padding:10px 12px;border-radius:10px;background:#1F2025;font-size:14px;line-height:1.65">로그인 직후 세션이 만료되는 오류 고쳐줘. 필요하면 Codex에게 검토도 맡겨</p>
+          </article>
+          <article style="position:relative;display:flex;flex-direction:column;gap:4px">
+            <span style="font-size:12px;color:#8E8F98">Claude Code · 11:04</span>
+            <p style="margin:0;font-size:14px;line-height:1.65;color:#D6D7DC">원인을 찾았습니다. <mark style="padding:1px 2px;border-radius:3px;background:#5A3417;color:#FFE3CF">만료 시각은 초 단위인데 밀리초 값과 그대로 비교하고 있습니다.</mark> <span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12.500px;color:#7CCFE6">src/auth/session.ts</span> 41번 줄의 비교식을 고치면 해결됩니다.</p>
+            <div role="toolbar" aria-label="선택한 문장" style="align-self:flex-start;display:flex;gap:2px;margin-top:4px;padding:3px;border-radius:8px;background:#26272D;box-shadow:0 8px 24px rgba(0,0,0,.4)">
+              <a href="#" style="height:26px;display:flex;align-items:center;gap:5px;padding:0 9px;border-radius:6px;background:#33343B;font-size:12px"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M9.500 1.500l5 5-2.500.8-3 3-.5 3-6-6 3-.5 3-3ZM5 11l-3.500 3.500"></path></svg>핀 고정됨</a>
+              <a href="#" style="height:26px;display:flex;align-items:center;padding:0 9px;border-radius:6px;font-size:12px;color:#D6D7DC">복사</a>
+              <a href="Wiki.dc.html" style="height:26px;display:flex;align-items:center;padding:0 9px;border-radius:6px;font-size:12px;color:#D6D7DC">위키 초안으로</a>
+            </div>
+          </article>
+          <article style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-size:12px;color:#8E8F98">Claude Code · 11:05</span>
+            <p style="margin:0;font-size:14px;line-height:1.65;color:#D6D7DC">테스트 14개가 통과했습니다. 남은 일이 서로 독립적이라 회귀 검토는 Codex에게, refresh 토큰 테스트는 별도 공간의 작업자에게 맡기겠습니다.</p>
+          </article>
+          <a href="#" style="align-self:center;font-size:12px;color:#8E8F98">다음 메시지 더 읽기</a>
+        </div>
+      </div>
+      <div style="flex:none"><dc-import name="SessionBar" state="idle" label="기록 보기" meta="CLI 입력과 스크롤은 바뀌지 않아요 · 마지막 수집 1분 전" hint-size="100%,34px"></dc-import></div>
+    </main>
+    <aside aria-label="상세 패널" style="flex:1 1 380px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#17181C;border-left:1px solid #25262B">
+      <div style="flex:none"><dc-import name="PanelHead" tab="history" close-href="Session.dc.html" hint-size="100%,44px"></dc-import></div>
+      <div style="flex:none;display:flex;gap:2px;margin:12px 12px 8px;padding:2px;border-radius:7px;background:#1F2025">
+        <a href="History.dc.html" style="flex:1;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;color:#8E8F98;font-size:12px">검색</a>
+        <a href="#" aria-current="page" style="flex:1;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#33343B;font-size:12px">핀 3</a>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:0 8px 8px">
+        <sc-for list="{{pins}}" as="p" hint-placeholder-count="3">
+          <section style="display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:8px;background:{{p.bg}}">
+            <h2 style="margin:0;font-size:13px;font-weight:500">{{p.t}}</h2>
+            <p style="margin:0;font-size:12.500px;line-height:1.55;color:#B0B1B8">{{p.body}}</p>
+            <sc-if value="{{p.memo}}" hint-placeholder-val="{{ false }}"><p style="margin:0;font-size:12px;color:#D6D7DC">메모: {{p.memo}}</p></sc-if>
+            <span style="font-size:11.500px;color:{{p.srcColor}}">{{p.src}}</span>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px">
+              <sc-for list="{{p.acts}}" as="a" hint-placeholder-count="2">
+                <a href="{{a.href}}" style="height:24px;display:flex;align-items:center;padding:0 8px;border-radius:6px;background:#33343B;font-size:11.500px;color:#EDEDF0">{{a.t}}</a>
+              </sc-for>
+            </div>
+          </section>
+        </sc-for>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const std = [{ t: '원문', href: '#' }, { t: '인계에 담기', href: 'Timeline.dc.html' }, { t: '핀 해제', href: '#' }];
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', href: 'Session.dc.html' },
+        { t: '기록: 로그인 오류 수정', k: 'log', sel: true, href: 'Context.dc.html' }
+      ],
+      pins: [
+        { t: '세션 만료 원인', body: '만료 시각은 초 단위인데 밀리초 값과 그대로 비교하고 있습니다.', memo: '배포 전에 스테이징에서 재현 확인', src: '메시지 핀 · 로그인 오류 수정 · 오늘 11:04', srcColor: '#8E8F98', bg: '#26272D', acts: std },
+        { t: '쿠키 만료 기준', body: '세션 쿠키의 만료 시각은 서버 기준으로 내려주기로 했습니다.', memo: '', src: '메시지 핀 · 인증 구조 정리 · 10월 28일', srcColor: '#8E8F98', bg: '#1F2025', acts: std },
+        { t: '테스트 실패 로그', body: 'FAIL src/auth/session.test.ts › expires immediately after login', memo: '', src: '터미널 발췌 · 원문 메시지 연결 불가', srcColor: '#F2C66D', bg: '#1F2025', acts: [{ t: '인계에 담기', href: 'Timeline.dc.html' }, { t: '핀 해제', href: '#' }] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>작업자 미리보기 창</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<section aria-label="작업자 터미널" style="width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;overflow:hidden;border-radius:12px;background:#0B0C0E;box-shadow:0 0 0 1px {{ring}},0 24px 64px rgba(0,0,0,.55);color:#B0B1B8;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <header style="flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 10px 10px 14px;background:#17181C">
+    <div style="flex:1 1 240px;min-width:0;display:flex;flex-direction:column">
+      <span style="display:flex;align-items:center;gap:8px;min-width:0">
+        <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#EDEDF0;font-weight:600">회귀 검토</span>
+        <span style="flex:none;font-size:12px;font-weight:500;color:{{stateColor}}">{{state}}</span>
+      </span>
+      <span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;color:#8E8F98;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Codex · payments-api / 기본 공간 / main</span>
+    </div>
+    <div style="flex:none;display:flex;align-items:center;gap:6px">
+      <a href="{{primaryHref}}" style="height:30px;display:flex;align-items:center;gap:6px;padding:0 12px;border-radius:7px;background:{{primaryBg}};color:{{primaryFg}};font-size:12.500px;font-weight:600">{{primary}}</a>
+      <a href="{{keepHref}}" style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;color:#EDEDF0;font-size:12.500px">탭에 유지</a>
+      <a href="{{closeHref}}" aria-label="미리보기 닫기, 실행은 유지됩니다" title="닫기 — 실행은 유지됩니다 (Esc)" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;color:#B0B1B8">
+        <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+      </a>
+    </div>
+  </header>
+  <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column">
+    <dc-import name="Term" scene="{{termScene}}" caret="{{caret}}" typed="{{typed}}" input-live="{{inputLive}}" hint-size="100%,100%"></dc-import>
+  </div>
+  <footer style="flex:none;display:flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;background:{{footBg}};color:{{footFg}};font-size:12.500px">
+    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{footIcon}}"></path></svg>
+    <span>{{foot}}</span>
+  </footer>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"mode":{"editor":"enum","options":["preview","direct"],"default":"preview"},"$preview":{"width":860,"height":640}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const direct = (this.props.mode ?? 'preview') === 'direct';
+    return direct ? {
+      state: '직접 조작 중', stateColor: '#BBA2FF', ring: '#BBA2FF',
+      primary: '다시 맡기기', primaryHref: this.props.primaryHref ?? 'Result.dc.html', primaryBg: '#FF8B3E', primaryFg: '#1B0F06',
+      keepHref: this.props.keepHref ?? 'Result.dc.html', closeHref: this.props.closeHref ?? 'Collab2.dc.html',
+      termScene: 'codexDirect', caret: 'true', typed: '', inputLive: 'true',
+      foot: '입력이 이 작업자에게 전달됩니다. 자동 지시 1건은 다시 맡길 때까지 대기합니다.',
+      footBg: '#211B33', footFg: '#D9CCFF',
+      footIcon: 'M1.500 4h13v8h-13ZM4 7h.01M6.500 7h.01M9 7h.01M11.500 7h.01M5 9.500h6'
+    } : {
+      state: '승인 필요', stateColor: '#FF8B3E', ring: '#33343B',
+      primary: '직접 대화', primaryHref: this.props.primaryHref ?? 'Direct.dc.html', primaryBg: '#FF8B3E', primaryFg: '#1B0F06',
+      keepHref: this.props.keepHref ?? 'Result.dc.html', closeHref: this.props.closeHref ?? 'Collab2.dc.html',
+      termScene: 'codex', caret: 'false', typed: '', inputLive: 'false',
+      foot: '미리보기 중입니다. 지금 누르는 키는 작업자에게 전달되지 않아요. 답하려면 직접 대화를 누르세요.',
+      footBg: '#17181C', footFg: '#B0B1B8',
+      footIcon: 'M1 8s2.500-4.500 7-4.500S15 8 15 8s-2.500 4.500-7 4.500S1 8 1 8ZM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z'
+    };
+  }
+}
+</script>
+</body>
+</html>

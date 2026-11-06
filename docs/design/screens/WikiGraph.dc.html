@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>위키 관계 그래프</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="1" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="daily" tool="wiki" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#101114">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:22px 28px 28px">
+        <div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:16px">
+          <header style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px">
+            <div style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:4px">
+              <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.01em">위키</h1>
+              <p style="margin:0;color:#B0B1B8">링크와 근거는 실제 기록이에요. AI 유사 연결은 확인하기 전까지 제안으로만 보여요.</p>
+            </div>
+            <div style="flex:0 1 auto;display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+              <label style="width:230px;max-width:100%;height:32px;box-sizing:border-box;display:flex;align-items:center;gap:7px;padding:0 10px;border-radius:7px;background:#1F2025;color:#8E8F98">
+                <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M7 12.500a5.500 5.500 0 1 0 0-11 5.500 5.500 0 0 0 0 11ZM14.500 14.500 11 11"></path></svg>
+                <input aria-label="그래프에서 문서 찾기" placeholder="문서 찾아 가운데 두기" style="flex:1;width:100%;min-width:0;padding:0;background:transparent;border:0;outline:0;color:#EDEDF0;font:inherit;font-size:12.500px">
+              </label>
+              <a href="#" style="height:32px;display:flex;align-items:center;gap:5px;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">
+                <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.700;stroke-linecap:round"><path d="M8 3v10M3 8h10"></path></svg>새 문서
+              </a>
+              <a href="History.dc.html" style="height:32px;display:flex;align-items:center;gap:5px;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">
+                <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{icons.spark}}"></path></svg>세션으로 초안
+              </a>
+              <a href="#" title="더 보기" aria-label="더 보기: 코드에서 규칙 정리, 가져오기, 내보내기, 폴더 열기" style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#26272D">
+                <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:2.200;stroke-linecap:round"><path d="M3.500 8h.01M8 8h.01M12.500 8h.01"></path></svg>
+              </a>
+            </div>
+          </header>
+
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px">
+            <div role="group" aria-label="보기" style="flex:none;display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+              <a href="WikiHome.dc.html" style="height:26px;display:flex;align-items:center;gap:5px;padding:0 10px;border-radius:5px;color:#8E8F98;font-size:12px">
+                <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round"><path d="M5.500 4h8M5.500 8h8M5.500 12h8M2.500 4h.01M2.500 8h.01M2.500 12h.01"></path></svg>목록
+              </a>
+              <span aria-current="page" style="height:26px;display:flex;align-items:center;gap:5px;padding:0 10px;border-radius:5px;background:#33343B;color:#EDEDF0;font-size:12px">
+                <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="{{icons.graph}}"></path></svg>관계
+              </span>
+            </div>
+            <div role="group" aria-label="연결 종류" style="flex:1 1 300px;min-width:0;display:flex;flex-wrap:wrap;gap:4px">
+              <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+                <button type="button" aria-pressed="{{f.on}}" onClick="{{f.pick}}" style="height:26px;display:flex;align-items:center;gap:6px;padding:0 10px;border:0;border-radius:13px;background:{{f.bg}};color:{{f.fg}};font:inherit;font-size:12px;cursor:pointer">
+                  <svg width="16" height="8" viewBox="0 0 16 8" aria-hidden="true" style="flex:none;opacity:{{f.so}}"><path d="M2 4h12" style="fill:none;stroke:{{f.c}};stroke-width:1.800;stroke-linecap:round;stroke-dasharray:{{f.dash}}"></path></svg>{{f.t}}<span style="color:#8E8F98">{{f.n}}</span>
+                </button>
+              </sc-for>
+            </div>
+            <a href="WikiHome.dc.html" style="flex:none;font-size:12px;color:#B0B1B8;text-decoration:underline">연결 없는 문서 15개</a>
+          </div>
+
+          <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:20px">
+            <div style="flex:999 1 600px;min-width:0;display:flex;flex-direction:column;gap:10px">
+              <div style="overflow-x:auto;border-radius:12px">
+                <div role="group" aria-label="위키 관계 그래프" style="position:relative;width:100%;min-width:760px;aspect-ratio:5/3;box-sizing:border-box;overflow:hidden;border-radius:12px;background:#0F1012;box-shadow:inset 0 0 0 1px #25262B">
+                  <div style="position:absolute;left:2%;top:5%;width:62%;height:90%;box-sizing:border-box;padding:9px 12px;border-radius:12px;background:#15161A;font-size:11.500px;color:#8E8F98"><span style="font-size:12px;font-weight:500;color:#D6D7DC">payments-api</span> · 유사도 계산 켜짐</div>
+                  <div style="position:absolute;left:67%;top:5%;width:31%;height:45%;box-sizing:border-box;padding:9px 12px;border-radius:12px;background:#15161A;font-size:11.500px;color:#8E8F98"><span style="font-size:12px;font-weight:500;color:#D6D7DC">docs-site</span> · 유사도 계산 꺼짐</div>
+                  <div style="position:absolute;left:67%;top:55%;width:31%;height:40%;box-sizing:border-box;padding:9px 12px;border-radius:12px;background:#15161A;font-size:11.500px;color:#8E8F98"><span style="font-size:12px;font-weight:500;color:#D6D7DC">공통 문서</span> · 프로젝트 밖</div>
+
+                  <svg viewBox="0 0 1000 600" preserveAspectRatio="none" aria-hidden="true" style="position:absolute;left:0;top:0;width:100%;height:100%;fill:none;stroke-linecap:round">
+                    <path d="{{lines.linkDim}}" style="vector-effect:non-scaling-stroke;stroke:#33343B;stroke-width:1.300"></path>
+                    <path d="{{lines.evDim}}" style="vector-effect:non-scaling-stroke;stroke:#33343B;stroke-width:1.600;stroke-dasharray:1 4"></path>
+                    <path d="{{lines.aiDim}}" style="vector-effect:non-scaling-stroke;stroke:#74B7FF;stroke-opacity:.3;stroke-width:1.300;stroke-dasharray:6 5"></path>
+                    <path d="{{lines.confDim}}" style="vector-effect:non-scaling-stroke;stroke:#F2C66D;stroke-opacity:.35;stroke-width:1.300"></path>
+                    <path d="{{lines.linkOn}}" style="vector-effect:non-scaling-stroke;stroke:#B0B1B8;stroke-width:1.600"></path>
+                    <path d="{{lines.evOn}}" style="vector-effect:non-scaling-stroke;stroke:#B0B1B8;stroke-width:2;stroke-dasharray:1 4.500"></path>
+                    <path d="{{lines.aiOn}}" style="vector-effect:non-scaling-stroke;stroke:#74B7FF;stroke-width:1.600;stroke-dasharray:6 5"></path>
+                    <path d="{{lines.confOn}}" style="vector-effect:non-scaling-stroke;stroke:#F2C66D;stroke-width:1.800"></path>
+                  </svg>
+
+                  <sc-for list="{{tags}}" as="g" hint-placeholder-count="2">
+                    <span style="position:absolute;left:{{g.l}};top:{{g.tp}};transform:translate(-50%,-50%);height:18px;display:flex;align-items:center;padding:0 6px;border-radius:9px;background:#15161A;box-shadow:0 0 0 1px {{g.c}};color:{{g.c}};font-size:11px;white-space:nowrap;opacity:{{g.op}}">{{g.t}}</span>
+                  </sc-for>
+
+                  <sc-for list="{{nodes}}" as="n" hint-placeholder-count="10">
+                    <button type="button" aria-pressed="{{n.on}}" aria-label="{{n.aria}}" onClick="{{n.pick}}" style="position:absolute;left:{{n.l}};top:{{n.tp}};transform:translate(-50%,-50%);max-width:172px;height:{{n.h}};box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:0 10px;border:{{n.bd}};border-radius:{{n.r}};background:{{n.bg}};box-shadow:{{n.ring}};color:{{n.fg}};font:inherit;font-size:12px;white-space:nowrap;cursor:pointer;opacity:{{n.op}};transition:opacity .15s">
+                      <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:{{n.ic}};stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="{{n.i}}"></path></svg>
+                      <span style="min-width:0;overflow:hidden;text-overflow:ellipsis">{{n.t}}</span>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:0 4px;font-size:12px;color:#8E8F98">
+                <span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:18px;height:11px;border-radius:3px;background:#26272D"></span>문서</span>
+                <span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:18px;height:11px;box-sizing:border-box;border-radius:6px;border:1px solid #33343B"></span>대화 · 핀 · 협업 결과</span>
+                <span style="display:flex;align-items:center;gap:6px"><svg width="16" height="8" viewBox="0 0 16 8" aria-hidden="true"><path d="M2 4h12" style="fill:none;stroke:#F2C66D;stroke-width:1.800;stroke-linecap:round"></path></svg>확인 필요</span>
+                <span style="flex:1 1 220px;min-width:0;text-align:right">근거 기록은 고른 문서의 것만 펼쳐요</span>
+              </div>
+            </div>
+
+            <aside aria-label="고른 항목" style="flex:1 1 280px;min-width:0;display:flex;flex-direction:column;gap:12px">
+              <section aria-label="{{sel.t}}" style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+                <div style="display:flex;flex-direction:column;gap:5px;padding:14px">
+                  <span style="display:flex;align-items:center;gap:6px;font-size:11.500px;color:#8E8F98">
+                    <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="{{sel.i}}"></path></svg>{{sel.kind}} · {{sel.p}}
+                  </span>
+                  <h2 style="margin:0;font-size:16px;line-height:1.35;font-weight:600">{{sel.t}}</h2>
+                  <span style="font-size:12px;color:{{sel.mc}}">{{sel.m}}</span>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                    <a href="{{sel.href}}" style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:{{sel.abg}};color:{{sel.afg}};font-size:12.500px;font-weight:{{sel.afw}}">{{sel.act}}</a>
+                  </div>
+                </div>
+                <header style="display:flex;align-items:center;gap:8px;min-height:36px;box-sizing:border-box;padding:6px 14px;border-top:1px solid #25262B">
+                  <h3 style="margin:0;font-size:12.500px;font-weight:600">연결</h3>
+                  <span style="font-size:12px;color:#8E8F98">{{sel.n}}</span>
+                </header>
+                <sc-for list="{{conns}}" as="c" hint-placeholder-count="5">
+                  <div style="display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-top:1px solid #25262B">
+                    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:2px;fill:none;stroke:#8E8F98;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{c.i}}"></path></svg>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                      <button type="button" onClick="{{c.go}}" style="align-self:flex-start;max-width:100%;padding:0;border:0;background:transparent;color:#EDEDF0;font:inherit;font-weight:500;text-align:left;cursor:pointer">{{c.t}}<sc-if value="{{c.xp}}" hint-placeholder-val="{{ false }}"><span style="font-weight:400;color:#8E8F98"> · {{c.p}}</span></sc-if></button>
+                      <span style="font-size:12px;color:#B0B1B8"><span style="color:{{c.c}}">{{c.l}}</span> · {{c.why}}</span>
+                      <sc-if value="{{c.ai}}" hint-placeholder-val="{{ false }}">
+                        <span style="display:flex;flex-wrap:wrap;gap:6px;margin-top:5px">
+                          <button type="button" onClick="{{c.keep}}" style="height:26px;padding:0 10px;border:0;border-radius:6px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12px;cursor:pointer">링크로 연결</button>
+                          <button type="button" onClick="{{c.hide}}" style="height:26px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:#B0B1B8;font:inherit;font-size:12px;cursor:pointer">관련 없음</button>
+                        </span>
+                      </sc-if>
+                    </div>
+                  </div>
+                </sc-for>
+                <sc-if value="{{noConns}}" hint-placeholder-val="{{ false }}">
+                  <p style="margin:0;padding:12px 14px;border-top:1px solid #25262B;font-size:12.500px;color:#8E8F98">켜 둔 연결 종류로는 이어진 곳이 없어요.</p>
+                </sc-if>
+                <sc-if value="{{hasDec}}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:9px 14px;border-top:1px solid #25262B;font-size:12px;color:#B0B1B8">
+                    <span style="flex:1 1 auto">{{decText}}</span>
+                    <button type="button" onClick="{{undo}}" style="padding:0;border:0;background:transparent;color:#B0B1B8;font:inherit;font-size:12px;text-decoration:underline;cursor:pointer">되돌리기</button>
+                  </div>
+                </sc-if>
+              </section>
+
+              <div style="display:flex;flex-direction:column;gap:6px;padding:0 4px;font-size:12px;color:#8E8F98">
+                <p style="margin:0">{{calcText}}</p>
+                <button type="button" onClick="{{calcToggle}}" style="align-self:flex-start;height:26px;padding:0 10px;border:0;border-radius:6px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12px;cursor:pointer">{{calcBtn}}</button>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { focus: 'A', show: { link: true, ev: true, ai: true }, dec: {}, calc: false };
+  renderVals() {
+    const { focus, show, dec, calc } = this.state;
+    const I = {
+      doc: 'M4 1.500h5L12.500 5v9.500H4ZM9 1.500V5h3.500',
+      session: 'M2 3h12v10H2ZM4.500 6l2 2-2 2M8 10.500h3.500',
+      pin: 'M9.500 1.500l5 5-2.500.8-3 3-.5 3-6-6 3-.5 3-3ZM5 11l-3.500 3.500',
+      collab: 'M6 7.500a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5ZM1.500 14c0-2.500 2-4 4.500-4s4.500 1.500 4.500 4M11 2.800a2.500 2.500 0 0 1 0 4.400M12.500 10.300c1.200.6 2 1.900 2 3.700',
+      ask: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM6.200 6.300a1.900 1.900 0 1 1 2.600 1.800c-.5.200-.8.600-.8 1.100v.4M8 11.600h.01',
+      diff: 'M2.500 4.500h5M5 2v5M8.500 11.500h5M12.500 2.500l-9 11',
+      spark: 'M8 1.500l1.300 3.700L13 6.500 9.300 7.800 8 11.500 6.700 7.800 3 6.500l3.700-1.300ZM12.500 11v3.500M10.750 12.750h3.500',
+      inbox: 'M8 2v7.500M4.800 6.300 8 9.500l3.200-3.200M2.500 10.500v3h11v-3',
+      graph: 'M4 4.500a1.800 1.800 0 1 0 0-.01ZM12 3a1.800 1.800 0 1 0 0-.01ZM11 12.500a1.800 1.800 0 1 0 0-.01ZM5.600 4.200 10.200 3.300M5.200 5.800l4.400 5.300M12 4.800l-.6 6'
+    };
+    const KI = { doc: I.doc, session: I.session, pin: I.pin, collab: I.collab };
+    const KN = { doc: '문서', session: '대화', pin: '핀', collab: '협업 결과' };
+    const SI = { conflict: [I.ask, '#F2C66D'], proposal: [I.diff, '#74B7FF'], draft: [I.spark, '#74B7FF'], imported: [I.inbox, '#8E8F98'] };
+    const P = 'payments-api';
+    const n = (k, t, p, x, y, m, st, act, href, pri) => ({ k, t, p, x, y, m, st, act, href: href ?? '#', pri: !!pri });
+    const N = {
+      A: n('doc', '로그인과 세션', P, 330, 290, '직접 작성 · 제안 1건 · 확인 필요', 'conflict', '제안 검토', 'Wiki.dc.html', true),
+      B: n('doc', '주요 결정', P, 130, 150, '직접 작성 · 10월 30일 수정', '', '문서 열기'),
+      C: n('doc', '배포 절차', P, 570, 525, '직접 작성 · 제안 1건', 'proposal', '문서 열기'),
+      D: n('doc', '결제 웹훅 재시도', P, 110, 490, 'AI 초안 · 검토 전', 'draft', '초안 검토'),
+      I: n('doc', '토큰 갱신 실패 대응', P, 370, 470, '직접 작성 · 10월 9일 수정', '', '문서 열기'),
+      E: n('doc', '인증 가이드 초안', 'docs-site', 770, 105, '직접 작성 · 어제 17:20 수정', '', '문서 열기'),
+      F: n('doc', '문서 사이트 빌드 규칙', 'docs-site', 860, 190, '직접 작성 · 11월 3일 수정', '', '문서 열기'),
+      G: n('doc', 'Git 커밋 규칙', '공통 문서', 850, 450, 'Pinloom에서 가져옴 · 원문 없음', 'imported', '문서 열기'),
+      S1: n('session', '로그인 오류 수정', P, 540, 340, '오늘 11:01 시작 · 실행 중', '', '원문 보기', 'Context.dc.html'),
+      S2: n('session', '인증 구조 정리', P, 115, 300, '10월 28일 · 종료', '', '원문 보기', 'Context.dc.html'),
+      S3: n('session', '웹훅 재시도 조사', P, 110, 400, '오늘 09:40 · 종료', '', '원문 보기', 'Context.dc.html'),
+      S4: n('session', '빌드 오류 정리', 'docs-site', 750, 262, '11월 3일 · 종료', '', '원문 보기', 'Context.dc.html'),
+      P1: n('pin', '세션 만료 원인', P, 360, 195, '오늘 11:04 · 로그인 오류 수정', '', '원문 보기', 'Context.dc.html'),
+      P2: n('pin', '쿠키 만료 기준', P, 330, 110, '10월 28일 · 인증 구조 정리', '', '원문 보기', 'Context.dc.html'),
+      P3: n('pin', '스테이징 확인 순서', P, 555, 430, '10월 12일 · 배포 점검', '', '원문 보기', 'Context.dc.html'),
+      R1: n('collab', '인증 흐름 정리', P, 555, 62, '어제 15:10 · Codex 작업자', '', '결과 보기', 'Result.dc.html')
+    };
+    const E = [
+      { a: 'A', b: 'B', k: 'link', conf: true, l: '링크 · 확인 필요', why: 'AI 변경 제안이 ‘쿠키 만료는 서버 기준’ 결정과 범위가 겹쳐요' },
+      { a: 'E', b: 'A', k: 'link', l: '다른 프로젝트 참조', why: 'docs-site 문서가 링크로 참조해요. 내용은 복사하지 않아요' },
+      { a: 'E', b: 'P2', k: 'link', l: '다른 프로젝트 참조', why: 'docs-site 문서가 이 핀을 인용해요' },
+      { a: 'C', b: 'G', k: 'link', l: '링크', why: '배포 전 커밋 확인 단계에서 연결해요' },
+      { a: 'F', b: 'G', k: 'link', l: '링크', why: '빌드 규칙이 같은 커밋 규칙을 따라요' },
+      { a: 'A', b: 'S1', k: 'ev', l: '근거', why: '오늘 대화에서 만료 단위 오류를 확인' },
+      { a: 'A', b: 'S2', k: 'ev', l: '근거', why: '10월 28일 대화에서 처음 정리' },
+      { a: 'A', b: 'P1', k: 'ev', l: '근거', why: '오류 원인을 짚은 메시지에 고정한 핀' },
+      { a: 'B', b: 'S2', k: 'ev', l: '근거', why: '같은 대화에서 결정했어요' },
+      { a: 'B', b: 'P2', k: 'ev', l: '근거', why: '‘쿠키 만료는 서버 기준’ 결정의 출처' },
+      { a: 'C', b: 'P3', k: 'ev', l: '근거', why: '스테이징 확인 순서를 고정한 핀' },
+      { a: 'D', b: 'S3', k: 'ev', l: '근거', why: 'AI 초안을 만든 대화' },
+      { a: 'E', b: 'R1', k: 'ev', l: '근거 · 다른 프로젝트', why: 'payments-api 협업 결과를 참조해 작성' },
+      { a: 'F', b: 'S4', k: 'ev', l: '근거', why: '빌드 오류를 정리한 대화' },
+      { id: 'ai1', a: 'A', b: 'I', k: 'ai', score: '0.86', why: '토큰 만료 처리 내용이 많이 겹쳐요' },
+      { id: 'ai2', a: 'D', b: 'I', k: 'ai', score: '0.74', why: '실패 후 재시도하는 방식이 비슷해요' }
+    ];
+
+    const eff = E
+      .filter((e) => !(e.k === 'ai' && dec[e.id] === 'hidden'))
+      .map((e) => (e.k === 'ai' && dec[e.id] === 'linked')
+        ? { ...e, k: 'link', l: '링크 · 방금 연결', why: 'AI 제안을 확인하고 직접 연결했어요' }
+        : e);
+    const counts = { link: 0, ev: 0, ai: 0 };
+    eff.forEach((e) => { counts[e.k] += 1; });
+    const typed = eff.filter((e) => show[e.k]);
+    const touch = (e) => e.a === focus || e.b === focus;
+    const ends = (e, id) => e.a === id || e.b === id;
+    const vis = new Set(Object.keys(N).filter((id) =>
+      N[id].k === 'doc' || id === focus || typed.some((e) => touch(e) && ends(e, id))));
+    const drawn = typed.filter((e) => vis.has(e.a) && vis.has(e.b));
+    const near = new Set([focus]);
+    drawn.forEach((e) => { if (touch(e)) { near.add(e.a); near.add(e.b); } });
+    const deg = {};
+    drawn.forEach((e) => { deg[e.a] = (deg[e.a] || 0) + 1; deg[e.b] = (deg[e.b] || 0) + 1; });
+
+    const cls = (e) => (e.conf ? 'conf' : e.k);
+    const seg = (e) => 'M' + N[e.a].x + ' ' + N[e.a].y + 'L' + N[e.b].x + ' ' + N[e.b].y;
+    const lines = {};
+    ['link', 'ev', 'ai', 'conf'].forEach((k) => {
+      lines[k + 'On'] = drawn.filter((e) => cls(e) === k && touch(e)).map(seg).join('');
+      lines[k + 'Dim'] = drawn.filter((e) => cls(e) === k && !touch(e)).map(seg).join('');
+    });
+    const pct = (v, d) => (v / d).toFixed(2) + '%';
+
+    const tags = drawn.filter((e) => e.conf || e.k === 'ai').map((e) => ({
+      t: e.conf ? '확인 필요' : e.score,
+      c: e.conf ? '#F2C66D' : '#74B7FF',
+      l: pct((N[e.a].x + N[e.b].x) / 2, 10),
+      tp: pct((N[e.a].y + N[e.b].y) / 2, 6),
+      op: touch(e) ? '1' : '.45'
+    }));
+
+    const nodes = [...vis].map((id) => {
+      const x = N[id];
+      const doc = x.k === 'doc';
+      const on = id === focus;
+      const s = SI[x.st];
+      return {
+        t: x.t, l: pct(x.x, 10), tp: pct(x.y, 6),
+        i: s ? s[0] : KI[x.k], ic: s ? s[1] : '#8E8F98',
+        h: doc ? '28px' : '26px', r: doc ? '7px' : '13px',
+        bd: doc ? '0' : '1px solid #33343B',
+        bg: on ? '#33343B' : (doc ? '#26272D' : '#15161A'),
+        fg: doc || on ? '#EDEDF0' : '#B0B1B8',
+        ring: on ? '0 0 0 2px #15161A,0 0 0 3.500px #D6D7DC' : 'none',
+        op: near.has(id) ? '1' : '.38',
+        on: on ? 'true' : 'false',
+        aria: KN[x.k] + ' ' + x.t + ', 연결 ' + (deg[id] || 0) + '개',
+        pick: () => this.setState({ focus: id })
+      };
+    });
+
+    const f = N[focus];
+    const ORD = { conf: 0, link: 1, ev: 2, ai: 3 };
+    const conns = drawn.filter(touch)
+      .sort((x, y) => ORD[cls(x)] - ORD[cls(y)])
+      .map((e) => {
+        const id = e.a === focus ? e.b : e.a;
+        const o = N[id];
+        const ai = e.k === 'ai';
+        return {
+          t: o.t, p: o.p, xp: o.p !== f.p, i: KI[o.k],
+          l: ai ? 'AI 유사 ' + e.score + ' · 확인 전' : e.l,
+          c: e.conf ? '#F2C66D' : (ai ? '#74B7FF' : '#8E8F98'),
+          why: e.why, ai,
+          go: () => this.setState({ focus: id }),
+          keep: () => this.setState({ dec: { ...dec, [e.id]: 'linked' } }),
+          hide: () => this.setState({ dec: { ...dec, [e.id]: 'hidden' } })
+        };
+      });
+    const fs = SI[f.st];
+    const decN = Object.keys(dec).length;
+
+    const FILTERS = [['link', '링크·참조', '#B0B1B8', 'none'], ['ev', '근거 기록', '#B0B1B8', '1 4'], ['ai', 'AI 유사', '#74B7FF', '4 3']];
+
+    return {
+      icons: I,
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'run', href: 'Session.dc.html' },
+        { t: '위키', k: 'wk', sel: true, href: 'WikiHome.dc.html' }
+      ],
+      filters: FILTERS.map(([k, t, c, dash]) => ({
+        t, c, dash, n: counts[k],
+        on: show[k] ? 'true' : 'false',
+        bg: show[k] ? '#33343B' : '#1F2025',
+        fg: show[k] ? '#EDEDF0' : '#8E8F98',
+        so: show[k] ? '1' : '.4',
+        pick: () => {
+          const next = { ...show, [k]: !show[k] };
+          const keep = N[focus].k === 'doc' || next.ev || k !== 'ev';
+          this.setState({ show: next, focus: keep ? focus : 'A' });
+        }
+      })),
+      lines, tags, nodes, conns,
+      noConns: conns.length === 0,
+      sel: {
+        t: f.t, p: f.p, kind: KN[f.k], i: KI[f.k], m: f.m,
+        mc: fs && f.st !== 'imported' ? fs[1] : '#8E8F98',
+        act: f.act, href: f.href,
+        abg: f.pri ? '#FF8B3E' : '#26272D', afg: f.pri ? '#1B0F06' : '#EDEDF0', afw: f.pri ? '600' : '400',
+        n: conns.length + '개'
+      },
+      hasDec: decN > 0,
+      decText: 'AI 유사 연결 ' + decN + '개를 정리했어요.',
+      undo: () => this.setState({ dec: {} }),
+      calcText: calc
+        ? 'payments-api 문서 9개의 유사도를 다시 계산하고 있어요. 직접 요청이라 배터리에서도 진행해요.'
+        : 'AI 유사 연결은 유사도 계산을 켠 payments-api 안에서만 찾아요. 배터리라 새 계산은 보류 중 · 마지막 계산 어제 21:30',
+      calcBtn: calc ? '멈추기' : '지금 계산',
+      calcToggle: () => this.setState({ calc: !calc })
+    };
+  }
+}
+</script>
+</body>
+</html>

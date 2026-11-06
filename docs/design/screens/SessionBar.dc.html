@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>세션 바</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div role="group" aria-label="세션 상태와 도구" style="width:100%;height:34px;box-sizing:border-box;display:flex;align-items:center;gap:10px;padding:0 6px 0 12px;background:#15161A;border-top:1px solid #25262B;color:#B0B1B8;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:12px;white-space:nowrap">
+  <div style="flex:1;min-width:0;display:flex;align-items:center;gap:8px;overflow:hidden">
+    <span style="flex:none;display:flex;align-items:center;gap:6px;color:{{stateColor}}"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:{{stateColor}};animation:{{stateAnim}}"></span>{{stateLabel}}</span>
+    <span style="flex:none;color:#8E8F98">{{tool}}</span>
+    <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;color:#8E8F98">{{meta}}</span>
+  </div>
+  <sc-if value="{{hasCollab}}" hint-placeholder-val="{{ false }}">
+    <a href="{{collabHref}}" aria-label="협업 상세 열기: {{collab}} {{need}}" style="flex:none;height:24px;display:flex;align-items:center;gap:6px;padding:0 9px;border-radius:12px;background:{{chipBg}};box-shadow:{{chipRing}};color:#EDEDF0">
+      <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="M6 7.500a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5ZM1.500 14c0-2.500 2-4 4.500-4s4.500 1.500 4.500 4M11 2.800a2.500 2.500 0 0 1 0 4.400M12.500 10.300c1.200.6 2 1.900 2 3.700"></path></svg>
+      <span>{{collab}}</span>
+      <sc-if value="{{hasNeed}}" hint-placeholder-val="{{ true }}"><span style="color:{{needColor}};font-weight:600">{{need}}</span></sc-if>
+    </a>
+  </sc-if>
+  <div style="flex:none;display:flex;align-items:center;gap:1px">
+    <sc-for list="{{tools}}" as="t" hint-placeholder-count="4">
+      <a href="{{t.href}}" aria-label="{{t.n}}" title="{{t.n}}" style="position:relative;width:28px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:6px;color:#B0B1B8">
+        <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{t.i}}"></path></svg>
+        <sc-if value="{{t.dot}}" hint-placeholder-val="{{ false }}"><span aria-label="적용 대기" style="position:absolute;right:5px;top:4px;width:6px;height:6px;border-radius:50%;background:#FF8B3E"></span></sc-if>
+      </a>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"state":{"editor":"enum","options":["run","need","idle","fresh","fail","direct"],"default":"run"},"label":{"editor":null},"tool":{"editor":null},"meta":{"editor":null},"collab":{"editor":null},"need":{"editor":null},"$preview":{"width":900,"height":34}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const S = {
+      run: { c: '#5AD6A4', a: 'wick 1.8s ease-in-out infinite' },
+      need: { c: '#FF8B3E', a: 'none' },
+      idle: { c: '#B0B1B8', a: 'none' },
+      fresh: { c: '#74B7FF', a: 'none' },
+      fail: { c: '#FF7B86', a: 'none' },
+      direct: { c: '#BBA2FF', a: 'none' }
+    };
+    const st = S[this.props.state ?? 'run'] ?? S.run;
+    const collab = this.props.collab ?? '';
+    const need = this.props.need ?? '';
+    const highlight = (this.props.highlight ?? '') === 'true';
+    const refreshPending = (this.props.refreshPending ?? '') === 'true';
+    return {
+      stateLabel: this.props.label ?? '실행 중',
+      stateColor: st.c, stateAnim: st.a,
+      tool: this.props.tool ?? 'Claude Code',
+      meta: this.props.meta ?? '',
+      collab, need,
+      hasCollab: collab !== '',
+      hasNeed: need !== '',
+      needColor: this.props.needColor ?? '#FF8B3E',
+      collabHref: this.props.collabHref ?? 'Collab2.dc.html',
+      chipBg: highlight ? '#2B1C12' : '#26272D',
+      chipRing: highlight ? '0 0 0 1px #FF8B3E' : 'none',
+      tools: [
+        { n: '이 세션 기록', href: 'History.dc.html', dot: false, i: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V8l2.500 1.500' },
+        { n: '핀', href: 'Context.dc.html', dot: false, i: 'M9.500 1.500l5 5-2.500.8-3 3-.5 3-6-6 3-.5 3-3ZM5 11l-3.500 3.500' },
+        { n: '세션 새로고침', href: 'Refresh.dc.html', dot: refreshPending, i: 'M13.500 8a5.500 5.500 0 1 1-1.600-3.900L13.500 6M13.500 2.500V6H10' },
+        { n: '더 보기', href: 'Quit.dc.html', dot: false, i: 'M3 8h.01M8 8h.01M13 8h.01' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

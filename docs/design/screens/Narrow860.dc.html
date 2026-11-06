@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>폭 860 접힌 탐색</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:600px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="1" running="3" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex">
+    <nav aria-label="접힌 탐색" style="flex:0 0 48px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0;background:#15161A;border-right:1px solid #25262B">
+      <a href="Narrow1100.dc.html" aria-label="탐색 펼치기" title="탐색 펼치기" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#26272D">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.400;stroke-linejoin:round"><path d="M2 3h12v10H2ZM6 3v10"></path></svg>
+      </a>
+      <span aria-hidden="true" style="width:22px;height:1px;margin:4px 0;background:#33343B"></span>
+      <sc-for list="{{rail}}" as="r" hint-placeholder-count="3">
+        <a href="{{r.href}}" aria-label="{{r.n}}" title="{{r.n}}" style="position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:{{r.bg}};font-family:'JetBrains Mono',Menlo,monospace;font-size:10.500px;font-weight:500;color:#EDEDF0">{{r.k}}<span aria-hidden="true" style="position:absolute;right:4px;top:4px;width:7px;height:7px;border-radius:50%;background:{{r.dot}}"></span></a>
+      </sc-for>
+      <span style="flex:1"></span>
+      <sc-for list="{{tools}}" as="t" hint-placeholder-count="3">
+        <a href="{{t.href}}" aria-label="{{t.n}}" title="{{t.n}}" style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:7px;color:#B0B1B8">
+          <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{t.i}}"></path></svg>
+        </a>
+      </sc-for>
+    </nav>
+    <main style="flex:1;min-width:0;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="delegate" next="Session.dc.html" label="터미널. 넓은 화면으로 돌아가기" hint-size="100%,100%"></dc-import></div>
+      <div style="flex:none"><dc-import name="SessionBar" state="idle" label="응답 완료" collab="협업 2" need="확인 필요 1" collab-href="Narrow1100.dc.html" hint-size="100%,34px"></dc-import></div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":860,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'need', sel: true, href: 'Collab1.dc.html' },
+        { t: 'zsh', k: '$', href: 'Session.dc.html' }
+      ],
+      rail: [
+        { k: 'Cl', n: '로그인 오류 수정, 확인 필요', href: 'Collab1.dc.html', bg: '#33343B', dot: '#FF8B3E' },
+        { k: 'Cx', n: '회귀 검토, 승인 필요', href: 'Peek.dc.html', bg: 'transparent', dot: '#FF8B3E' },
+        { k: 'Cl', n: 'refresh 토큰 테스트 작성, 실행 중', href: 'Space.dc.html', bg: 'transparent', dot: '#5AD6A4' }
+      ],
+      tools: [
+        { n: '기록', href: 'History.dc.html', i: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V8l2.500 1.500' },
+        { n: '위키', href: 'WikiHome.dc.html', i: 'M2.500 3c2-1 4-1 5.500.5v10C6.500 12 4.500 12 2.500 13ZM13.500 3c-2-1-4-1-5.500.5v10c1.500-1.500 3.500-1.500 5.500-.5Z' },
+        { n: '타임라인', href: 'TimelineHome.dc.html', i: 'M4 2v12M4 4h8M4 8h5M4 12h9' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>터미널</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="display:flex;flex-direction:column;justify-content:flex-end;width:100%;height:100%;box-sizing:border-box;padding:12px 16px 14px;overflow:hidden;background:#0B0C0E;color:#D6D7DC;font-family:'JetBrains Mono','SF Mono',Menlo,'Apple SD Gothic Neo',monospace;font-size:12.5px;line-height:19px">
+  <sc-for list="{{lines}}" as="l" hint-placeholder-count="14">
+    <div style="flex:none;min-height:19px;white-space:pre-wrap;overflow-wrap:anywhere;background:{{l.bg}}"><sc-for list="{{l.s}}" as="r" hint-placeholder-count="2"><span style="color:{{r.c}};font-weight:{{r.w}}">{{r.t}}</span></sc-for></div>
+  </sc-for>
+  <sc-if value="{{hasCaret}}" hint-placeholder-val="{{ true }}">
+    <a href="{{next}}" aria-label="{{label}}" style="flex:none;min-height:19px;display:flex;align-items:center;gap:8px;margin-top:8px;padding:6px 10px;border-radius:6px;background:#17181C;color:inherit;text-decoration:none;cursor:text">
+      <span style="color:#FF8B3E">❯</span>
+      <span style="color:#EDEDF0">{{typed}}</span>
+      <span aria-hidden="true" style="display:block;width:8px;height:15px;background:{{caretColor}};animation:{{caretAnim}}"></span>
+    </a>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"scene":{"editor":"enum","options":["fresh","daily","delegate","returned","codex","codexDirect","codexAfter","remote","auth","narrow"],"default":"daily"},"next":{"editor":null},"typed":{"editor":null},"$preview":{"width":900,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const scene = this.props.scene ?? 'daily';
+    const C = { f: '#D6D7DC', d: '#8E8F98', g: '#7EE0A8', r: '#FF9C9C', y: '#F2C66D', c: '#7CCFE6', m: '#CDA8F5', e: '#FF8B3E', w: '#FFFFFF', o: '#FFB98A' };
+    const L = (...a) => ({ bg: 'transparent', s: a.map((x) => ({ t: x[0], c: C[x[1] ?? 'f'], w: x[2] ?? 400 })) });
+    const ADD = (t) => ({ bg: '#10281C', s: [{ t, c: C.g, w: 400 }] });
+    const DEL = (t) => ({ bg: '#2E1518', s: [{ t, c: C.r, w: 400 }] });
+    const B = L([' ']);
+    const head = [
+      L(['Claude Code', 'o', 500], ['  ~/work/payments-api', 'd'], ['  main', 'c']),
+      B,
+      L(['❯ ', 'e'], ['로그인 직후 세션이 만료되는 오류 고쳐줘. 필요하면 Codex에게 검토도 맡겨', 'w', 500]),
+      B,
+      L(['● ', 'g'], ['세션 갱신 경로부터 확인하겠습니다.']),
+      L(['  Read ', 'd'], ['src/auth/session.ts', 'c'], [' (148줄)', 'd']),
+      L(['  Read ', 'd'], ['src/auth/refresh.ts', 'c'], [' (62줄)', 'd']),
+      B,
+      L(['● ', 'g'], ['원인을 찾았습니다. 만료 시각은 초 단위인데 밀리초 값과 그대로 비교하고 있습니다.']),
+      L(['  Edit ', 'd'], ['src/auth/session.ts', 'c']),
+      DEL('  41 -   if (expiresAt < Date.now()) {'),
+      ADD('  41 +   if (expiresAt * 1000 < Date.now()) {'),
+      B,
+      L(['  Run  ', 'd'], ['pnpm test auth', 'y']),
+      L(['  ✓ ', 'g'], ['14 passed', 'g'], ['  (3.2s)', 'd'])
+    ];
+    const delegate = [
+      B,
+      L(['● ', 'g'], ['수정은 끝났습니다. 남은 일이 서로 독립적이라 나눠서 진행하겠습니다.']),
+      L(['  회귀 검토는 Codex에게, refresh 토큰 테스트는 별도 공간의 작업자에게 맡깁니다.']),
+      B,
+      L(['  runwick run ', 'y'], ['--tool codex --role 검토 --snapshot a41f3c2', 'd']),
+      L(['  ✓ 접수 ', 'g'], ['r-0412', 'c'], ['  회귀 검토', 'd']),
+      L(['  runwick run ', 'y'], ['--tool claude --role 구현 --split auth-tests', 'd']),
+      L(['  ✓ 접수 ', 'g'], ['r-0413', 'c'], ['  refresh 토큰 테스트 작성', 'd']),
+      B,
+      L(['● ', 'g'], ['결과가 돌아오면 이어서 정리하겠습니다. 그동안 다른 요청을 주셔도 됩니다.'])
+    ];
+    const returned = [
+      B,
+      L(['◂ 결과 ', 'm', 500], ['r-0413', 'c'], ['  refresh 토큰 테스트 작성 · Claude Code · auth-tests', 'd']),
+      L(['  src/auth/refresh.test.ts 추가. pnpm test auth 18 passed (7c2e9d1 기준)']),
+      B,
+      L(['◂ 결과 ', 'm', 500], ['r-0412', 'c'], ['  회귀 검토 · Codex · 스냅샷 a41f3c2', 'd']),
+      L(['  만료 비교 수정에는 문제 없음. e2e는 사용자 지시로 생략, 통합 테스트만 통과.']),
+      B,
+      L(['● ', 'g'], ['두 결과를 합쳐 정리합니다. 통합은 지시를 받은 뒤에 진행하겠습니다.'])
+    ];
+    const codexHead = [
+      L(['Codex', 'c', 500], ['  ~/work/payments-api', 'd'], ['  스냅샷 a41f3c2', 'd']),
+      L(['맡긴 일  ', 'd'], ['로그인 오류 수정의 회귀 검토', 'f'], ['  (r-0412, 로그인 오류 수정에서 위임)', 'd']),
+      B,
+      L(['• ', 'c'], ['src/auth/session.ts 변경분을 읽었습니다.']),
+      L(['• ', 'c'], ['만료 비교 수정은 올바릅니다. refresh 경로에도 같은 단위 오류가 있는지 확인합니다.']),
+      L(['  $ ', 'd'], ['rg "expiresAt" src/', 'y']),
+      L(['  src/auth/session.ts:41', 'd']),
+      L(['  src/auth/refresh.ts:18', 'd']),
+      B,
+      L(['• ', 'c'], ['refresh.ts는 이미 초 단위로 맞습니다. 로그인 흐름 전체를 e2e로 확인하고 싶습니다.']),
+      B
+    ];
+    const ask = [
+      L(['┌ 명령 실행 허용?', 'y', 500]),
+      L(['│ ', 'y'], ['pnpm test:e2e --grep login', 'w']),
+      L(['└ ', 'y'], ['[y] 이번만 허용   [a] 항상 허용   [n] 거부', 'f'])
+    ];
+    const remote = [
+      L(['Claude Code', 'o', 500], ['  ~/work/payments-api', 'd'], ['  main', 'c']),
+      B,
+      L(['❯ ', 'e'], ['결제 웹훅 재시도를 지수 백오프로 바꾸고 멱등 키 확인을 넣어줘. 검토는 Codex에게 맡겨', 'w', 500]),
+      B,
+      L(['● ', 'g'], ['재시도 경로부터 확인하겠습니다.']),
+      L(['  Read ', 'd'], ['src/webhooks/retry.ts', 'c'], [' (96줄)', 'd']),
+      L(['  Edit ', 'd'], ['src/webhooks/retry.ts', 'c']),
+      DEL('  22 -   const delay = 5000;'),
+      ADD('  22 +   const delay = Math.min(2 ** attempt * 1000, 60000);'),
+      B,
+      L(['  Run  ', 'd'], ['pnpm test webhooks', 'y']),
+      L(['  ✓ ', 'g'], ['22 passed', 'g'], ['  (4.8s)', 'd']),
+      B,
+      L(['  runwick run ', 'y'], ['--tool codex --role 검토 --snapshot 9b1e04d', 'd']),
+      L(['  ✓ 접수 ', 'g'], ['r-0507', 'c'], ['  웹훅 회귀 검토', 'd']),
+      B,
+      L(['● ', 'g'], ['검토 결과가 오면 멱등 키 처리까지 정리하겠습니다.'])
+    ];
+    const SC = {
+      remote,
+      fresh: [L(['Claude Code', 'o', 500], ['  ~/work/payments-api', 'd'], ['  main', 'c']), B, L(['무엇을 도와드릴까요?', 'd'])],
+      daily: head.concat([B, L(['● ', 'g'], ['수정을 마쳤습니다. 다음으로 할 일을 알려 주세요.'])]),
+      delegate: head.concat(delegate),
+      returned: head.concat(delegate, returned),
+      codex: codexHead.concat(ask),
+      codexDirect: codexHead.concat(ask, [
+        B,
+        L(['n', 'w', 500], ['  거부됨', 'd']),
+        B,
+        L(['❯ ', 'e'], ['e2e는 스테이징이 필요해. 통합 테스트만 돌려줘', 'w', 500]),
+        B,
+        L(['• ', 'c'], ['알겠습니다. 통합 테스트만 실행합니다.']),
+        L(['  $ ', 'd'], ['pnpm test:integration auth', 'y']),
+        L(['  ✓ 9 passed', 'g'], ['  (11.4s)', 'd'])
+      ]),
+      codexAfter: codexHead.concat(ask, [
+        B,
+        L(['y', 'w', 500], ['  이번만 허용 (터미널에서 직접 응답)', 'd']),
+        L(['  $ ', 'd'], ['pnpm test:e2e --grep login', 'y']),
+        L(['  ✓ 3 passed', 'g'], ['  (48.1s)', 'd']),
+        B,
+        L(['• ', 'c'], ['회귀 검토를 마쳤습니다. 결과를 대표 세션으로 보냈습니다.'])
+      ]),
+      auth: [
+        L(['Claude Code', 'o', 500], ['  ~/work/payments-api.worktrees/auth-tests', 'd'], ['  feat/refresh-tests', 'c']),
+        L(['맡긴 일  ', 'd'], ['refresh 토큰 테스트 작성', 'f'], ['  (r-0413, 로그인 오류 수정에서 위임)', 'd']),
+        B,
+        L(['● ', 'g'], ['refresh.ts의 만료·재발급 경로를 확인했습니다.']),
+        L(['  Write ', 'd'], ['src/auth/refresh.test.ts', 'c']),
+        ADD('   1 + describe("refreshSession", () => {'),
+        ADD('   2 +   it("만료 전에는 토큰을 유지한다", async () => {'),
+        ADD('   3 +     const session = await createSession({ ttl: 60 });'),
+        ADD('   4 +     expect(await refreshSession(session)).toBe(session);'),
+        ADD('   5 +   });'),
+        B,
+        L(['  Run  ', 'd'], ['pnpm test auth', 'y']),
+        L(['  ⋯ 실행 중', 'd'])
+      ],
+      codexStale: [
+        L(['Codex', 'c', 500], ['  ~/work/payments-api', 'd'], ['  main', 'c']),
+        L(['맡긴 일  ', 'd'], ['API 스키마 확인', 'f'], ['  (r-0409, 로그인 오류 수정에서 위임)', 'd']),
+        B,
+        L(['• ', 'c'], ['openapi.yaml과 실제 응답 형식을 비교합니다.']),
+        L(['┌ 명령 실행 허용?', 'y', 500]),
+        L(['│ ', 'y'], ['pnpm gen:types --check', 'w']),
+        L(['└ ', 'y'], ['y', 'w', 500], ['  이번만 허용 (터미널에서 직접 응답)', 'd']),
+        B,
+        L(['  $ ', 'd'], ['pnpm gen:types --check', 'y']),
+        L(['  ✓ 차이 없음', 'g'], ['  (2.1s)', 'd']),
+        B,
+        L(['• ', 'c'], ['스키마 확인을 마쳤습니다. 결과를 대표 세션으로 보냈습니다.'])
+      ],
+      narrow: head.concat(delegate)
+    };
+    const lines = SC[scene] ?? SC.daily;
+    const hasCaret = (this.props.caret ?? 'true') !== 'false';
+    const live = (this.props.inputLive ?? 'true') !== 'false';
+    return {
+      lines, hasCaret,
+      typed: this.props.typed ?? '',
+      next: this.props.next ?? '#',
+      label: this.props.label ?? '터미널 출력',
+      caretColor: live ? '#EDEDF0' : '#33343B',
+      caretAnim: live ? 'wick 1.1s steps(2) infinite' : 'none'
+    };
+  }
+}
+</script>
+</body>
+</html>

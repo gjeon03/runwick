@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>원격 파일 저장과 충돌</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" machine="집 Mac mini" needs="1" running="3" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="remoteFiles" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+
+        <div style="flex:1;min-height:0;display:{{editDisp}};flex-wrap:wrap">
+          <div style="flex:1 1 360px;min-width:0;min-height:320px;display:flex;flex-direction:column;overflow:hidden;border-right:1px solid #25262B">
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="remote" caret="true" label="집 Mac mini의 결제 웹훅 재시도 구현 터미널" hint-size="100%,100%"></dc-import></div>
+            <div style="flex:none"><dc-import name="SessionBar" state="idle" label="응답 완료" meta="집 Mac mini에서 실행" hint-size="100%,34px"></dc-import></div>
+          </div>
+          <section aria-label="문서 편집" style="flex:1 1 480px;min-width:0;min-height:320px;display:flex;flex-direction:column;background:#101114">
+            <header style="flex:none;display:flex;flex-direction:column;gap:6px;padding:8px 10px 9px 14px;border-bottom:1px solid #25262B">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px">
+                <span style="flex:1 1 160px;min-width:0;display:flex;align-items:center;gap:8px">
+                  <span style="font-weight:500">webhooks.md</span>
+                  <span role="status" style="font-size:12px;color:{{stC}}">{{stT}}</span>
+                </span>
+                <div style="flex:none;display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+                  <span aria-current="page" style="height:24px;display:flex;align-items:center;padding:0 8px;border-radius:5px;background:#33343B;font-size:12px">편집</span>
+                  <a href="#" style="height:24px;display:flex;align-items:center;padding:0 8px;border-radius:5px;color:#8E8F98;font-size:12px">미리보기</a>
+                </div>
+                <button type="button" onClick="{{save}}" aria-disabled="{{saveDis}}" style="flex:none;height:28px;display:flex;align-items:center;gap:6px;padding:0 10px;border:0;border-radius:6px;background:{{saveBg}};color:{{saveFg}};font:inherit;font-size:12px;font-weight:{{saveW}};cursor:pointer">저장<span style="opacity:.7">⌘S</span></button>
+              </div>
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px">
+                <span title="실행 기기: 집 Mac mini" style="flex:none;height:20px;display:flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#26272D;color:#D6D7DC;font-size:11.500px"><svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="M1.500 3h13v8.500h-13ZM5.500 14h5M8 11.500V14"></path></svg>집 Mac mini</span>
+                <span title="집 Mac mini:~/work/payments-api/docs/webhooks.md" style="flex:1 1 200px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono',Menlo,monospace;font-size:11.500px;color:#8E8F98">~/work/payments-api/docs/webhooks.md</span>
+                <button type="button" onClick="{{toggleCopy}}" aria-expanded="{{copyOpenA}}" style="flex:none;height:24px;display:flex;align-items:center;gap:5px;padding:0 8px;border:0;border-radius:6px;background:#1F2025;color:#D6D7DC;font:inherit;font-size:12px;cursor:pointer">
+                  <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.400;stroke-linejoin:round"><path d="M5.500 5.500h8v8h-8ZM10.500 5.500v-3h-8v8h3"></path></svg>{{copyLabel}}
+                </button>
+              </div>
+            </header>
+
+            <sc-if value="{{copyOpen}}" hint-placeholder-val="{{ false }}">
+              <div role="group" aria-label="경로 복사 방식" style="flex:none;display:flex;flex-direction:column;gap:4px;padding:8px 10px 10px 14px;background:#15161A;border-bottom:1px solid #25262B">
+                <sc-for list="{{copyOpts}}" as="o" hint-placeholder-count="2">
+                  <button type="button" onClick="{{o.pick}}" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px;border:0;border-radius:8px;background:#1F2025;color:#EDEDF0;font:inherit;text-align:left;cursor:pointer">
+                    <span style="font-size:12.500px;font-weight:500">{{o.t}}</span>
+                    <span style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono',Menlo,monospace;font-size:11.500px;color:#D6D7DC">{{o.v}}</span>
+                    <span style="font-size:12px;color:#8E8F98">{{o.m}}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{hasBanner}}" hint-placeholder-val="{{ false }}">
+              <div role="status" style="flex:none;display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 10px;padding:10px 10px 10px 14px;background:{{b.bg}};border-bottom:1px solid #25262B">
+                <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:1px;fill:none;stroke:{{b.c}};stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round;animation:{{b.anim}}"><path d="{{b.i}}"></path></svg>
+                <span style="flex:1 1 260px;min-width:0;display:flex;flex-direction:column;gap:1px">
+                  <span style="font-size:12.500px;font-weight:600;color:{{b.fg}}">{{b.t}}</span>
+                  <span style="font-size:12px;color:#B0B1B8">{{b.m}}</span>
+                </span>
+                <sc-if value="{{b.hasAct}}" hint-placeholder-val="{{ true }}">
+                  <button type="button" onClick="{{b.go}}" style="flex:none;height:28px;padding:0 10px;border:0;border-radius:6px;background:{{b.abg}};color:{{b.afg}};font:inherit;font-size:12px;font-weight:{{b.afw}};cursor:pointer">{{b.act}}</button>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <div style="flex:1;min-height:0;overflow:auto;padding:14px 0">
+              <sc-for list="{{doc}}" as="l" hint-placeholder-count="12">
+                <div style="display:flex;gap:12px;min-height:24px;padding:0 14px 0 0;background:{{l.bg}}">
+                  <span aria-hidden="true" style="flex:none;width:36px;text-align:right;font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;line-height:24px;color:#6F7078">{{l.n}}</span>
+                  <span style="flex:1;min-width:0;font-family:'JetBrains Mono','SF Mono',Menlo,'Apple SD Gothic Neo',monospace;font-size:13px;line-height:24px;color:{{l.c}};font-weight:{{l.w}};white-space:pre-wrap">{{l.t}}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+
+        <div style="flex:1;min-height:0;display:{{cmpDisp}};flex-direction:column;background:#101114">
+          <header style="flex:none;display:flex;flex-direction:column;gap:2px;padding:18px 20px 14px">
+            <h1 style="margin:0;font-size:18px;font-weight:600">저장하기 전에 집 Mac mini의 webhooks.md가 바뀌었어요</h1>
+            <p style="margin:0;color:#B0B1B8">바꾼 쪽: Claude Code · 결제 웹훅 재시도 구현 · 집 Mac mini에서 12:03. 어느 쪽을 남길지 정할 때까지 아무것도 덮어쓰지 않아요.</p>
+          </header>
+          <div style="flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(260px,100%),1fr));gap:8px;padding:0 20px 16px;align-content:start">
+            <sc-for list="{{cols}}" as="col" hint-placeholder-count="3">
+              <section aria-label="{{col.name}}" style="display:flex;flex-direction:column;border-radius:10px;background:#17181C;overflow:hidden">
+                <header style="display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-bottom:1px solid #25262B">
+                  <span style="display:flex;flex-wrap:wrap;align-items:center;gap:6px"><span style="font-weight:500">{{col.name}}</span><span style="height:18px;display:flex;align-items:center;padding:0 5px;border-radius:4px;background:#26272D;color:#D6D7DC;font-size:11px">{{col.where}}</span></span>
+                  <span style="font-size:12px;color:#8E8F98">{{col.sub}}</span>
+                </header>
+                <div style="padding:10px 0">
+                  <sc-for list="{{col.lines}}" as="l" hint-placeholder-count="8">
+                    <div style="min-height:22px;padding:0 14px;background:{{l.bg}};color:{{l.c}};font-family:'JetBrains Mono','SF Mono',Menlo,'Apple SD Gothic Neo',monospace;font-size:12.500px;line-height:22px;white-space:pre-wrap">{{l.t}}</div>
+                  </sc-for>
+                </div>
+              </section>
+            </sc-for>
+          </div>
+          <footer style="flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 20px;background:#15161A;border-top:1px solid #25262B">
+            <span style="flex:1 1 260px;min-width:0;font-size:12.500px;color:#8E8F98">고른 내용을 저장하기 직전에 집 Mac mini의 최신 버전을 한 번 더 확인해요.</span>
+            <button type="button" onClick="{{keepEditing}}" style="height:32px;padding:0 12px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">계속 편집</button>
+            <button type="button" onClick="{{useRemote}}" style="height:32px;padding:0 12px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">집 Mac mini 내용 사용</button>
+            <button type="button" onClick="{{merge}}" style="height:32px;padding:0 12px;border:0;border-radius:7px;background:#FF8B3E;color:#1B0F06;font:inherit;font-size:12.500px;font-weight:600;cursor:pointer">두 변경 합쳐 저장</button>
+          </footer>
+        </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { save: 'dirty', copy: 'closed', kept: 'both' };
+  renderVals() {
+    const { save, copy, kept } = this.state;
+    const I = {
+      ok: 'M3 8.500l3.200 3L13 4.500',
+      need: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01',
+      wait: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V8l2.500 1.500'
+    };
+    const later = (from, to, ms) => setTimeout(() => { if (this.state.save === from) this.setState({ save: to }); }, ms);
+
+    const H = '#FFFFFF', T = '#D6D7DC';
+    const head = [['# 결제 웹훅 재시도', H, 600], ['', T, 400], ['## 재시도 간격', H, 600], ['- 실패하면 2^n초 뒤에 다시 보낸다.', T, 400], ['- 간격은 60초를 넘기지 않는다.', T, 400]];
+    const remoteLine = ['- 5번 실패하면 dead-letter 큐로 옮긴다.', T, 400, 'remote'];
+    const tail = [['', T, 400], ['## 멱등 키', H, 600], ['- 같은 이벤트는 event_id로 한 번만 처리한다.', T, 400]];
+    const mineLine = ['- 재시도할 때도 같은 키를 그대로 쓴다.', '#EDEDF0', 400, 'mine'];
+
+    const settled = save === 'saved' || save === 'clean';
+    const withRemote = save === 'merging' || (settled && kept !== 'mine');
+    const withMine = !(settled && kept === 'remote');
+    const src = head.concat(withRemote ? [remoteLine] : [], tail, withMine ? [mineLine] : []);
+    const doc = src.map((x, i) => ({
+      n: i + 1, t: x[0] || ' ', c: x[1], w: x[2],
+      bg: x[3] === 'mine' && !settled ? '#1B1C20' : (x[3] && save === 'saved' ? '#10281C' : 'transparent')
+    }));
+
+    const BANNERS = {
+      wait: { bg: '#17181C', c: '#B0B1B8', fg: '#EDEDF0', i: I.wait, anim: 'wick 1.4s ease-in-out infinite', t: '집 Mac mini에 저장하는 중이에요', m: '응답이 늦어요 · 2초째. 집 Mac mini가 버전을 확인해 주기 전에는 저장됨으로 표시하지 않아요. 편집은 이 Mac에 보관돼 있어요.', act: '', go: null },
+      conflict: { bg: '#2B1C12', c: '#FF8B3E', fg: '#FFD9BF', i: I.need, anim: 'none', t: '저장하기 전에 집 Mac mini에서 이 파일이 바뀌었어요', m: 'Claude Code · 결제 웹훅 재시도 구현 · 12:03. 아무것도 덮어쓰지 않았고 내 편집도 그대로예요.', act: '비교하기', go: () => this.setState({ save: 'compare' }), primary: true },
+      merging: { bg: '#17181C', c: '#B0B1B8', fg: '#EDEDF0', i: I.wait, anim: 'wick 1.4s ease-in-out infinite', t: '집 Mac mini에 저장하는 중이에요', m: '최신 버전이 12:03 그대로인지 확인하고 써요.', act: '', go: null },
+      saved: { bg: '#17181C', c: '#5AD6A4', fg: '#EDEDF0', i: I.ok, anim: 'none', t: '집 Mac mini에 저장했어요 · 12:05', m: kept === 'remote' ? '집 Mac mini 내용을 그대로 남기고 내 편집은 버렸어요.' : '집 Mac mini가 새 버전을 확인해 줬어요. 같은 공간의 Claude Code도 이 내용을 봐요.', act: '닫기', go: () => this.setState({ save: 'clean' }) }
+    };
+    const bd = BANNERS[save];
+    const b = bd ? {
+      bg: bd.bg, c: bd.c, fg: bd.fg, i: bd.i, anim: bd.anim, t: bd.t, m: bd.m,
+      hasAct: !!bd.go, act: bd.act, go: bd.go ?? (() => {}),
+      abg: bd.primary ? '#FF8B3E' : '#26272D', afg: bd.primary ? '#1B0F06' : '#EDEDF0', afw: bd.primary ? '600' : '400'
+    } : { bg: '', c: '', fg: '', i: '', anim: 'none', t: '', m: '', hasAct: false, act: '', go: () => {}, abg: '', afg: '', afw: '400' };
+
+    const ST = {
+      dirty: ['미저장 · 이 Mac에 보관 중', '#EDEDF0'],
+      wait: ['저장 대기 · 응답 기다리는 중', '#B0B1B8'],
+      conflict: ['저장 안 됨 · 집 Mac mini 버전이 달라요', '#FF8B3E'],
+      compare: ['저장 안 됨', '#FF8B3E'],
+      merging: ['저장 중', '#B0B1B8'],
+      saved: ['저장됨 · 집 Mac mini 12:05', '#5AD6A4'],
+      clean: ['저장됨 · 집 Mac mini 12:05', '#8E8F98']
+    };
+    const canSave = save === 'dirty';
+
+    const plain = (t) => ({ t: t || ' ', c: '#B0B1B8', bg: 'transparent' });
+    const base = head.concat(tail).map((x) => x[0]);
+    const COPY = {
+      link: { t: 'Runwick 링크', v: 'runwick://home-mac-mini/payments-api/docs/webhooks.md', m: '어느 기기의 파일인지 담겨 있어요. Runwick에서 열면 이 공간으로 와요.' },
+      path: { t: '실제 경로', v: '~/work/payments-api/docs/webhooks.md', m: '집 Mac mini 안에서만 맞는 경로예요. 이 Mac에도 같은 경로가 있어서 붙여 넣으면 이 Mac 파일을 가리켜요.' }
+    };
+
+    return {
+      tabs: [
+        { t: '결제 웹훅 재시도 구현', k: 'Cl', href: 'RemoteSpace.dc.html' },
+        { t: 'webhooks.md', k: 'md', st: settled ? '' : 'mod', sel: true, href: 'RemoteDoc.dc.html', full: 'docs/webhooks.md · 집 Mac mini' }
+      ],
+      editDisp: save === 'compare' ? 'none' : 'flex',
+      cmpDisp: save === 'compare' ? 'flex' : 'none',
+      stT: ST[save][0], stC: ST[save][1],
+      save: () => { if (canSave) { this.setState({ save: 'wait', copy: 'closed' }); later('wait', 'conflict', 1800); } },
+      saveDis: canSave ? 'false' : 'true',
+      saveBg: canSave ? '#FF8B3E' : '#26272D', saveFg: canSave ? '#1B0F06' : '#8E8F98', saveW: canSave ? '600' : '400',
+      copyOpen: copy === 'menu', copyOpenA: copy === 'menu' ? 'true' : 'false',
+      copyLabel: copy === 'link' ? 'Runwick 링크 복사함' : copy === 'path' ? '실제 경로 복사함' : '경로 복사',
+      toggleCopy: () => this.setState({ copy: copy === 'menu' ? 'closed' : 'menu' }),
+      copyOpts: ['link', 'path'].map((k) => ({ ...COPY[k], pick: () => this.setState({ copy: k }) })),
+      hasBanner: !!bd, b, doc,
+      cols: [
+        { name: '기준 버전', where: '집 Mac mini', sub: '편집을 시작한 시점 · 12:01', lines: base.map(plain) },
+        { name: '내 편집', where: '이 Mac', sub: '아직 저장 안 됨 · 앱을 닫아도 복원돼요', lines: base.map(plain).concat([{ t: mineLine[0], c: '#D9CCFF', bg: '#211B33' }]) },
+        { name: '지금 집 Mac mini에 있는 내용', where: '집 Mac mini', sub: 'Claude Code가 저장 · 12:03', lines: head.map((x) => plain(x[0])).concat([{ t: remoteLine[0], c: '#7EE0A8', bg: '#10281C' }], tail.map((x) => plain(x[0]))) }
+      ],
+      keepEditing: () => this.setState({ save: 'conflict' }),
+      useRemote: () => { this.setState({ save: 'merging', kept: 'remote' }); later('merging', 'saved', 1200); },
+      merge: () => { this.setState({ save: 'merging', kept: 'both' }); later('merging', 'saved', 1200); }
+    };
+  }
+}
+</script>
+</body>
+</html>

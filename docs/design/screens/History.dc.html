@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>대화 검색</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="1" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="daily" tool="history" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="daily" next="Session.dc.html" label="터미널. 검색 중에도 입력과 스크롤은 그대로입니다" hint-size="100%,100%"></dc-import></div>
+      <div style="flex:none"><dc-import name="SessionBar" state="idle" label="입력 대기" meta="로그인 오류 수정 · 검색은 CLI에 영향을 주지 않아요" hint-size="100%,34px"></dc-import></div>
+    </main>
+    <aside aria-label="상세 패널" style="flex:1 1 380px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#17181C;border-left:1px solid #25262B">
+      <div style="flex:none"><dc-import name="PanelHead" tab="history" close-href="Session.dc.html" hint-size="100%,44px"></dc-import></div>
+      <div style="flex:none;display:flex;flex-direction:column;gap:8px;padding:12px 12px 10px">
+        <label style="display:flex;align-items:center;gap:8px;height:34px;padding:0 10px;border-radius:8px;background:#26272D;box-shadow:0 0 0 1px #4A4B54">
+          <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#B0B1B8;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M7 12.500a5.500 5.500 0 1 0 0-11 5.500 5.500 0 0 0 0 11ZM14.500 14.500 11 11"></path></svg>
+          <input aria-label="대화 기록 검색" value="만료 시각" style="flex:1;width:100%;min-width:0;padding:0;background:transparent;border:0;outline:0;color:#EDEDF0;font:inherit">
+          <span style="flex:none;font-size:11.500px;color:#8E8F98">⌘⇧F</span>
+        </label>
+        <div style="display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+          <a href="#" style="flex:1;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;color:#8E8F98;font-size:12px">현재 세션</a>
+          <a href="#" aria-current="page" style="flex:1;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#33343B;font-size:12px">프로젝트</a>
+          <a href="#" style="flex:1;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;color:#8E8F98;font-size:12px">전체</a>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+            <a href="#" style="height:24px;display:flex;align-items:center;padding:0 8px;border-radius:6px;background:#1F2025;font-size:12px;color:#D6D7DC">{{f}}</a>
+          </sc-for>
+        </div>
+        <p style="margin:0;font-size:12px;color:#8E8F98"><span style="color:#D6D7DC">payments-api</span>에서 3건 찾음 · 세션 1개는 아직 수집 중이라 검색에 빠졌어요.</p>
+      </div>
+      <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:0 8px 8px">
+        <sc-for list="{{results}}" as="r" hint-placeholder-count="3">
+          <a href="Context.dc.html" style="display:flex;flex-direction:column;gap:5px;padding:10px;border-radius:8px;background:#1F2025">
+            <span style="font-size:12.500px;line-height:1.55;color:#D6D7DC">{{r.pre}}<mark style="padding:0 2px;border-radius:3px;background:#5A3417;color:#FFE3CF">{{r.hit}}</mark>{{r.post}}</span>
+            <span style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:11.500px;color:#8E8F98">
+              <span style="color:#B0B1B8">{{r.session}}</span><span>{{r.tool}}</span><span>{{r.when}}</span>
+              <sc-if value="{{r.pinned}}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:3px;color:#D6D7DC"><svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M9.500 1.500l5 5-2.500.8-3 3-.5 3-6-6 3-.5 3-3ZM5 11l-3.500 3.500"></path></svg>핀</span></sc-if>
+            </span>
+          </a>
+        </sc-for>
+      </div>
+      <p style="flex:none;margin:0;padding:10px 14px;border-top:1px solid #25262B;font-size:12px;color:#8E8F98">지금 터미널 화면만 찾으려면 ⌘F. 여기서는 지나간 대화까지 찾습니다.</p>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', sel: true, href: 'Session.dc.html' },
+        { t: 'zsh', k: '$', href: 'Session.dc.html' }
+      ],
+      filters: ['날짜: 전체', '도구: 전체', '핀만 보기'],
+      results: [
+        { pre: '원인을 찾았습니다. ', hit: '만료 시각', post: '은 초 단위인데 밀리초 값과 그대로 비교하고 있습니다.', session: '로그인 오류 수정', tool: 'Claude Code', when: '오늘 11:04', pinned: true },
+        { pre: 'refresh.ts는 이미 초 단위로 맞습니다. 토큰 ', hit: '만료 시각', post: ' 계산에는 문제가 없어요.', session: '회귀 검토', tool: 'Codex', when: '오늘 11:12', pinned: false },
+        { pre: '세션 쿠키의 ', hit: '만료 시각', post: '은 서버 기준으로 내려주기로 했습니다. 클라이언트 시계를 믿지 않습니다.', session: '인증 구조 정리', tool: 'Claude Code', when: '10월 28일', pinned: false }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

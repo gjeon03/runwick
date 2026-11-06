@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>오래된 승인 요청</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="1" running="3" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="collab" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div role="status" style="flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 10px 10px 14px;background:#1F2025;border-bottom:1px solid #25262B">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#B0B1B8;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V8l2.500 1.500"></path></svg>
+        <div style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column">
+          <span style="font-weight:500">이 승인 요청은 이미 끝났어요</span>
+          <span style="font-size:12.500px;color:#B0B1B8">터미널에서 직접 응답되어 더 답할 수 없습니다. 아무것도 전송하지 않았고, 아래는 현재 화면입니다.</span>
+        </div>
+        <a href="Result.dc.html" style="flex:none;height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#FF8B3E;color:#1B0F06;font-size:12.500px;font-weight:600">결과 보기</a>
+        <a href="Activity.dc.html" style="flex:none;height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">활동으로 돌아가기</a>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="codexStale" caret="true" next="Result.dc.html" label="터미널. 결과 화면으로 이동" hint-size="100%,100%"></dc-import></div>
+      <div style="flex:none"><dc-import name="SessionBar" state="fresh" label="응답 완료" tool="Codex" meta="API 스키마 확인 · 로그인 오류 수정에서 위임" collab="협업에 연결됨" hint-size="100%,34px"></dc-import></div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'need', href: 'Collab1.dc.html' },
+        { t: 'API 스키마 확인', k: 'Cx', st: 'fresh', sel: true, href: 'Stale.dc.html' },
+        { t: 'zsh', k: '$', href: 'Session.dc.html' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>원격 공간에서 작업</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+button:disabled{cursor:default;filter:none}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" machine="집 Mac mini" needs="{{needs}}" running="3" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="{{sbScene}}" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+
+      <sc-if value="{{hasBanner}}" hint-placeholder-val="{{ false }}">
+        <div role="status" style="flex:none;display:flex;flex-direction:column;gap:8px;padding:11px 14px 12px 16px;background:#17181C;border-bottom:1px solid #25262B">
+          <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 12px">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:1px;fill:none;stroke:{{b.c}};stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="{{b.i}}"></path></svg>
+            <span style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:1px">
+              <span style="font-weight:600">{{b.t}}</span>
+              <span style="font-size:12.500px;color:#B0B1B8">{{b.m}}</span>
+              <sc-if value="{{b.hasCause}}" hint-placeholder-val="{{ false }}"><span style="font-size:12.500px;color:#B0B1B8"><span style="color:#EDEDF0">원인 · 네트워크</span> — 집 Mac mini가 Tailscale에서 오프라인이에요. 잠자기 중일 수 있어요. AI 작업이 실패한 것은 아니에요.</span></sc-if>
+            </span>
+            <sc-if value="{{b.hasAct}}" hint-placeholder-val="{{ true }}">
+              <button type="button" onClick="{{b.go}}" style="flex:none;height:30px;padding:0 12px;border:0;border-radius:7px;background:{{b.abg}};color:{{b.afg}};font:inherit;font-size:12.500px;font-weight:{{b.afw}};cursor:pointer">{{b.act}}</button>
+            </sc-if>
+          </div>
+          <sc-if value="{{showUnsent}}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-left:28px;padding:9px 12px;border-radius:9px;background:#1F2025">
+              <span style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column;gap:2px">
+                <span style="font-size:12.500px;font-weight:500">보내지 않은 입력 <span style="font-family:'JetBrains Mono',Menlo,monospace;font-weight:400;color:#EDEDF0">“통합 테스트도 같이 돌려줘”</span></span>
+                <span style="font-size:12px;color:#B0B1B8">{{unsentM}}</span>
+              </span>
+              <sc-if value="{{unsentAsk}}" hint-placeholder-val="{{ false }}">
+                <span style="flex:none;display:flex;gap:6px">
+                  <button type="button" onClick="{{sendUnsent}}" style="height:28px;padding:0 10px;border:0;border-radius:6px;background:#33343B;color:#EDEDF0;font:inherit;font-size:12px;cursor:pointer">Claude Code에 보내기</button>
+                  <button type="button" onClick="{{dropUnsent}}" style="height:28px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:#B0B1B8;font:inherit;font-size:12px;cursor:pointer">버리기</button>
+                </span>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;opacity:{{termOp}}"><dc-import name="Term" scene="remote" caret="{{caret}}" input-live="{{caret}}" label="집 Mac mini의 결제 웹훅 재시도 구현 터미널" hint-size="100%,100%"></dc-import></div>
+
+      <sc-if value="{{hasStrip}}" hint-placeholder-val="{{ false }}">
+        <div role="status" style="flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:9px 12px 9px 16px;background:{{s.bg}};color:{{s.fg}};border-top:1px solid #25262B">
+          <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="M1.500 4h13v8h-13ZM4 7h.01M6.500 7h.01M9 7h.01M11.500 7h.01M5 9.500h6"></path></svg>
+          <span style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:1px">
+            <span style="font-size:12.500px;font-weight:500">{{s.t}}</span>
+            <sc-if value="{{s.hasM}}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;opacity:.85">{{s.m}}</span></sc-if>
+          </span>
+          <span style="flex:none;display:flex;gap:6px">
+            <button type="button" onClick="{{s.go}}" style="height:28px;padding:0 10px;border:0;border-radius:6px;background:{{s.abg}};color:{{s.afg}};font:inherit;font-size:12px;font-weight:{{s.afw}};cursor:pointer">{{s.act}}</button>
+            <sc-if value="{{s.hasAlt}}" hint-placeholder-val="{{ false }}">
+              <button type="button" onClick="{{s.alt}}" style="height:28px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:12px;cursor:pointer">취소</button>
+            </sc-if>
+          </span>
+        </div>
+      </sc-if>
+
+      <div style="flex:none"><dc-import name="SessionBar" state="idle" label="{{barLabel}}" meta="{{barMeta}}" collab="협업 1" need="{{barNeed}}" collab-href="RemoteInput.dc.html" hint-size="100%,34px"></dc-import></div>
+    </main>
+
+    <aside aria-label="이 공간" style="flex:1 1 300px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow-y:auto;background:#17181C;border-left:1px solid #25262B">
+      <header style="flex:none;display:flex;flex-direction:column;gap:4px;padding:14px 16px 12px;border-bottom:1px solid #25262B">
+        <span style="font-size:11.500px;color:#8E8F98">이 공간</span>
+        <h2 style="margin:0;display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:15px;font-weight:600">기본 공간<span style="height:20px;display:flex;align-items:center;gap:4px;padding:0 6px;border-radius:5px;background:#26272D;color:#D6D7DC;font-size:11.500px;font-weight:400"><svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="M1.500 3h13v8.500h-13ZM5.500 14h5M8 11.500V14"></path></svg>집 Mac mini</span></h2>
+        <span style="display:flex;align-items:center;gap:6px;font-size:12.500px;color:{{connC}}"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:{{connC}}"></span>{{connT}}</span>
+      </header>
+      <dl style="flex:none;margin:0;display:flex;flex-direction:column">
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+          <div style="display:flex;flex-direction:column;gap:2px;padding:9px 16px;border-bottom:1px solid #25262B">
+            <dt style="font-size:11.500px;color:#8E8F98">{{r.k}}</dt>
+            <dd style="margin:0;font-size:12.500px;color:{{r.c}}">{{r.v}}</dd>
+            <sc-if value="{{r.hasLink}}" hint-placeholder-val="{{ false }}"><a href="{{r.href}}" style="align-self:flex-start;font-size:12px;color:#B0B1B8;text-decoration:underline">{{r.link}}</a></sc-if>
+          </div>
+        </sc-for>
+      </dl>
+      <div style="flex:none;display:flex;flex-direction:column;gap:10px;padding:14px 16px 18px">
+        <sc-if value="{{canCut}}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <button type="button" onClick="{{cut}}" style="height:32px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">연결 끊기</button>
+            <span style="font-size:12px;color:#8E8F98">이 Mac에서만 끊어요. 실행은 집 Mac mini에서 계속돼요.</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{canReconnect}}" hint-placeholder-val="{{ false }}">
+          <button type="button" onClick="{{reconnect}}" style="height:32px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">다시 연결</button>
+        </sc-if>
+        <sc-if value="{{stopAsk}}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:9px;background:#2A1719;box-shadow:inset 0 0 0 1px #4A2428">
+            <span style="font-weight:600">집 Mac mini의 실행 2개를 멈출까요?</span>
+            <ul style="margin:0;padding:0 0 0 16px;font-size:12.500px;color:#D6D7DC">
+              <li>결제 웹훅 재시도 구현 · Claude Code</li>
+              <li>웹훅 회귀 검토 · Codex · 승인 대기</li>
+            </ul>
+            <span style="font-size:12px;color:#B0B1B8">이 Mac의 공간과 실행은 영향 없어요. 기록은 집 Mac mini에 남아요.</span>
+            <span style="display:flex;gap:6px">
+              <button type="button" onClick="{{stop}}" style="height:30px;padding:0 12px;border:0;border-radius:7px;background:#FF7B86;color:#2A0D10;font:inherit;font-size:12.500px;font-weight:600;cursor:pointer">멈추기</button>
+              <button type="button" onClick="{{stopCancel}}" style="height:30px;padding:0 12px;border:0;border-radius:7px;background:#33343B;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">취소</button>
+            </span>
+          </div>
+        </sc-if>
+        <sc-if value="{{stopIdle}}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <button type="button" onClick="{{stopOpen}}" aria-disabled="{{stopDisabled}}" style="height:32px;border:0;border-radius:7px;background:transparent;box-shadow:inset 0 0 0 1px {{stopRing}};color:{{stopFg}};font:inherit;font-size:12.500px;cursor:pointer">원격 작업 종료…</button>
+            <span style="font-size:12px;color:#8E8F98">{{stopNote}}</span>
+          </div>
+        </sc-if>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = (() => {
+    const SCENE = 'space';
+    return {
+      conn: SCENE === 'lost' ? 'lost' : 'live',
+      input: SCENE === 'input' ? 'other' : 'me',
+      unsent: SCENE === 'lost' ? 'held' : 'none',
+      took: false,
+      stop: 'idle'
+    };
+  })();
+  renderVals() {
+    const { conn, input, unsent, took, stop } = this.state;
+    const ok = 'M3 8.500l3.200 3L13 4.500';
+    const gone = 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM5.500 8h5';
+    const live = conn === 'live' || conn === 'back';
+    const stopped = stop === 'done' || stop === 'closed';
+    const canStop = live && stop === 'idle';
+
+    const BANNERS = {
+      lost: { c: '#9B9CA5', i: gone, t: '집 Mac mini와 연결이 끊겼어요', m: '마지막 확인 11:52 · 그때 실행 2개가 돌고 있었어요. 지금 상태는 확인할 수 없어요.', hasCause: true, act: '다시 연결', go: () => this.setState({ conn: 'back' }) },
+      back: { c: '#5AD6A4', i: ok, t: '다시 연결됐어요', m: '끊긴 18분 동안에도 집 Mac mini에서 실행은 계속됐어요. 그사이 출력은 모두 받아 왔어요.', hasCause: false, act: '닫기', go: () => this.setState({ conn: 'live' }) },
+      off: { c: '#9B9CA5', i: gone, t: '연결을 끊었어요', m: '집 Mac mini의 실행 2개는 계속돼요. 다시 연결하면 지금 상태부터 보여 드릴게요.', hasCause: false, act: '다시 연결', go: () => this.setState({ conn: 'live' }) },
+      stopped: { c: '#9B9CA5', i: gone, t: '집 Mac mini의 실행 2개를 멈췄어요', m: '기록과 결과는 집 Mac mini에 남아요. 이 Mac의 공간은 그대로예요.', hasCause: false, act: '닫기', go: () => this.setState({ stop: 'closed' }) }
+    };
+    const bk = stop === 'done' ? 'stopped' : (conn === 'live' ? '' : conn);
+    const bd = BANNERS[bk];
+    const blocked = unsent === 'held' && conn === 'back';
+    const b = bd ? {
+      c: bd.c, i: bd.i, t: bd.t, m: bd.m, hasCause: bd.hasCause,
+      hasAct: !(blocked && bk === 'back'), act: bd.act, go: bd.go,
+      abg: bk === 'lost' || bk === 'off' ? '#FF8B3E' : '#26272D',
+      afg: bk === 'lost' || bk === 'off' ? '#1B0F06' : '#EDEDF0',
+      afw: bk === 'lost' || bk === 'off' ? '600' : '400'
+    } : { c: '', i: '', t: '', m: '', hasCause: false, hasAct: false, act: '', go: () => {}, abg: '', afg: '', afw: '400' };
+
+    const STRIPS = {
+      other: { bg: '#211B33', fg: '#D9CCFF', t: '집 Mac mini 화면에서 입력 중이에요. 여기서는 보기만 해요.', m: '', act: '입력 가져오기', go: () => this.setState({ input: 'confirm' }), alt: null, primary: false },
+      confirm: { bg: '#1F2025', fg: '#EDEDF0', t: '입력을 이 Mac으로 가져올까요?', m: '지금 웹훅 회귀 검토(Codex)가 명령 승인을 기다려요. 집 Mac mini 화면에 쓰다 만 “pnpm test webhooks --watch”는 보내지 않고 그쪽에 남겨요.', act: '가져오기', go: () => this.setState({ input: 'me', took: true }), alt: () => this.setState({ input: 'other' }), primary: true },
+      took: { bg: '#1F2025', fg: '#EDEDF0', t: '입력을 가져왔어요. 집 Mac mini 화면은 이제 보기만 해요.', m: '', act: '닫기', go: () => this.setState({ took: false }), alt: null, primary: false }
+    };
+    const sk = live && !stopped ? (input !== 'me' ? input : (took ? 'took' : '')) : '';
+    const sd = STRIPS[sk];
+    const s = sd ? {
+      bg: sd.bg, fg: sd.fg, t: sd.t, m: sd.m, hasM: !!sd.m, act: sd.act, go: sd.go,
+      hasAlt: !!sd.alt, alt: sd.alt ?? (() => {}),
+      abg: sd.primary ? '#FF8B3E' : (sk === 'other' ? '#33284D' : '#33343B'),
+      afg: sd.primary ? '#1B0F06' : 'inherit', afw: sd.primary ? '600' : '400'
+    } : { bg: '', fg: '', t: '', m: '', hasM: false, act: '', go: () => {}, hasAlt: false, alt: () => {}, abg: '', afg: '', afw: '400' };
+
+    const typing = live && input === 'me' && !stopped;
+    const connT = stopped ? '연결됨 · 실행 없음'
+      : conn === 'lost' ? '끊김 · 마지막 확인 11:52'
+      : conn === 'off' ? '직접 끊음 · 실행은 계속'
+      : 'Tailscale 직접 연결 · 42ms';
+    const connC = conn === 'lost' || conn === 'off' ? '#9B9CA5' : '#5AD6A4';
+    const row = (k, v, c, link, href) => ({ k, v, c: c ?? '#EDEDF0', hasLink: !!link, link: link ?? '', href: href ?? '#' });
+
+    return {
+      needs: live && !stopped ? '1' : '0',
+      sbScene: conn === 'lost' ? 'remoteLost' : 'remote',
+      tabs: [
+        { t: '결제 웹훅 재시도 구현', k: 'Cl', sel: true, href: 'RemoteSpace.dc.html' },
+        { t: 'zsh', k: '$', href: 'RemoteSpace.dc.html' }
+      ],
+      hasBanner: !!bd, b,
+      showUnsent: unsent === 'held' || unsent === 'sent' || unsent === 'dropped',
+      unsentAsk: unsent === 'held' && conn === 'back',
+      unsentM: unsent === 'sent' ? '보냈어요. Claude Code가 이어서 답하고 있어요.'
+        : unsent === 'dropped' ? '버렸어요.'
+        : conn === 'back' ? '끊긴 동안 쓴 입력이라 자동으로 보내지 않았어요. 그사이 Claude Code는 응답을 마치고 입력을 기다리고 있어요.'
+        : '연결이 끊겨 보내지 않았어요. 다시 연결되면 지금 상태를 확인한 뒤 보낼지 물어볼게요.',
+      sendUnsent: () => this.setState({ unsent: 'sent' }),
+      dropUnsent: () => this.setState({ unsent: 'dropped' }),
+      termOp: live ? '1' : '.5',
+      caret: typing ? 'true' : 'false',
+      hasStrip: !!sd, s,
+      barLabel: stopped ? '실행 종료' : conn === 'lost' ? '연결 끊김' : conn === 'off' ? '연결 끊음' : (input === 'me' ? '응답 완료' : '보기만'),
+      barMeta: stopped ? '집 Mac mini에서 멈춤'
+        : !live ? '실행은 집 Mac mini에서 계속돼요'
+        : (input === 'me' ? '집 Mac mini에서 실행 · 입력은 이 Mac' : '집 Mac mini 화면에서 입력 중'),
+      barNeed: live && !stopped ? '확인 필요 1' : '',
+      connT, connC,
+      rows: [
+        row('폴더', '~/work/payments-api · 집 Mac mini의 폴더예요'),
+        row('입력', !live ? '보내지 않음' : (input === 'me' ? '이 Mac' : '집 Mac mini 화면'), !live ? '#8E8F98' : '#EDEDF0'),
+        row('파일과 문서', '이 공간에서 여는 파일은 집 Mac mini의 파일이에요. 저장할 때 그쪽 버전을 확인해요.'),
+        row('로그인과 MCP', '집 Mac mini 기준 · Claude Code, Codex 로그인됨 · MCP 1개'),
+        row('공통 환경변수', 'v11 적용 · 변경 1개 미적용', '#F2C66D', '기기 설정에서 적용', 'Devices.dc.html'),
+        row('자동 작업', '집 Mac mini 전원 기준이에요. 이 Mac이 배터리여도 계속돼요.')
+      ],
+      canCut: conn === 'live' || conn === 'back',
+      canReconnect: conn === 'lost' || conn === 'off',
+      cut: () => this.setState({ conn: 'off', took: false }),
+      reconnect: () => this.setState({ conn: conn === 'lost' ? 'back' : 'live' }),
+      stopAsk: stop === 'ask',
+      stopIdle: stop !== 'ask',
+      stopOpen: () => { if (canStop) this.setState({ stop: 'ask' }); },
+      stopCancel: () => this.setState({ stop: 'idle' }),
+      stop: () => this.setState({ stop: 'done', input: 'me', took: false }),
+      stopDisabled: canStop ? 'false' : 'true',
+      stopRing: canStop ? '#5A2E33' : '#33343B',
+      stopFg: canStop ? '#FF9CA4' : '#6F7078',
+      stopNote: stopped ? '멈춘 실행은 기록에서 다시 열 수 있어요.'
+        : live ? '집 Mac mini의 실행 2개를 멈춰요. 대상 기기를 다시 보여 드려요.'
+        : '연결돼야 종료를 요청하고 실제로 멈췄는지 확인할 수 있어요.'
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>타임라인과 이어하기</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="1" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="daily" tool="timeline" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#101114">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:24px 28px">
+        <div style="max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+          <section aria-label="이어하기" style="display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:14px;background:#1B1C20">
+            <div style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:12px">
+              <div style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:3px">
+                <span style="font-size:12px;color:#8E8F98">어제 마지막 작업 · 18:42</span>
+                <h1 style="margin:0;font-size:20px;line-height:1.3;font-weight:600;letter-spacing:-0.01em">로그인 오류 수정</h1>
+              </div>
+              <div style="flex:none;display:flex;flex-wrap:wrap;gap:6px">
+                <a href="Session.dc.html" style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#FF8B3E;color:#1B0F06;font-size:12.500px;font-weight:600">살아 있는 실행 열기</a>
+                <a href="Reboot.dc.html" style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">같은 대화 재개</a>
+                <a href="Start.dc.html" style="height:32px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">새 대화에 인계</a>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr));gap:16px">
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <h2 style="margin:0;font-size:12px;font-weight:500;color:#8E8F98">내 메모</h2>
+                <p style="margin:0;color:#EDEDF0">스테이징에서 재현 확인하고 통합하기. e2e는 아직 안 돌렸음.</p>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <h2 style="margin:0;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:500;color:#8E8F98">요약<span style="height:17px;display:flex;align-items:center;padding:0 5px;border-radius:4px;background:#132232;color:#74B7FF;font-size:10.500px">AI · 어제 18:50 · 기록 42건 기준</span></h2>
+                <p style="margin:0;color:#D6D7DC">만료 단위 오류를 고쳤고 테스트를 추가했습니다. 통합과 문서화가 남았습니다.</p>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <h2 style="margin:0;font-size:12px;font-weight:500;color:#8E8F98">남은 일</h2>
+                <p style="margin:0;color:#D6D7DC">auth-tests 통합 · 변경 내용 문서화</p>
+              </div>
+            </div>
+          </section>
+
+          <section aria-label="타임라인" style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px">
+              <h2 style="flex:1 1 auto;margin:0;font-size:14px;font-weight:600">payments-api 타임라인</h2>
+              <div role="group" aria-label="범위" style="flex:none;display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+                <a href="TimelineHome.dc.html" style="height:22px;display:flex;align-items:center;padding:0 9px;border-radius:5px;color:#8E8F98;font-size:12px">모든 프로젝트</a>
+                <span aria-current="page" style="height:22px;display:flex;align-items:center;padding:0 9px;border-radius:5px;background:#33343B;color:#EDEDF0;font-size:12px">payments-api</span>
+              </div>
+              <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+                <a href="#" style="height:26px;display:flex;align-items:center;padding:0 9px;border-radius:6px;background:#1F2025;font-size:12px;color:#D6D7DC">{{f}}</a>
+              </sc-for>
+            </div>
+            <sc-for list="{{days}}" as="d" hint-placeholder-count="2">
+              <div style="display:flex;gap:16px">
+                <div style="flex:0 0 72px;display:flex;flex-direction:column;padding-top:2px">
+                  <span style="font-weight:500">{{d.t}}</span>
+                  <span style="font-size:11.500px;color:#8E8F98">{{d.s}}</span>
+                </div>
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding-left:14px;border-left:1px solid #33343B">
+                  <sc-if value="{{d.summary}}" hint-placeholder-val="{{ false }}">
+                    <p style="margin:0 0 6px;padding:8px 10px;border-radius:8px;background:#132232;font-size:12.500px;color:#C5E0FF"><span style="font-weight:500">AI 요약 </span>{{d.summary}}</p>
+                  </sc-if>
+                  <sc-for list="{{d.rows}}" as="r" hint-placeholder-count="3">
+                    <a href="{{r.href}}" style="display:flex;align-items:center;gap:10px;min-height:32px;padding:4px 8px;border-radius:6px">
+                      <span style="flex:none;width:40px;font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;color:#8E8F98">{{r.time}}</span>
+                      <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#B0B1B8;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{r.i}}"></path></svg>
+                      <span style="flex:1;min-width:0;color:#EDEDF0">{{r.t}}</span>
+                      <span style="flex:none;font-size:11.500px;color:#8E8F98">{{r.kind}}</span>
+                    </a>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const I = {
+      session: 'M2 3h12v10H2ZM4.500 6l2 2-2 2M8 10.500h3.500',
+      pin: 'M9.500 1.500l5 5-2.500.8-3 3-.5 3-6-6 3-.5 3-3ZM5 11l-3.500 3.500',
+      file: 'M4 1.500h5L12.500 5v9.500H4ZM9 1.500V5h3.500',
+      wiki: 'M2.500 3c2-1 4-1 5.500.5v10C6.500 12 4.500 12 2.500 13ZM13.500 3c-2-1-4-1-5.500.5v10c1.500-1.500 3.500-1.500 5.500-.5Z',
+      collab: 'M6 7.500a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5ZM1.500 14c0-2.500 2-4 4.500-4s4.500 1.500 4.500 4M11 2.800a2.500 2.500 0 0 1 0 4.400M12.500 10.300c1.200.6 2 1.900 2 3.700'
+    };
+    const r = (time, t, kind, i, href) => ({ time, t, kind, i, href });
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'run', href: 'Session.dc.html' },
+        { t: '타임라인', k: 'tl', sel: true, href: 'Timeline.dc.html' }
+      ],
+      filters: ['기간: 7일', '종류: 전체'],
+      days: [
+        { t: '어제', s: '11월 5일', summary: '로그인 만료 오류를 찾아 고치고 회귀 검토와 테스트를 위임했습니다.', rows: [
+          r('18:42', '위키 “로그인과 세션” 제안 적용', '위키', I.wiki, 'Wiki.dc.html'),
+          r('11:40', 'refresh 토큰 테스트 작성 결과 도착', '협업 결과', I.collab, 'Result.dc.html'),
+          r('11:06', 'docs/auth-notes.md 변경', '파일', I.file, 'DocConflict.dc.html'),
+          r('11:04', '“세션 만료 원인” 핀 고정', '핀', I.pin, 'Context.dc.html'),
+          r('11:01', '로그인 오류 수정 시작', '세션', I.session, 'Session.dc.html')
+        ] },
+        { t: '10월 28일', s: '요약 없음', summary: '', rows: [
+          r('16:15', '인증 구조 정리 세션 종료', '세션', I.session, 'Context.dc.html'),
+          r('15:58', '“쿠키 만료 기준” 핀 고정', '핀', I.pin, 'Context.dc.html')
+        ] }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

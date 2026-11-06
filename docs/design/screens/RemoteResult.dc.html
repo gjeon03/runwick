@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>원격에서 실행한 검증</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" machine="집 Mac mini" needs="0" running="2" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="remoteResult" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="remote" caret="true" label="집 Mac mini의 결제 웹훅 재시도 구현 터미널" hint-size="100%,100%"></dc-import></div>
+      <div style="flex:none"><dc-import name="SessionBar" state="idle" label="응답 완료" meta="집 Mac mini에서 실행 · 입력은 이 Mac" collab="협업 1" need="새 결과 1" need-color="#74B7FF" hint-size="100%,34px"></dc-import></div>
+    </main>
+    <aside aria-label="상세 패널" style="flex:1 1 380px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#17181C;border-left:1px solid #25262B">
+      <div style="flex:none"><dc-import name="PanelHead" tab="result" close-href="RemoteSpace.dc.html" hint-size="100%,44px"></dc-import></div>
+      <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding:14px">
+        <section style="display:flex;flex-direction:column;gap:6px">
+          <span style="display:flex;align-items:center;gap:8px"><span style="flex:1;min-width:0;font-weight:600">웹훅 회귀 검토</span><span style="flex:none;font-size:11.500px;color:#74B7FF">새 결과</span></span>
+          <p style="margin:0;color:#EDEDF0">재시도 간격 상한과 멱등 키 처리를 확인했어요. 통합 테스트 1개가 실패해요. 5번 실패한 이벤트를 dead-letter 큐로 옮기는 코드가 아직 없어요.</p>
+          <p style="margin:0;font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;color:#8E8F98">Codex · 기본 공간 · 집 Mac mini / main<br>스냅샷 9b1e04d 기준 · 시도 1</p>
+        </section>
+
+        <section aria-label="실행한 곳" style="display:flex;flex-direction:column;gap:6px">
+          <h3 style="margin:0;font-size:12px;font-weight:500;color:#8E8F98">실행한 곳</h3>
+          <div style="display:flex;gap:10px;padding:10px;border-radius:8px;background:#1F2025">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:1px;fill:none;stroke:#D6D7DC;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="M1.500 3h13v8.500h-13ZM5.500 14h5M8 11.500V14"></path></svg>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+              <span style="font-weight:500">집 Mac mini</span>
+              <span style="font-size:12px;color:#B0B1B8">node 20.11 · pnpm 9.12 · 테스트 DB는 집 Mac mini의 로컬 Postgres</span>
+              <span style="font-size:12px;color:#8E8F98">이 Mac에서 다시 돌린 결과가 아니에요. 로그도 집 Mac mini에 있어요.</span>
+            </span>
+          </div>
+        </section>
+
+        <section aria-label="검증" style="display:flex;flex-direction:column;gap:6px">
+          <h3 style="margin:0;font-size:12px;font-weight:500;color:#8E8F98">검증</h3>
+          <sc-if value="{{hasStale}}" hint-placeholder-val="{{ true }}">
+            <div role="status" style="display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:8px;background:#2A2416">
+              <span style="display:flex;gap:8px">
+                <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:2px;fill:none;stroke:#F2C66D;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01"></path></svg>
+                <span style="flex:1;min-width:0;font-size:12.500px;color:#F6DFAE">검증 뒤에 retry.ts와 webhooks.md가 바뀌었어요 · 12:03 · Claude Code. 아래 결과는 9b1e04d 기준이라 지금 버전의 통과로 치지 않아요.</span>
+              </span>
+              <button type="button" onClick="{{rerun}}" style="align-self:flex-start;height:28px;margin-left:22px;padding:0 10px;border:0;border-radius:6px;background:#33343B;color:#EDEDF0;font:inherit;font-size:12px;cursor:pointer">집 Mac mini에서 다시 실행</button>
+            </div>
+          </sc-if>
+          <div style="display:flex;flex-direction:column;gap:10px;padding:10px;border-radius:8px;background:#1F2025">
+            <sc-for list="{{checks}}" as="c" hint-placeholder-count="2">
+              <div style="display:flex;gap:8px">
+                <svg width="14" height="14" viewBox="0 0 16 16" role="img" aria-label="{{c.state}}" style="flex:none;margin-top:2px;fill:none;stroke:{{c.c}};stroke-width:1.700;stroke-linecap:round;stroke-linejoin:round;animation:{{c.anim}}"><path d="{{c.i}}"></path></svg>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                  <span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12px">{{c.cmd}}</span>
+                  <span style="font-size:12px;color:{{c.mc}}">{{c.m}}</span>
+                  <span style="font-size:11.500px;color:#8E8F98">{{c.where}}</span>
+                </span>
+                <sc-if value="{{c.hasLog}}" hint-placeholder-val="{{ false }}"><a href="#" style="flex:none;align-self:flex-start;height:24px;display:flex;align-items:center;padding:0 8px;border-radius:6px;background:#26272D;font-size:12px">로그</a></sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section aria-label="검토한 파일" style="display:flex;flex-direction:column;gap:6px">
+          <h3 style="margin:0;font-size:12px;font-weight:500;color:#8E8F98">검토한 파일 2</h3>
+          <div style="display:flex;flex-direction:column;border-radius:8px;background:#1F2025">
+            <sc-for list="{{files}}" as="f" hint-placeholder-count="2">
+              <a href="RemoteDoc.dc.html" title="집 Mac mini:~/work/payments-api/{{f.p}}" style="display:flex;align-items:center;gap:8px;height:32px;padding:0 10px">
+                <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono',Menlo,monospace;font-size:11.500px;color:#D6D7DC">{{f.p}}</span>
+                <span style="flex:none;font-size:11.500px;color:{{f.c}}">{{f.m}}</span>
+              </a>
+            </sc-for>
+          </div>
+          <p style="margin:0;font-size:12px;color:#8E8F98">파일을 열면 집 Mac mini의 파일을 열어요. 이 Mac 기본 공간에 같은 이름 파일이 있어도 대신 열지 않아요.</p>
+        </section>
+
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <a href="RemoteSpace.dc.html" style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#FF8B3E;color:#1B0F06;font-size:12.500px;font-weight:600">이어서 수정</a>
+          <a href="RemoteDoc.dc.html" style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">파일 열기</a>
+          <button type="button" onClick="{{toggleCopy}}" aria-expanded="{{copyOpenA}}" style="height:30px;display:flex;align-items:center;gap:6px;padding:0 10px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">
+            <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.400;stroke-linejoin:round"><path d="M5.500 5.500h8v8h-8ZM10.500 5.500v-3h-8v8h3"></path></svg>{{copyLabel}}
+          </button>
+        </div>
+        <sc-if value="{{copyOpen}}" hint-placeholder-val="{{ false }}">
+          <div role="group" aria-label="경로 복사 방식" style="display:flex;flex-direction:column;gap:4px;margin-top:-8px">
+            <sc-for list="{{copyOpts}}" as="o" hint-placeholder-count="2">
+              <button type="button" onClick="{{o.pick}}" style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px;border:0;border-radius:8px;background:#1F2025;color:#EDEDF0;font:inherit;text-align:left;cursor:pointer">
+                <span style="font-size:12.500px;font-weight:500">{{o.t}}</span>
+                <span style="max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono',Menlo,monospace;font-size:11.500px;color:#D6D7DC">{{o.v}}</span>
+                <span style="font-size:12px;color:#8E8F98">{{o.m}}</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+        <label style="display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid #25262B;font-size:12.500px;color:#D6D7DC">
+          <input type="checkbox" style="width:14px;height:14px;margin:0;accent-color:#FF8B3E">
+          <span>확인함으로 표시 <span style="color:#8E8F98">(검증 통과와는 별개예요)</span></span>
+        </label>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { run: 'stale', copy: 'closed' };
+  renderVals() {
+    const { run, copy } = this.state;
+    const I = {
+      pass: 'M3 8.500l3.500 3.500L13 4.500',
+      fail: 'M4 4l8 8M12 4l-8 8',
+      run: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V8l2.500 1.500',
+      old: 'M3.500 8h9'
+    };
+    const ck = (cmd, kind, m, where, log) => {
+      const K = {
+        pass: { c: '#5AD6A4', i: I.pass, state: '통과', mc: '#B0B1B8', anim: 'none' },
+        fail: { c: '#FF7B86', i: I.fail, state: '실패', mc: '#FFB3B9', anim: 'none' },
+        old: { c: '#8E8F98', i: I.old, state: '이전 버전 결과', mc: '#8E8F98', anim: 'none' },
+        run: { c: '#5AD6A4', i: I.run, state: '실행 중', mc: '#B0B1B8', anim: 'wick 1.4s ease-in-out infinite' }
+      }[kind];
+      return { cmd, m, where, hasLog: !!log, ...K };
+    };
+    const checks = run === 'stale' ? [
+      ck('pnpm test webhooks', 'old', '통과였어요 · 22 passed · 9b1e04d 기준', '집 Mac mini에서 실행 · 11:58', false),
+      ck('pnpm test:e2e --grep webhook', 'fail', '실패 1 · 9b1e04d 기준 · dead-letter 이동 없음', '집 Mac mini에서 실행 · 12:01', true)
+    ] : run === 'running' ? [
+      ck('pnpm test webhooks', 'run', '실행 중 · 4c1a7e0 기준', '집 Mac mini에서 실행 · 방금 시작', false),
+      ck('pnpm test:e2e --grep webhook', 'run', '대기 · 앞 명령이 끝나면 시작', '집 Mac mini에서 실행', false)
+    ] : [
+      ck('pnpm test webhooks', 'pass', '통과 · 23 passed · 4c1a7e0 기준', '집 Mac mini에서 실행 · 12:07', false),
+      ck('pnpm test:e2e --grep webhook', 'pass', '통과 · 6 passed · 4c1a7e0 기준', '집 Mac mini에서 실행 · 12:08', true)
+    ];
+    const COPY = {
+      link: { t: 'Runwick 링크', v: 'runwick://home-mac-mini/payments-api/runs/r-0507', m: '이 결과가 집 Mac mini의 것임을 담고 있어요. Runwick에서 열면 이 결과로 와요.' },
+      path: { t: '실제 경로', v: '~/work/payments-api', m: '집 Mac mini 안에서만 맞는 경로예요. 이 Mac에도 같은 경로가 있어요.' }
+    };
+    return {
+      tabs: [
+        { t: '결제 웹훅 재시도 구현', k: 'Cl', sel: true, href: 'RemoteSpace.dc.html' },
+        { t: '웹훅 회귀 검토', k: 'Cx', st: 'fresh', href: 'RemoteResult.dc.html' },
+        { t: 'zsh', k: '$', href: 'RemoteSpace.dc.html' }
+      ],
+      hasStale: run === 'stale',
+      rerun: () => {
+        this.setState({ run: 'running' });
+        setTimeout(() => { if (this.state.run === 'running') this.setState({ run: 'done' }); }, 1800);
+      },
+      checks,
+      files: [
+        { p: 'src/webhooks/retry.ts', m: run === 'stale' ? '검토 뒤 바뀜' : '최신 버전 검증함', c: run === 'stale' ? '#F2C66D' : '#8E8F98' },
+        { p: 'docs/webhooks.md', m: run === 'stale' ? '검토 뒤 바뀜' : '최신 버전 검증함', c: run === 'stale' ? '#F2C66D' : '#8E8F98' }
+      ],
+      copyOpen: copy === 'menu', copyOpenA: copy === 'menu' ? 'true' : 'false',
+      copyLabel: copy === 'link' ? 'Runwick 링크 복사함' : copy === 'path' ? '실제 경로 복사함' : '경로 복사',
+      toggleCopy: () => this.setState({ copy: copy === 'menu' ? 'closed' : 'menu' }),
+      copyOpts: ['link', 'path'].map((k) => ({ ...COPY[k], pick: () => this.setState({ copy: k }) }))
+    };
+  }
+}
+</script>
+</body>
+</html>

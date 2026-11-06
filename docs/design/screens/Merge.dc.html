@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>통합 충돌과 정리</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" space="auth-tests" branch="feat/refresh-tests" needs="1" running="2" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="split" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#101114">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:28px 32px">
+        <div style="max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:18px">
+          <header style="display:flex;flex-direction:column;gap:4px">
+            <span style="display:flex;align-items:center;gap:6px;font-size:12.500px;font-weight:500;color:#FF8B3E"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:#FF8B3E;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01"></path></svg>충돌 1개 · 내 결정이 필요해요</span>
+            <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.01em">auth-tests를 main에 통합 준비</h1>
+            <p style="margin:0;font-family:'JetBrains Mono',Menlo,monospace;font-size:12px;color:#B0B1B8">feat/refresh-tests 7c2e9d1 → main 9be01d4 · 출발 a41f3c2</p>
+          </header>
+          <section aria-label="충돌 파일" style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+            <header style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 10px 10px 14px;border-bottom:1px solid #25262B">
+              <span style="flex:1 1 220px;min-width:0;font-family:'JetBrains Mono',Menlo,monospace;font-size:12.500px">src/auth/refresh.ts</span>
+              <a href="Collab2.dc.html" style="flex:none;height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#FF8B3E;color:#1B0F06;font-size:12.500px;font-weight:600">해결 맡기기</a>
+              <a href="Space.dc.html" style="flex:none;height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">직접 해결</a>
+              <a href="Space.dc.html" style="flex:none;height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">보류</a>
+            </header>
+            <div style="padding:10px 0;font-family:'JetBrains Mono','SF Mono',Menlo,monospace;font-size:12.500px;line-height:21px;overflow-x:auto">
+              <sc-for list="{{code}}" as="l" hint-placeholder-count="6">
+                <div style="min-height:21px;padding:0 14px;white-space:pre;background:{{l.bg}};color:{{l.c}}">{{l.t}}</div>
+              </sc-for>
+            </div>
+          </section>
+          <section aria-label="검증과 범위" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:12px">
+            <div style="display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:12px;background:#17181C">
+              <h2 style="margin:0;font-size:13px;font-weight:600">검증</h2>
+              <p style="margin:0;font-size:12.500px;color:#F2C66D">pnpm test auth 통과는 이전 버전(7c2e9d1) 기준이에요.</p>
+              <p style="margin:0;font-size:12.500px;color:#B0B1B8">충돌을 푼 뒤 다시 실행해야 통과로 표시합니다.</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:12px;background:#17181C">
+              <h2 style="margin:0;font-size:13px;font-weight:600">이 단계의 범위</h2>
+              <p style="margin:0;font-size:12.500px;color:#B0B1B8">로컬 통합까지만 진행해요. 커밋, push, PR, 배포는 따로 지시해야 실행됩니다.</p>
+            </div>
+          </section>
+          <section aria-label="공간 정리" style="display:flex;flex-direction:column;gap:8px;padding:14px;border-radius:12px;background:#17181C">
+            <h2 style="margin:0;font-size:13px;font-weight:600">통합이 끝나면 공간 정리</h2>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px">
+              <span style="flex:1 1 280px;min-width:0;font-size:12.500px;color:#B0B1B8">보관은 목록에서 접기만 해요. 폴더 제거는 실행 중 세션 1개와 미푸시 커밋 2개를 정리해야 할 수 있어요. 대화 기록과 결과는 어느 쪽이든 남습니다.</span>
+              <a href="Session.dc.html" style="flex:none;height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">공간 보관</a>
+              <a href="#" aria-disabled="true" style="flex:none;height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#1F2025;color:#8E8F98;font-size:12.500px">폴더 제거…</a>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const p = (t) => ({ t: t || ' ', c: '#B0B1B8', bg: 'transparent' });
+    const a = (t) => ({ t, c: '#BDF2D2', bg: '#10281C' });
+    const b = (t) => ({ t, c: '#C5E0FF', bg: '#132232' });
+    const m = (t) => ({ t, c: '#8E8F98', bg: '#1F2025' });
+    return {
+      tabs: [
+        { t: 'refresh 토큰 테스트 작성', k: 'Cl', href: 'Space.dc.html' },
+        { t: '통합 준비: auth-tests', k: 'git', st: 'need', sel: true, href: 'Merge.dc.html' }
+      ],
+      code: [
+        p('  export async function refreshSession(session: Session) {'),
+        m('<<<<<<< feat/refresh-tests'),
+        a('    if (session.expiresAt * 1000 > Date.now()) return session;'),
+        m('======='),
+        b('    if (!isExpired(session.expiresAt)) return session;'),
+        m('>>>>>>> main'),
+        p('    return issueToken(session.userId);'),
+        p('  }')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

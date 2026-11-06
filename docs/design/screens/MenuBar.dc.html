@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>창을 닫은 뒤 메뉴 막대</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#1A1B20}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="position:relative;width:100%;height:100vh;min-height:640px;overflow:hidden;background:#1A1B20;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <header style="height:30px;box-sizing:border-box;display:flex;justify-content:flex-end;align-items:center;padding:0 10px;background:#0F1012">
+    <a href="MenuBar.dc.html" aria-label="Runwick 메뉴: 확인할 일 1개, 실행 중 3개" aria-expanded="true" style="height:24px;display:flex;align-items:center;gap:6px;padding:0 8px;border-radius:5px;background:#33343B;font-size:12px">
+      <svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true" style="fill:none"><path d="M12 2c1 3.600 5 5.600 5 10a5 5 0 0 1-10 0c0-2.200 1.200-3.400 2-4.400.3 1.400 1.100 2.100 1.800 2.100C10.600 7.200 10.600 4.600 12 2Z" style="fill:#FF8B3E"></path><path d="M12 18v4" style="stroke:#EDEDF0;stroke-width:2;stroke-linecap:round"></path></svg>
+      <span style="color:#FF8B3E;font-weight:600">1</span><span style="color:#D6D7DC">· 3</span>
+    </a>
+  </header>
+  <section aria-label="Runwick 메뉴 막대 활동" style="position:absolute;top:36px;right:10px;width:380px;max-width:calc(100% - 20px);box-sizing:border-box;display:flex;flex-direction:column;border-radius:14px;background:#1F2025;box-shadow:0 0 0 1px #33343B,0 24px 64px rgba(0,0,0,.5)">
+    <header style="display:flex;flex-direction:column;gap:2px;padding:14px 16px 10px">
+      <h1 style="margin:0;font-size:15px;font-weight:600">창은 닫혔고, 작업은 계속되고 있어요</h1>
+      <p style="margin:0;font-size:12.500px;color:#B0B1B8">다시 열면 같은 실행에 그대로 연결됩니다.</p>
+    </header>
+    <div style="display:flex;flex-direction:column;gap:2px;padding:0 8px 8px">
+      <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
+        <a href="{{r.href}}" style="display:flex;align-items:center;gap:9px;padding:8px;border-radius:8px;background:{{r.bg}}">
+          <svg width="15" height="15" viewBox="0 0 16 16" role="img" aria-label="{{r.state}}" style="flex:none;fill:none;stroke:{{r.c}};stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round;animation:{{r.anim}}"><path d="{{r.i}}"></path></svg>
+          <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">{{r.t}}</span>
+            <span title="{{r.m}}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:#8E8F98">{{r.m}}</span>
+          </span>
+          <span style="flex:none;font-size:12px;color:{{r.c}}">{{r.state}}</span>
+        </a>
+      </sc-for>
+    </div>
+    <footer style="display:flex;flex-direction:column;gap:6px;padding:10px 12px 12px;border-top:1px solid #33343B">
+      <a href="Session.dc.html" style="height:34px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#FF8B3E;color:#1B0F06;font-weight:600">Runwick 열기</a>
+      <div style="display:flex;gap:6px">
+        <a href="Activity.dc.html" style="flex:1;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#33343B;font-size:12.500px">전체 활동</a>
+        <a href="Quit.dc.html" style="flex:1;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#33343B;font-size:12.500px">작업까지 종료…</a>
+      </div>
+    </footer>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const need = 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01';
+    const run = 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z';
+    const a = 'wick 1.8s ease-in-out infinite';
+    return {
+      rows: [
+        { t: '회귀 검토', m: 'payments-api / 기본 공간 · Codex', state: '승인 필요', c: '#FF8B3E', i: need, anim: 'none', bg: '#2B1C12', href: 'Peek.dc.html' },
+        { t: '로그인 오류 수정', m: 'payments-api / 기본 공간 · Claude Code', state: '실행 중', c: '#5AD6A4', i: run, anim: a, bg: 'transparent', href: 'Session.dc.html' },
+        { t: 'refresh 토큰 테스트 작성', m: 'payments-api / auth-tests · Claude Code', state: '실행 중', c: '#5AD6A4', i: run, anim: a, bg: 'transparent', href: 'Space.dc.html' },
+        { t: '정산 리포트 초안 작성', m: '사내 정산 리포트 자동화 및 문서 정리 프로젝트 · Claude Code', state: '실행 중', c: '#5AD6A4', i: run, anim: a, bg: 'transparent', href: 'Session.dc.html' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

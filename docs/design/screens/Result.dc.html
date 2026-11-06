@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>결과 반환과 확인</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="2" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="result" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="returned" next="Activity.dc.html" label="터미널. 전체 활동으로 이동" hint-size="100%,100%"></dc-import></div>
+      <div style="flex:none"><dc-import name="SessionBar" state="run" label="실행 중" meta="결과 정리 · 방금" collab="협업 1" need="새 결과 2" need-color="#74B7FF" hint-size="100%,34px"></dc-import></div>
+    </main>
+    <aside aria-label="상세 패널" style="flex:1 1 380px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#17181C;border-left:1px solid #25262B">
+      <div style="flex:none"><dc-import name="PanelHead" tab="result" hint-size="100%,44px"></dc-import></div>
+      <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding:14px">
+        <div style="display:flex;gap:4px">
+          <a href="#" aria-current="page" style="flex:1;min-width:0;display:flex;flex-direction:column;padding:8px 10px;border-radius:8px;background:#26272D">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.500px;font-weight:500">refresh 토큰 테스트 작성</span>
+            <span style="font-size:11.500px;color:#74B7FF">새 결과</span>
+          </a>
+          <a href="#" style="flex:1;min-width:0;display:flex;flex-direction:column;padding:8px 10px;border-radius:8px;background:#1F2025">
+            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.500px;color:#D6D7DC">회귀 검토</span>
+            <span style="font-size:11.500px;color:#74B7FF">새 결과</span>
+          </a>
+        </div>
+        <section style="display:flex;flex-direction:column;gap:6px">
+          <p style="margin:0;color:#EDEDF0">만료 전 유지와 만료 후 재발급 경로를 시험하는 테스트 4개를 추가했습니다.</p>
+          <p title="~/work/payments-api.worktrees/auth-tests" style="margin:0;font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;color:#8E8F98">Claude Code · auth-tests / feat/refresh-tests<br>a41f3c2 → 7c2e9d1 · 시도 1</p>
+        </section>
+        <section aria-label="변경 파일" style="display:flex;flex-direction:column;gap:6px">
+          <h3 style="margin:0;font-size:12px;font-weight:500;color:#8E8F98">변경 파일 2</h3>
+          <div style="display:flex;flex-direction:column;border-radius:8px;background:#1F2025">
+            <sc-for list="{{files}}" as="f" hint-placeholder-count="2">
+              <a href="Space.dc.html" title="{{f.p}}" style="display:flex;align-items:center;gap:8px;height:32px;padding:0 10px">
+                <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left;font-family:'JetBrains Mono',Menlo,monospace;font-size:11.500px;color:#D6D7DC">{{f.p}}</span>
+                <span style="flex:none;font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;color:#7EE0A8">{{f.a}}</span>
+                <span style="flex:none;font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;color:#FF9C9C">{{f.d}}</span>
+              </a>
+            </sc-for>
+          </div>
+        </section>
+        <section aria-label="검증" style="display:flex;flex-direction:column;gap:6px">
+          <h3 style="margin:0;font-size:12px;font-weight:500;color:#8E8F98">검증</h3>
+          <div style="display:flex;flex-direction:column;gap:8px;padding:10px;border-radius:8px;background:#1F2025">
+            <div style="display:flex;gap:8px">
+              <svg width="14" height="14" viewBox="0 0 16 16" role="img" aria-label="통과" style="flex:none;margin-top:2px;fill:none;stroke:#5AD6A4;stroke-width:1.700;stroke-linecap:round;stroke-linejoin:round"><path d="M3 8.500l3.500 3.500L13 4.500"></path></svg>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12px">pnpm test auth</span><span style="font-size:12px;color:#8E8F98">통과 · 18 passed · 7c2e9d1 기준</span></span>
+            </div>
+            <div style="display:flex;gap:8px">
+              <svg width="14" height="14" viewBox="0 0 16 16" role="img" aria-label="미실행" style="flex:none;margin-top:2px;fill:none;stroke:#8E8F98;stroke-width:1.700;stroke-linecap:round"><path d="M3.500 8h9"></path></svg>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12px">pnpm test:e2e</span><span style="font-size:12px;color:#8E8F98">실행 안 함 · 스테이징 필요</span></span>
+            </div>
+          </div>
+        </section>
+        <p style="margin:0;font-size:12px;color:#8E8F98">다른 공간의 결과라 여기서는 읽기만 합니다. 파일을 열면 auth-tests 공간으로 전환하고, 돌아올 수 있어요.</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          <a href="Merge.dc.html" style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#FF8B3E;color:#1B0F06;font-size:12.500px;font-weight:600">통합 준비</a>
+          <a href="Space.dc.html" style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">파일 열기</a>
+          <a href="Collab2.dc.html" style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">검토 요청</a>
+          <a href="Failed.dc.html" style="height:30px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:12.500px">이어서 수정</a>
+          <a href="#" aria-label="경로 복사" title="경로 복사" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#26272D">
+            <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.400;stroke-linejoin:round"><path d="M5.500 5.500h8v8h-8ZM10.500 5.500v-3h-8v8h3"></path></svg>
+          </a>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid #25262B;font-size:12.500px;color:#D6D7DC">
+          <input type="checkbox" style="width:14px;height:14px;margin:0;accent-color:#FF8B3E">
+          <span>확인함으로 표시 <span style="color:#8E8F98">(검증 통과와는 별개예요)</span></span>
+        </label>
+      </div>
+    </aside>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'run', sel: true, href: 'Collab1.dc.html' },
+        { t: '회귀 검토', k: 'Cx', st: 'fresh', href: 'Peek.dc.html' },
+        { t: 'zsh', k: '$', href: 'Session.dc.html' }
+      ],
+      files: [
+        { p: 'src/auth/refresh.test.ts', a: '+86', d: '' },
+        { p: 'src/auth/refresh.ts', a: '+3', d: '−1' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

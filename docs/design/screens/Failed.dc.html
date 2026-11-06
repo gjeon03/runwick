@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>일부 결과 후 실패</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="1" running="1" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="fail" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#101114">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:28px 32px">
+        <div style="max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
+          <header style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:16px">
+            <div style="flex:1 1 360px;min-width:0;display:flex;flex-direction:column;gap:4px">
+              <span style="display:flex;align-items:center;gap:6px;font-size:12.500px;font-weight:500;color:#FF7B86"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:#FF7B86;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M8 2 14.500 13.500h-13ZM8 6.500V10M8 12h.01"></path></svg>일부 결과 후 실패 · 시도 1</span>
+              <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.01em">refresh 토큰 테스트 작성</h1>
+              <p style="margin:0;color:#B0B1B8">실행 시간 한도 20분에 도달해 프로세스가 끝났어요. 작성한 내용은 그대로 남아 있습니다.</p>
+            </div>
+            <div style="flex:none;display:flex;gap:6px">
+              <a href="Collab2.dc.html" style="height:34px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D;font-size:13px">처음부터 다시</a>
+              <a href="Collab2.dc.html" style="height:34px;display:flex;align-items:center;padding:0 14px;border-radius:7px;background:#FF8B3E;color:#1B0F06;font-size:13px;font-weight:600">이어서 수정</a>
+            </div>
+          </header>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(340px,100%),1fr));gap:12px;align-items:start">
+            <section aria-label="남아 있는 결과" style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:12px;background:#17181C">
+              <h2 style="margin:0;font-size:13px;font-weight:600">남아 있는 것</h2>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <a href="Space.dc.html" title="~/work/payments-api.worktrees/auth-tests/src/auth/refresh.test.ts" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:#1F2025">
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+                    <span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">src/auth/refresh.test.ts</span>
+                    <span style="font-size:12px;color:#8E8F98">초안 · 미커밋 · auth-tests 공간</span>
+                  </span>
+                  <span style="flex:none;font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;color:#7EE0A8">+52</span>
+                </a>
+                <p style="margin:0;font-size:12.500px;color:#B0B1B8">끝낸 단계: refresh.ts 경로 분석, 테스트 4개 중 2개 작성</p>
+                <p style="margin:0;font-size:12.500px;color:#B0B1B8">검증: 없음. 테스트 실행 중에 멈춰 통과 기록이 없어요.</p>
+              </div>
+              <pre style="margin:0;padding:10px 12px;border-radius:8px;background:#0B0C0E;color:#FF9C9C;font-family:'JetBrains Mono',Menlo,monospace;font-size:11.500px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere">time limit reached (20m) · exit 137
+last command: pnpm test auth --watch=false</pre>
+              <a href="Space.dc.html" style="align-self:flex-start;font-size:12.500px;color:#B0B1B8;text-decoration:underline">전체 로그와 원문 보기</a>
+            </section>
+            <section aria-label="이어서 수정하면" style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:12px;background:#17181C">
+              <h2 style="margin:0;font-size:13px;font-weight:600">이어서 수정하면 시도 2로 진행해요</h2>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:12px;font-weight:500;color:#5AD6A4">다시 쓰는 것</span>
+                <sc-for list="{{reuse}}" as="r" hint-placeholder-count="2">
+                  <div style="display:flex;gap:8px;font-size:12.500px;color:#D6D7DC">
+                    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:2px;fill:none;stroke:#5AD6A4;stroke-width:1.700;stroke-linecap:round;stroke-linejoin:round"><path d="M3 8.500l3.500 3.500L13 4.500"></path></svg>
+                    <span>{{r}}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <span style="font-size:12px;font-weight:500;color:#F2C66D">다시 수행하는 것</span>
+                <sc-for list="{{redo}}" as="r" hint-placeholder-count="2">
+                  <div style="display:flex;gap:8px;font-size:12.500px;color:#D6D7DC">
+                    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:2px;fill:none;stroke:#F2C66D;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M13.500 8a5.500 5.500 0 1 1-1.600-3.900L13.500 6M13.500 2.500V6H10"></path></svg>
+                    <span>{{r}}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid #25262B;font-size:12.500px;color:#B0B1B8">
+                <span style="flex:1;min-width:0">시간 한도 20분</span>
+                <a href="Automation.dc.html" style="flex:none;color:#D6D7DC;text-decoration:underline">바꾸기</a>
+              </div>
+            </section>
+          </div>
+          <p style="margin:0;font-size:12.500px;color:#8E8F98">자동으로 다시 실행하지 않았어요. 시도 1의 기록은 어떤 선택을 해도 지워지지 않습니다.</p>
+        </div>
+      </div>
+      <div style="flex:none"><dc-import name="SessionBar" state="fail" label="복구 필요" meta="로그인 오류 수정에서 위임 · 2분 전" collab="협업 2" need="복구 필요 1" need-color="#FF7B86" hint-size="100%,34px"></dc-import></div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'fail', href: 'Collab1.dc.html' },
+        { t: '결과: refresh 토큰 테스트', k: 'res', st: 'fail', sel: true, href: 'Failed.dc.html' },
+        { t: 'zsh', k: '$', href: 'Session.dc.html' }
+      ],
+      reuse: [
+        'refresh.ts 경로 분석. 기준 a41f3c2 이후 파일이 바뀌지 않았음을 확인',
+        '작성해 둔 테스트 초안 2개'
+      ],
+      redo: [
+        '남은 테스트 2개 작성',
+        'pnpm test auth 실행. 이전 시도에 통과 기록이 없어요'
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>기기별 백업</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="1" running="3" settings-href="Session.dc.html" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="설정 분류" style="flex:0 0 232px;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;gap:1px;padding:12px 8px;background:#15161A;border-right:1px solid #25262B">
+      <a href="Session.dc.html" style="height:30px;display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:0 8px;border-radius:6px;font-size:12.500px;color:#B0B1B8">
+        <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="M13 8H3M7 4 3 8l4 4"></path></svg>작업실로 돌아가기
+      </a>
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="9">
+        <a href="{{n.href}}" aria-current="{{n.cur}}" style="height:30px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:{{n.bg}};color:{{n.fg}}">{{n.t}}</a>
+      </sc-for>
+    </nav>
+    <main style="flex:999 1 520px;min-width:0;overflow-y:auto;padding:28px 32px;background:#101114">
+      <div style="max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+        <header style="display:flex;flex-direction:column;gap:4px">
+          <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.01em">저장·가져오기</h1>
+          <p style="margin:0;color:#B0B1B8">기록은 실행한 기기에 저장돼요. 그래서 백업도 그 기록이 있는 기기에서 만들어요.</p>
+        </header>
+
+        <section aria-label="저장 위치" style="display:flex;flex-direction:column;gap:10px">
+          <h2 style="margin:0;font-size:14px;font-weight:600">기기별 저장 위치</h2>
+          <div style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+            <sc-for list="{{stores}}" as="s" hint-placeholder-count="3">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;min-height:52px;padding:9px 14px;border-bottom:1px solid #25262B">
+                <span style="flex:0 0 140px;display:flex;align-items:center;gap:7px;font-weight:500"><span aria-hidden="true" style="width:6px;height:6px;border-radius:50%;background:{{s.dot}}"></span>{{s.t}}</span>
+                <span style="flex:1 1 240px;min-width:0;display:flex;flex-direction:column">
+                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono',Menlo,monospace;font-size:12px;color:#D6D7DC">{{s.path}}</span>
+                  <span style="font-size:12px;color:#8E8F98">{{s.m}}</span>
+                </span>
+                <span style="flex:none;font-family:'JetBrains Mono',Menlo,monospace;font-size:12.500px;color:{{s.sizeC}}">{{s.size}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+        <section aria-label="백업 만들기" style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <h2 style="margin:0;font-size:14px;font-weight:600">백업 만들기</h2>
+            <p style="margin:0;font-size:12.500px;color:#B0B1B8">고른 기기마다 백업을 따로 만들고, 그 기기 디스크에 저장해요. 만드는 동안 CLI는 계속 실행돼요.</p>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{hosts}}" as="h" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-radius:12px;background:#17181C;box-shadow:{{h.ring}};opacity:{{h.op}}">
+                <div style="display:flex;align-items:flex-start;gap:10px">
+                  <button type="button" role="checkbox" aria-checked="{{h.on}}" aria-disabled="{{h.dis}}" aria-label="{{h.t}} 백업" onClick="{{h.toggle}}" style="flex:none;width:18px;height:18px;margin-top:1px;display:flex;align-items:center;justify-content:center;padding:0;border:0;border-radius:5px;background:{{h.boxBg}};box-shadow:{{h.boxRing}};cursor:{{h.cursor}}">
+                    <sc-if value="{{h.checked}}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:#1B0F06;stroke-width:2.200;stroke-linecap:round;stroke-linejoin:round"><path d="M3 8.500l3.200 3L13 4.500"></path></svg></sc-if>
+                  </button>
+                  <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+                    <span style="display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px"><span style="font-weight:600">{{h.t}}</span><span style="font-size:12px;color:{{h.stC}}">{{h.st}}</span></span>
+                    <span style="font-size:12.500px;color:#B0B1B8">{{h.what}}</span>
+                    <span style="font-size:12px;color:#8E8F98">{{h.where}}</span>
+                  </span>
+                  <span style="flex:none;font-family:'JetBrains Mono',Menlo,monospace;font-size:12.500px;color:#D6D7DC">{{h.size}}</span>
+                </div>
+                <sc-if value="{{h.canPull}}" hint-placeholder-val="{{ false }}">
+                  <button type="button" role="switch" aria-checked="{{pullOn}}" onClick="{{togglePull}}" style="align-self:flex-start;display:flex;align-items:center;gap:8px;margin-left:28px;padding:0;border:0;background:transparent;color:#D6D7DC;font:inherit;font-size:12.500px;cursor:pointer">
+                    <span aria-hidden="true" style="position:relative;display:block;width:30px;height:18px;border-radius:9px;background:{{pullBg}}"><span style="position:absolute;top:2px;left:{{pullX}}px;width:14px;height:14px;border-radius:50%;background:{{pullDot}}"></span></span>
+                    이 Mac으로도 한 부 받아오기 <span style="color:#8E8F98">· 1.1GB · 약 2분</span>
+                  </button>
+                </sc-if>
+                <sc-if value="{{h.hasNote}}" hint-placeholder-val="{{ false }}">
+                  <span style="margin-left:28px;font-size:12px;color:#F6DFAE">{{h.note}}</span>
+                </sc-if>
+                <sc-if value="{{h.hasProg}}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-left:28px;padding:8px 10px;border-radius:8px;background:#1F2025">
+                    <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:{{h.pc}};stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round;animation:{{h.panim}}"><path d="{{h.pi}}"></path></svg>
+                    <span style="flex:1 1 220px;min-width:0;display:flex;flex-direction:column">
+                      <span style="font-size:12.500px">{{h.pt}}</span>
+                      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono',Menlo,monospace;font-size:11.500px;color:#8E8F98">{{h.pm}}</span>
+                    </span>
+                    <sc-if value="{{h.hasOpen}}" hint-placeholder-val="{{ false }}"><a href="#" style="flex:none;height:26px;display:flex;align-items:center;padding:0 9px;border-radius:6px;background:#26272D;font-size:12px">{{h.open}}</a></sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(300px,100%),1fr));gap:6px">
+            <div style="display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:10px;background:#15161A">
+              <span style="font-size:12px;font-weight:500;color:#8E8F98">넣는 것</span>
+              <span style="font-size:12.500px;color:#D6D7DC">대화 원문 · 핀 · 위키 문서 · 기록 사이 연결 · 설정 참조</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:3px;padding:10px 12px;border-radius:10px;background:#15161A">
+              <span style="font-size:12px;font-weight:500;color:#8E8F98">빼는 것</span>
+              <span style="font-size:12.500px;color:#D6D7DC">비밀값 · 실행 중인 프로세스 · 다시 만들 수 있는 색인 · 다른 기기에서 받아 둔 사본</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px 12px">
+            <span style="flex:1 1 260px;min-width:0;font-size:12.500px;color:#8E8F98">{{summary}}</span>
+            <button type="button" onClick="{{make}}" aria-disabled="{{makeDis}}" style="height:34px;padding:0 14px;border:0;border-radius:7px;background:{{makeBg}};color:{{makeFg}};font:inherit;font-weight:{{makeW}};cursor:pointer">{{makeT}}</button>
+          </div>
+        </section>
+
+        <section aria-label="가져오기와 복구" style="display:flex;flex-direction:column;gap:10px">
+          <h2 style="margin:0;font-size:14px;font-weight:600">가져오기와 복구</h2>
+          <div style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+            <a href="Import.dc.html" style="display:flex;align-items:center;gap:12px;min-height:50px;padding:8px 14px;border-bottom:1px solid #25262B">
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-weight:500">Pinloom 기록 가져오기</span><span style="font-size:12px;color:#8E8F98">원본은 읽기만 해요. 시험 가져오기 후 활성화해요.</span></span>
+              <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#8E8F98;stroke-width:1.800;stroke-linecap:round;stroke-linejoin:round"><path d="M6 4l4 4-4 4"></path></svg>
+            </a>
+            <a href="#" style="display:flex;align-items:center;gap:12px;min-height:50px;padding:8px 14px">
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font-weight:500">백업에서 복구</span><span style="font-size:12px;color:#8E8F98">백업을 만든 기기에서 복구해요. 따로 풀어 확인한 뒤에 바꿔요.</span></span>
+              <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#8E8F98;stroke-width:1.800;stroke-linecap:round;stroke-linejoin:round"><path d="M6 4l4 4-4 4"></path></svg>
+            </a>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { sel: { local: true, mini: true }, pull: false, phase: 'pick' };
+  renderVals() {
+    const { sel, pull, phase } = this.state;
+    const I = {
+      ok: 'M3 8.500l3.200 3L13 4.500',
+      run: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V8l2.500 1.500'
+    };
+    const nav = [
+      ['일반', '#'], ['CLI 도구', '#'], ['공통 환경변수', 'Settings.dc.html'], ['MCP', '#'],
+      ['협업', '#'], ['역할·작업 방식', '#'], ['자동 작업', 'Automation.dc.html'], ['기기', 'Devices.dc.html'], ['저장·가져오기', 'Backup.dc.html', true]
+    ];
+    const picking = phase === 'pick';
+    const H = [
+      { k: 'local', t: '이 Mac', st: '로컬', stC: '#8E8F98', what: '이 Mac에서 실행한 기록 · 핀 · 위키 · 설정 참조', where: '저장: 이 Mac · ~/Backups/Runwick', size: '1.9GB', can: true,
+        doneM: '~/Backups/Runwick/2026-11-06-1215', open: '폴더 열기' },
+      { k: 'mini', t: '집 Mac mini', st: '연결됨', stC: '#5AD6A4', what: '집 Mac mini에서 실행한 기록 · 핀 · payments-api 정리 결과', where: '저장: 집 Mac mini · ~/Backups/Runwick (이 Mac 디스크가 아니에요)', size: '1.1GB', can: true, pull: true,
+        doneM: pull ? '집 Mac mini:~/Backups/Runwick/2026-11-06-1215 · 이 Mac에도 한 부' : '집 Mac mini:~/Backups/Runwick/2026-11-06-1215', open: 'Runwick 링크 복사' },
+      { k: 'dev', t: '개발 서버', st: '연결 안 됨 · 버전 확인 필요', stC: '#F2C66D', what: '개발 서버에서 실행한 야간 배치 기록 · 정산 위키', where: '저장: 개발 서버 · /var/backups/runwick', size: '—', can: false,
+        note: '지금은 만들 수 없어요. 이 Mac에 있는 개발 서버 기록(09:12까지)은 받아 둔 사본이라 개발 서버의 백업으로 치지 않아요.' }
+    ];
+    const chosen = H.filter((h) => h.can && sel[h.k]);
+    const n = chosen.length;
+    const later = (ms) => setTimeout(() => { if (this.state.phase === 'running') this.setState({ phase: 'done' }); }, ms);
+    return {
+      nav: nav.map((x) => ({ t: x[0], href: x[1], cur: x[2] ? 'page' : 'false', bg: x[2] ? '#26272D' : 'transparent', fg: x[2] ? '#EDEDF0' : '#B0B1B8' })),
+      stores: [
+        { t: '이 Mac', dot: '#5AD6A4', path: '~/Library/Application Support/Runwick', m: '기록 1.9GB · 다른 기기에서 받은 사본 340MB · 색인 160MB', size: '2.4GB', sizeC: '#D6D7DC' },
+        { t: '집 Mac mini', dot: '#5AD6A4', path: '집 Mac mini:~/Library/Application Support/Runwick', m: '집 Mac mini의 기록 · 12:10 확인', size: '1.3GB', sizeC: '#D6D7DC' },
+        { t: '개발 서버', dot: '#F2C66D', path: '개발 서버:/var/lib/runwick', m: '지금 확인할 수 없어요 · 09:12에는 0.6GB', size: '확인 불가', sizeC: '#8E8F98' }
+      ],
+      hosts: H.map((h) => {
+        const on = h.can && !!sel[h.k];
+        const inRun = !picking && on;
+        return {
+          t: h.t, st: h.st, stC: h.stC, what: h.what, where: h.where, size: h.size,
+          on: on ? 'true' : 'false', checked: on, dis: h.can && picking ? 'false' : 'true',
+          toggle: () => { if (h.can && picking) this.setState({ sel: { ...this.state.sel, [h.k]: !on } }); },
+          boxBg: on ? '#FF8B3E' : 'transparent', boxRing: on ? 'none' : 'inset 0 0 0 1.500px #4A4B54',
+          cursor: h.can && picking ? 'pointer' : 'default',
+          ring: on && picking ? 'inset 0 0 0 1px #33343B' : 'none',
+          op: h.can ? '1' : '.75',
+          canPull: !!h.pull && on && picking,
+          hasNote: !!h.note, note: h.note ?? '',
+          hasProg: inRun,
+          pi: phase === 'done' ? I.ok : I.run, pc: phase === 'done' ? '#5AD6A4' : '#B0B1B8',
+          panim: phase === 'done' ? 'none' : 'wick 1.4s ease-in-out infinite',
+          pt: phase === 'done' ? h.t + '에 백업했어요 · 해시 확인함' : h.t + '에서 만드는 중 · 스냅샷 → 묶기 → 해시 확인',
+          pm: phase === 'done' ? (h.doneM ?? '') : '일관된 시점으로 묶고 있어요',
+          hasOpen: phase === 'done', open: h.open ?? ''
+        };
+      }),
+      pullOn: pull ? 'true' : 'false', pullBg: pull ? '#FF8B3E' : '#33343B', pullDot: pull ? '#1B0F06' : '#B0B1B8', pullX: pull ? 14 : 2,
+      togglePull: () => this.setState({ pull: !pull }),
+      summary: phase === 'done' ? '백업 ' + n + '개를 만들고 확인했어요. 각 기기 디스크에 있어요.'
+        : phase === 'running' ? '만드는 중이에요. 다른 작업은 그대로 해도 돼요.'
+        : n === 0 ? '백업할 기기를 골라 주세요.'
+        : '백업 ' + n + '개 · ' + chosen.map((h) => h.t).join(', ') + ' · 각자 자기 디스크에 저장',
+      makeT: phase === 'done' ? '다시 고르기' : phase === 'running' ? '만드는 중…' : '백업 ' + n + '개 만들기',
+      make: () => {
+        if (phase === 'done') this.setState({ phase: 'pick' });
+        else if (phase === 'pick' && n > 0) { this.setState({ phase: 'running' }); later(1800); }
+      },
+      makeDis: phase === 'running' || (picking && n === 0) ? 'true' : 'false',
+      makeBg: picking && n > 0 ? '#FF8B3E' : '#26272D',
+      makeFg: picking && n > 0 ? '#1B0F06' : (phase === 'done' ? '#EDEDF0' : '#8E8F98'),
+      makeW: picking && n > 0 ? '600' : '400'
+    };
+  }
+}
+</script>
+</body>
+</html>

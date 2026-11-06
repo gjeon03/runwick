@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>자동 작업과 배터리</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="3" settings-href="Session.dc.html" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="설정 분류" style="flex:0 0 232px;min-width:0;box-sizing:border-box;display:flex;flex-direction:column;gap:1px;padding:12px 8px;background:#15161A;border-right:1px solid #25262B">
+      <a href="Session.dc.html" style="height:30px;display:flex;align-items:center;gap:6px;margin-bottom:8px;padding:0 8px;border-radius:6px;font-size:12.500px;color:#B0B1B8">
+        <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round;stroke-linejoin:round"><path d="M13 8H3M7 4 3 8l4 4"></path></svg>작업실로 돌아가기
+      </a>
+      <sc-for list="{{nav}}" as="n" hint-placeholder-count="8">
+        <a href="{{n.href}}" aria-current="{{n.cur}}" style="height:30px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:{{n.bg}};color:{{n.fg}}">{{n.t}}</a>
+      </sc-for>
+    </nav>
+    <main style="flex:999 1 520px;min-width:0;overflow-y:auto;padding:28px 32px;background:#101114">
+      <div style="max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:22px">
+        <header style="display:flex;flex-direction:column;gap:4px">
+          <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.01em">자동 작업</h1>
+          <p style="margin:0;color:#B0B1B8">대화 저장과 키워드 색인은 AI 없이 항상 동작해요. AI가 하는 정리는 프로젝트별로 직접 켭니다.</p>
+        </header>
+        <div role="status" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:12px 14px;border-radius:12px;background:#17181C">
+          <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#F2C66D;stroke-width:1.300;stroke-linecap:round;stroke-linejoin:round"><path d="M1.500 5h11v6h-11ZM14.500 7v2M4 7v2"></path></svg>
+          <span style="flex:1 1 300px;min-width:0"><span style="font-weight:500">배터리 사용 중이라 새 자동 분석을 멈췄어요.</span> <span style="color:#B0B1B8">전원을 연결하면 다시 시작합니다. 직접 누른 요청과 CLI 작업은 계속 실행돼요.</span></span>
+          <a href="Activity.dc.html" style="flex:none;height:28px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:#26272D;font-size:12px">활동에서 보기</a>
+        </div>
+        <section aria-label="프로젝트별 자동 분석" style="display:flex;flex-direction:column;gap:10px">
+          <h2 style="margin:0;font-size:14px;font-weight:600">프로젝트별 자동 분석</h2>
+          <div style="overflow-x:auto;border-radius:12px;background:#17181C">
+            <div style="min-width:560px;display:flex;flex-direction:column">
+              <div style="display:grid;grid-template-columns:minmax(0,1fr) 96px 96px 96px;align-items:center;min-height:38px;padding:0 14px;font-size:12px;font-weight:500;color:#8E8F98">
+                <span>프로젝트</span><span>위키 정리</span><span>타임라인 요약</span><span>임베딩</span>
+              </div>
+              <sc-for list="{{projects}}" as="p" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) 96px 96px 96px;align-items:center;min-height:44px;padding:0 14px;border-top:1px solid #25262B">
+                  <span title="{{p.t}}" style="min-width:0;padding-right:12px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{p.t}}</span>
+                  <sc-for list="{{p.cols}}" as="c" hint-placeholder-count="3">
+                    <button type="button" role="switch" aria-checked="{{c.on}}" aria-label="{{p.t}} {{c.n}}" onClick="{{c.toggle}}" style="display:block;position:relative;width:34px;height:20px;padding:0;border:0;border-radius:10px;background:{{c.bg}};cursor:pointer">
+                      <span aria-hidden="true" style="position:absolute;top:2px;left:{{c.x}}px;width:16px;height:16px;border-radius:50%;background:{{c.dot}}"></span>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </section>
+        <section aria-label="최근 자동 작업" style="display:flex;flex-direction:column;gap:10px">
+          <h2 style="margin:0;font-size:14px;font-weight:600">최근 자동 작업</h2>
+          <div style="display:flex;flex-direction:column;border-radius:12px;background:#17181C;overflow:hidden">
+            <sc-for list="{{jobs}}" as="j" hint-placeholder-count="3">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;min-height:52px;padding:8px 10px 8px 14px;border-bottom:1px solid #25262B">
+                <span style="flex:1 1 300px;min-width:0;display:flex;flex-direction:column">
+                  <span style="font-weight:500">{{j.t}}</span>
+                  <span style="font-size:12px;color:#8E8F98">{{j.why}}</span>
+                </span>
+                <span style="flex:0 0 150px;font-size:12px;color:{{j.c}}">{{j.st}}</span>
+                <a href="{{j.href}}" style="flex:none;height:28px;display:flex;align-items:center;padding:0 10px;border-radius:6px;background:#26272D;font-size:12px">{{j.act}}</a>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin:0;font-size:12px;color:#8E8F98">자동 배정 한도 4개, 그중 자동 분석 1개. 비용은 도구가 제공할 때만 표시하고, 없으면 미지원으로 둡니다.</p>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { on: { 'p0-0': true, 'p0-1': true } };
+  renderVals() {
+    const on = this.state.on;
+    const nav = [
+      ['일반', '#'], ['CLI 도구', '#'], ['공통 환경변수', 'Settings.dc.html'], ['MCP', '#'],
+      ['협업', '#'], ['역할·작업 방식', '#'], ['자동 작업', 'Automation.dc.html', true], ['기기', 'Devices.dc.html'], ['저장·가져오기', 'Backup.dc.html']
+    ];
+    const cols = ['위키 정리', '타임라인 요약', '임베딩'];
+    const names = ['payments-api', 'docs-site', '사내 정산 리포트 자동화 및 문서 정리 프로젝트'];
+    return {
+      nav: nav.map((x) => ({ t: x[0], href: x[1], cur: x[2] ? 'page' : 'false', bg: x[2] ? '#26272D' : 'transparent', fg: x[2] ? '#EDEDF0' : '#B0B1B8' })),
+      projects: names.map((t, i) => ({
+        t,
+        cols: cols.map((n, j) => {
+          const key = 'p' + i + '-' + j;
+          const v = !!on[key];
+          return {
+            n, on: v ? 'true' : 'false',
+            bg: v ? '#FF8B3E' : '#33343B',
+            dot: v ? '#1B0F06' : '#B0B1B8',
+            x: v ? 16 : 2,
+            toggle: () => this.setState({ on: { ...this.state.on, [key]: !v } })
+          };
+        })
+      })),
+      jobs: [
+        { t: '위키 변경분 정리 · payments-api', why: '자동 · 변경 기록 12건이 쌓였고 작업이 한가해짐', st: '보류 · 배터리 사용 중', c: '#F2C66D', act: '지금 정리', href: 'Wiki.dc.html' },
+        { t: '타임라인 요약 · payments-api', why: '자동 · 어제 기록 42건', st: '성공 · 어제 18:50', c: '#5AD6A4', act: '결과 보기', href: 'Timeline.dc.html' },
+        { t: '키워드 색인 · 전체', why: '항상 · 원문이 바뀔 때마다', st: '성공 · 1분 전', c: '#5AD6A4', act: '기록 열기', href: 'History.dc.html' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

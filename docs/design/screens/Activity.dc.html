@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>전체 활동</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="position:relative;width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="2" running="3" activity-href="Collab1.dc.html" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="collab" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="delegate" next="Collab1.dc.html" label="터미널" hint-size="100%,100%"></dc-import></div>
+      <div style="flex:none"><dc-import name="SessionBar" state="idle" label="응답 완료 · 협업 2개 진행" meta="입력할 수 있어요" collab="협업 2" need="확인 필요 1" hint-size="100%,34px"></dc-import></div>
+    </main>
+  </div>
+  <section aria-label="전체 활동" style="position:absolute;top:44px;right:0;bottom:0;width:480px;max-width:100%;box-sizing:border-box;display:flex;flex-direction:column;background:#17181C;box-shadow:-20px 0 48px rgba(0,0,0,.4)">
+    <header style="flex:none;display:flex;flex-direction:column;gap:10px;padding:14px 10px 12px 16px;border-bottom:1px solid #25262B">
+      <div style="display:flex;align-items:center;gap:8px">
+        <h1 style="flex:1;margin:0;font-size:16px;font-weight:600">전체 활동</h1>
+        <a href="Collab1.dc.html" aria-label="활동 닫기" title="닫기 (Esc)" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;color:#B0B1B8">
+          <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+        </a>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+          <a href="#" style="height:26px;display:flex;align-items:center;gap:5px;padding:0 9px;border-radius:6px;background:#26272D;font-size:12px;color:#D6D7DC">{{f}}<svg width="10" height="10" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:#8E8F98;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M4 6l4 4 4-4"></path></svg></a>
+        </sc-for>
+      </div>
+    </header>
+    <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:12px 8px">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="4">
+        <section aria-label="{{g.t}}" style="display:flex;flex-direction:column;gap:3px">
+          <h2 style="margin:0;padding:0 8px 3px;font-size:12px;font-weight:500;color:{{g.c}}">{{g.t}} {{g.n}}</h2>
+          <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+            <a href="{{r.href}}" style="display:flex;align-items:flex-start;gap:9px;padding:9px 10px;border-radius:8px;background:#1F2025">
+              <svg width="15" height="15" viewBox="0 0 16 16" role="img" aria-label="{{r.state}}" style="flex:none;margin-top:2px;fill:none;stroke:{{g.c}};stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round;animation:{{g.anim}}"><path d="{{g.i}}"></path></svg>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                <span style="color:#EDEDF0;font-weight:500">{{r.t}}</span>
+                <span style="font-size:12px;color:#D6D7DC">{{r.state}} · {{r.when}}</span>
+                <span title="{{r.where}}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.500px;color:#8E8F98">{{r.where}}</span>
+                <span style="font-size:11.500px;color:#8E8F98">{{r.why}}</span>
+              </span>
+              <span style="flex:none;height:26px;display:flex;align-items:center;padding:0 9px;border-radius:6px;background:#33343B;font-size:12px;color:#EDEDF0">{{r.act}}</span>
+            </a>
+          </sc-for>
+        </section>
+      </sc-for>
+    </div>
+    <footer style="flex:none;display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid #25262B;font-size:12px;color:#8E8F98">
+      <span style="flex:1;min-width:0">직접 실행 포함 3개 · 자동 배정 한도 4 · 내장 subagent는 집계 제외</span>
+      <a href="Automation.dc.html" style="flex:none;color:#B0B1B8;text-decoration:underline">자원 상세</a>
+    </footer>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const I = {
+      need: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01',
+      run: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',
+      hold: 'M5.500 3.500v9M10.500 3.500v9',
+      fresh: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM5.200 8.200l2 2 3.600-4',
+      fail: 'M8 2 14.500 13.500h-13ZM8 6.500V10M8 12h.01'
+    };
+    const g = (t, c, i, rows, anim) => ({ t, c, i, rows, n: rows.length, anim: anim ?? 'none' });
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'need', sel: true, href: 'Collab1.dc.html' },
+        { t: 'zsh', k: '$', href: 'Session.dc.html' }
+      ],
+      filters: ['프로젝트 전체', '종류 전체', '상태 전체'],
+      groups: [
+        g('내 답변·승인 필요', '#FF8B3E', I.need, [
+          { t: '회귀 검토', state: '승인 필요', when: '40초 전', where: 'payments-api / 기본 공간', why: '로그인 오류 수정에서 위임 · Codex', act: '보기', href: 'Peek.dc.html' },
+          { t: 'API 스키마 확인', state: '승인 필요', when: '6분 전', where: 'payments-api / 기본 공간', why: '로그인 오류 수정에서 위임 · Codex', act: '보기', href: 'Stale.dc.html' }
+        ]),
+        g('복구 필요', '#FF7B86', I.fail, [
+          { t: 'refresh 토큰 테스트 작성', state: '일부 결과 후 실패', when: '2분 전', where: 'payments-api / auth-tests', why: '로그인 오류 수정에서 위임 · Claude Code', act: '결과 보기', href: 'Failed.dc.html' },
+          { t: '변경 내용 문서화', state: '전달 확인 필요', when: '2분 전', where: 'payments-api / 기본 공간', why: '로그인 오류 수정에서 위임 · Claude Code', act: '확인', href: 'Uncertain.dc.html' }
+        ]),
+        g('새 결과', '#74B7FF', I.fresh, [
+          { t: 'README 링크 검사', state: '응답 완료 · 미검증', when: '9분 전', where: 'docs-site / 기본 공간', why: '내가 시작한 세션 · Codex', act: '결과 보기', href: 'Result.dc.html' }
+        ]),
+        g('실행 중', '#5AD6A4', I.run, [
+          { t: '정산 리포트 초안 작성', state: '응답 생성 중', when: '12초 전 업데이트', where: '사내 정산 리포트 자동화 및 문서 정리 프로젝트 / 기본 공간', why: '내가 시작한 세션 · Claude Code', act: '열기', href: 'Session.dc.html' }
+        ], 'wick 1.8s ease-in-out infinite'),
+        g('대기', '#9B9CA5', I.hold, [
+          { t: '위키 변경분 정리', state: '보류 · 배터리 사용 중', when: '전원을 연결하면 시작', where: 'payments-api', why: '자동 작업 · 변경 기록 12건이 쌓임', act: '설정', href: 'Automation.dc.html' }
+        ])
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

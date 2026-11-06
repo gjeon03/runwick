@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>흐름 지도</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+</style>
+</helmet>
+<div style="width:100%;min-height:100vh;box-sizing:border-box;padding:36px 48px;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="max-width:1280px;margin:0 auto;display:flex;flex-direction:column;gap:18px">
+    <header style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px">
+      <div style="flex:1 1 400px;min-width:0;display:flex;flex-direction:column;gap:6px">
+        <svg width="28" height="28" viewBox="0 0 24 24" role="img" aria-label="Runwick" style="fill:none"><path d="M12 2c1 3.600 5 5.600 5 10a5 5 0 0 1-10 0c0-2.200 1.200-3.400 2-4.400.3 1.400 1.100 2.100 1.800 2.100C10.600 7.200 10.600 4.600 12 2Z" style="fill:#FF8B3E"></path><path d="M12 18v4" style="stroke:#8E8F98;stroke-width:1.500;stroke-linecap:round"></path></svg>
+        <h1 style="margin:0;font-size:30px;line-height:1.2;font-weight:600;letter-spacing:-0.02em">Runwick 화면 흐름</h1>
+        <p style="margin:0;font-size:14px;color:#B0B1B8">모든 흐름은 같은 작업실에서 이어집니다. 칸을 누르면 그 화면으로 이동해요.</p>
+      </div>
+      <a href="Main.dc.html" style="flex:none;height:38px;display:flex;align-items:center;padding:0 16px;border-radius:8px;background:#FF8B3E;color:#1B0F06;font-size:14px;font-weight:600">처음부터 따라가기</a>
+    </header>
+    <sc-for list="{{flows}}" as="f" hint-placeholder-count="6">
+      <section aria-label="{{f.t}}" style="display:flex;flex-direction:column;gap:8px">
+        <h2 style="margin:0;font-size:13px;font-weight:600;color:#D6D7DC">{{f.t}}</h2>
+        <ol style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;align-items:stretch;gap:6px">
+          <sc-for list="{{f.steps}}" as="s" hint-placeholder-count="5">
+            <li style="display:flex;align-items:center;gap:6px">
+              <a href="{{s.href}}" style="display:flex;flex-direction:column;justify-content:center;min-width:112px;min-height:50px;box-sizing:border-box;padding:6px 12px;border-radius:8px;background:#1F2025">
+                <span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:10.500px;color:#8E8F98">{{s.id}}</span>
+                <span style="font-size:13px;font-weight:500;white-space:nowrap">{{s.t}}</span>
+              </a>
+              <sc-if value="{{s.more}}" hint-placeholder-val="{{ true }}">
+                <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#6F7078;stroke-width:1.800;stroke-linecap:round;stroke-linejoin:round"><path d="M6 4l4 4-4 4"></path></svg>
+              </sc-if>
+            </li>
+          </sc-for>
+        </ol>
+      </section>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const flow = (t, list) => ({
+      t,
+      steps: list.map((x, i) => ({ id: x[0], t: x[1], href: x[2] + '.dc.html', more: i < list.length - 1 }))
+    });
+    return {
+      flows: [
+        flow('1. 기본 작업', [['S00', '첫 시작', 'Main'], ['S01', 'CLI 고르기', 'Start'], ['S02', '평소 세션', 'Session'], ['S03', '문서 나란히', 'Docs'], ['S03', '외부 변경 비교', 'DocConflict'], ['S01', '공간 전환', 'Space']]),
+        flow('2. 협업', [['S02', '위임 등장', 'Collab1'], ['S04', '협업 상세', 'Collab2'], ['S05', '미리보기', 'Peek'], ['S05', '직접 대화', 'Direct'], ['S11', '결과 확인', 'Result']]),
+        flow('3. 주의와 복구', [['S06', '전체 활동', 'Activity'], ['S02', '오래된 요청', 'Stale'], ['S04', '전달 불확실', 'Uncertain'], ['S11', '실패 후 이어가기', 'Failed']]),
+        flow('4. 기억', [['S07', '대화 검색', 'History'], ['S07', '원문과 핀', 'Context'], ['S08', '위키 모아보기', 'WikiHome'], ['S08', '위키 관계', 'WikiGraph'], ['S08', '위키 제안', 'Wiki'], ['S09', '타임라인 모아보기', 'TimelineHome'], ['S09', '타임라인·이어하기', 'Timeline']]),
+        flow('5. 환경과 분리', [['S13', '공통 환경변수', 'Settings'], ['S12', '새로고침', 'Refresh'], ['S12', '일부 MCP 실패', 'RefreshPartial'], ['S10', '분리해서 작업', 'SplitWork'], ['S10', 'CLI만 실패', 'SplitFail'], ['S11', '통합 충돌', 'Merge']]),
+        flow('6. 가벼움과 종료', [['S06', '메뉴 막대', 'MenuBar'], ['종료', '작업까지 종료', 'Quit'], ['재개', '재부팅 후 선택', 'Reboot'], ['S13', '자동 작업', 'Automation'], ['S14', '가져오기', 'Import']]),
+        flow('7. 좁은 화면', [['1100', '덮개 패널', 'Narrow1100'], ['860', '접힌 탐색', 'Narrow860']]),
+        flow('8. 여러 기기', [['S13', '기기 추가', 'DeviceAdd'], ['S01', '원격 공간', 'RemoteSpace'], ['S02', '입력 넘기기', 'RemoteInput'], ['S02', '끊김과 복구', 'RemoteLost'], ['S13', '기기별 적용', 'Devices'], ['모바일', '확인 홈 (별도 판단)', 'RemotePhone'], ['모바일', '답하기·중지 (별도 판단)', 'RemotePhoneSession']]),
+        flow('9. 여러 기기와 기존 화면', [['S03', '원격 파일 저장', 'RemoteDoc'], ['S11', '원격 검증 결과', 'RemoteResult'], ['S06', '기기별 활동', 'RemoteActivity'], ['S07', '여러 기기 검색', 'RemoteSearch'], ['S08', '다른 기기의 위키', 'RemoteWiki'], ['S09', '기기별 타임라인', 'RemoteTimeline'], ['S14', '기기별 백업', 'Backup']])
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

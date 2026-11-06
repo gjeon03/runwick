@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>탐색</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;background:#15161A;color:#B0B1B8;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.4">
+  <div style="flex:none;display:flex;gap:6px;padding:10px 10px 8px">
+    <label style="flex:1;min-width:0;display:flex;align-items:center;gap:7px;height:30px;padding:0 9px;border-radius:7px;background:#1F2025;color:#8E8F98">
+      <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round"><path d="M7 12.500a5.500 5.500 0 1 0 0-11 5.500 5.500 0 0 0 0 11ZM14.500 14.500 11 11"></path></svg>
+      <input aria-label="프로젝트 이름 또는 경로 검색" placeholder="프로젝트 검색" style="flex:1;width:100%;min-width:0;padding:0;background:transparent;border:0;outline:0;color:#EDEDF0;font:inherit;font-size:12.5px">
+    </label>
+    <div style="flex:none;display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+      <a href="Session.dc.html" aria-current="{{allCur}}" style="height:26px;display:flex;align-items:center;padding:0 8px;border-radius:5px;background:{{allBg}};color:{{allFg}};font-size:12px">전체</a>
+      <a href="Space.dc.html" aria-label="즐겨찾기" title="즐겨찾기" aria-current="{{starCur}}" style="width:28px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:{{starBg}};color:{{starFg}}">
+        <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="fill:{{starFill}};stroke:currentColor;stroke-width:1.5;stroke-linejoin:round"><path d="M8 1.800l1.900 3.900 4.300.6-3.100 3 .7 4.300L8 11.600l-3.800 2 .7-4.300-3.100-3 4.300-.6Z"></path></svg>
+      </a>
+      <sc-if value="{{hasDevices}}" hint-placeholder-val="{{ false }}">
+        <a href="Devices.dc.html" aria-label="기기 필터: 모든 기기" title="기기 필터: 모든 기기" style="width:28px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:5px;color:#8E8F98">
+          <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M1.500 3h13v8.500h-13ZM5.500 14h5M8 11.500V14"></path></svg>
+        </a>
+      </sc-if>
+    </div>
+  </div>
+
+  <nav aria-label="프로젝트와 작업 공간" style="flex:none;display:flex;flex-direction:column;gap:2px;padding:0 6px 8px">
+    <sc-for list="{{projects}}" as="p" hint-placeholder-count="3">
+      <div style="display:flex;flex-direction:column;gap:1px">
+        <a href="{{p.href}}" title="{{p.name}}" style="display:flex;align-items:center;gap:5px;height:28px;padding:0 8px 0 4px;border-radius:6px;color:{{p.fg}};font-weight:500">
+          <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#8E8F98;stroke-width:1.700;stroke-linecap:round;stroke-linejoin:round"><path d="{{p.chev}}"></path></svg>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{p.name}}</span>
+          <sc-if value="{{p.badge}}" hint-placeholder-val="{{ true }}"><span aria-label="확인할 일 {{p.badge}}개" style="flex:none;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#FF8B3E;color:#1B0F06;font-size:10.500px;font-weight:600">{{p.badge}}</span></sc-if>
+          <sc-if value="{{p.star}}" hint-placeholder-val="{{ true }}"><svg width="11" height="11" viewBox="0 0 16 16" role="img" aria-label="즐겨찾기" style="flex:none;fill:#8E8F98;stroke:#8E8F98;stroke-width:1.500;stroke-linejoin:round"><path d="M8 1.800l1.900 3.900 4.300.6-3.100 3 .7 4.300L8 11.600l-3.800 2 .7-4.300-3.100-3 4.300-.6Z"></path></svg></sc-if>
+          <span style="flex:none;font-size:11.500px;font-weight:400;color:#8E8F98">{{p.count}}</span>
+        </a>
+        <sc-for list="{{p.spaces}}" as="w" hint-placeholder-count="1">
+          <a href="{{w.href}}" title="{{w.title}}" aria-current="{{w.cur}}" style="display:flex;align-items:center;gap:7px;height:28px;margin-left:12px;padding:0 8px;border-radius:6px;background:{{w.bg}};color:{{w.fg}}">
+            <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{w.icon}}"></path></svg>
+            <span style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{w.name}}</span>
+            <sc-if value="{{w.hasDev}}" hint-placeholder-val="{{ false }}">
+              <span title="실행 기기: {{w.dev}}" style="flex:none;height:17px;display:flex;align-items:center;gap:3px;padding:0 5px;border-radius:4px;background:#1F2025;color:{{w.devFg}};font-size:10.500px;white-space:nowrap"><svg width="10" height="10" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.700;stroke-linecap:round;stroke-linejoin:round"><path d="M1.500 3h13v8.500h-13ZM5.500 14h5M8 11.500V14"></path></svg>{{w.dev}}</span>
+            </sc-if>
+            <span style="flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;color:#8E8F98">{{w.branch}}</span>
+            <span role="img" aria-label="{{w.stateName}}" style="flex:none;width:7px;height:7px;border-radius:50%;background:{{w.dot}};animation:{{w.anim}}"></span>
+          </a>
+        </sc-for>
+      </div>
+    </sc-for>
+  </nav>
+
+  <div style="flex:none;display:flex;align-items:center;gap:8px;padding:10px 10px 6px;border-top:1px solid #25262B">
+    <span title="{{spacePath}}" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#EDEDF0;font-size:12.5px;font-weight:500">{{spaceName}}</span>
+    <div style="flex:none;display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+      <a href="{{sessionsHref}}" aria-current="{{sesCur}}" style="height:24px;display:flex;align-items:center;padding:0 8px;border-radius:5px;background:{{sesBg}};color:{{sesFg}};font-size:12px">세션</a>
+      <a href="{{filesHref}}" aria-current="{{filCur}}" style="height:24px;display:flex;align-items:center;padding:0 8px;border-radius:5px;background:{{filBg}};color:{{filFg}};font-size:12px">파일</a>
+    </div>
+  </div>
+
+  <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:1px;padding:0 6px 8px">
+    <sc-if value="{{isSessions}}" hint-placeholder-val="{{ true }}">
+      <sc-for list="{{sessions}}" as="s" hint-placeholder-count="2">
+        <div style="display:flex;flex-direction:column;gap:1px">
+          <a href="{{s.href}}" title="{{s.t}}" aria-current="{{s.cur}}" style="display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:6px;background:{{s.bg}}">
+            <span aria-hidden="true" style="flex:none;width:20px;height:20px;margin-top:1px;display:flex;align-items:center;justify-content:center;border-radius:5px;background:#26272D;color:#EDEDF0;font-family:'JetBrains Mono',Menlo,monospace;font-size:9.500px;font-weight:500">{{s.k}}</span>
+            <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#EDEDF0">{{s.t}}</span>
+              <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.500px;color:{{s.c}}">{{s.m}}</span>
+            </span>
+          </a>
+          <sc-for list="{{s.kids}}" as="k" hint-placeholder-count="2">
+            <a href="{{k.href}}" title="{{k.t}}" style="display:flex;align-items:center;gap:7px;height:26px;margin-left:18px;padding:0 8px;border-radius:6px;background:{{k.bg}}">
+              <svg width="13" height="13" viewBox="0 0 16 16" role="img" aria-label="{{k.m}}" style="flex:none;fill:none;stroke:{{k.c}};stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round;animation:{{k.anim}}"><path d="{{k.i}}"></path></svg>
+              <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.500px;color:#D6D7DC">{{k.t}}</span>
+              <span style="flex:none;font-family:'JetBrains Mono',Menlo,monospace;font-size:10.500px;color:#8E8F98">{{k.k}}</span>
+            </a>
+          </sc-for>
+        </div>
+      </sc-for>
+      <sc-if value="{{noSessions}}" hint-placeholder-val="{{ false }}">
+        <p style="margin:0;padding:8px 8px;font-size:12px;color:#8E8F98">아직 세션이 없어요. 오른쪽에서 CLI를 고르거나 ⌘T를 누르세요.</p>
+      </sc-if>
+      <div style="display:flex;gap:4px;padding:6px 2px 0">
+        <a href="Start.dc.html" style="flex:1;min-width:0;height:28px;display:flex;align-items:center;justify-content:center;gap:5px;border-radius:6px;background:#1F2025;color:#D6D7DC;font-size:12px;white-space:nowrap"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.700;stroke-linecap:round"><path d="M8 3v10M3 8h10"></path></svg>새 CLI</a>
+        <a href="SplitWork.dc.html" style="flex:1;min-width:0;height:28px;display:flex;align-items:center;justify-content:center;gap:5px;border-radius:6px;background:#1F2025;color:#D6D7DC;font-size:12px;white-space:nowrap"><svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M5 4.500v7M11 6c0 3-6 2-6 5M6.500 3a1.500 1.500 0 1 1-3 0 1.500 1.500 0 0 1 3 0ZM6.500 13a1.500 1.500 0 1 1-3 0 1.500 1.500 0 0 1 3 0ZM12.500 4.500a1.500 1.500 0 1 1-3 0 1.500 1.500 0 0 1 3 0Z"></path></svg>분리해서 작업</a>
+      </div>
+    </sc-if>
+    <sc-if value="{{isFiles}}" hint-placeholder-val="{{ false }}">
+      <label style="display:flex;align-items:center;gap:7px;height:28px;margin:2px 2px 4px;padding:0 8px;border-radius:6px;background:#1F2025;color:#8E8F98">
+        <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="M7 12.500a5.500 5.500 0 1 0 0-11 5.500 5.500 0 0 0 0 11ZM14.500 14.500 11 11"></path></svg>
+        <input aria-label="파일 이름 검색" placeholder="파일 이름 검색" style="flex:1;width:100%;min-width:0;padding:0;background:transparent;border:0;outline:0;color:#EDEDF0;font:inherit;font-size:12px">
+      </label>
+      <sc-for list="{{files}}" as="f" hint-placeholder-count="8">
+        <a href="{{f.href}}" title="{{f.path}}" aria-current="{{f.cur}}" style="display:flex;align-items:center;gap:6px;height:25px;padding:0 8px 0 {{f.pad}}px;border-radius:5px;background:{{f.bg}};color:{{f.fg}};font-size:12.500px">
+          <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#8E8F98;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{f.i}}"></path></svg>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{f.t}}</span>
+          <sc-if value="{{f.mod}}" hint-placeholder-val="{{ false }}"><span role="img" aria-label="미저장" style="flex:none;width:6px;height:6px;border-radius:50%;background:#EDEDF0"></span></sc-if>
+        </a>
+      </sc-for>
+    </sc-if>
+  </div>
+
+  <nav aria-label="{{projectName}} 전체 도구" style="flex:none;display:flex;gap:2px;padding:6px;border-top:1px solid #25262B">
+    <sc-for list="{{tools}}" as="t" hint-placeholder-count="3">
+      <a href="{{t.href}}" aria-current="{{t.cur}}" style="flex:1;min-width:0;height:30px;display:flex;align-items:center;justify-content:center;gap:5px;border-radius:6px;background:{{t.bg}};color:{{t.fg}};font-size:12px;white-space:nowrap">
+        <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{t.i}}"></path></svg>{{t.t}}
+      </a>
+    </sc-for>
+  </nav>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"scene":{"editor":"enum","options":["fresh","daily","files","collab","direct","result","fail","split","remote","remoteLost","remoteResult","remoteFiles","hosts","hostsSettle"],"default":"daily"},"tool":{"editor":null},"$preview":{"width":264,"height":856}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const scene = this.props.scene ?? 'daily';
+    const tool = this.props.tool ?? '';
+    const I = {
+      down: 'M4 6l4 4 4-4', right: 'M6 4l4 4-4 4',
+      folder: 'M1.500 4.500a1 1 0 0 1 1-1h3.200l1.500 1.500h6.300a1 1 0 0 1 1 1v6.500a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1Z',
+      branch: 'M5 4.500v7M11 6c0 3-6 2-6 5M6.500 3a1.500 1.500 0 1 1-3 0 1.500 1.500 0 0 1 3 0ZM6.500 13a1.500 1.500 0 1 1-3 0 1.500 1.500 0 0 1 3 0ZM12.500 4.500a1.500 1.500 0 1 1-3 0 1.500 1.500 0 0 1 3 0Z',
+      file: 'M4 1.500h5L12.500 5v9.500H4ZM9 1.500V5h3.500',
+      need: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01',
+      run: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',
+      hold: 'M5.500 3.500v9M10.500 3.500v9',
+      fresh: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM5.200 8.200l2 2 3.600-4',
+      fail: 'M8 2 14.500 13.500h-13ZM8 6.500V10M8 12h.01',
+      direct: 'M1.500 4h13v8h-13ZM4 7h.01M6.500 7h.01M9 7h.01M11.500 7h.01M5 9.500h6',
+      history: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V8l2.500 1.500',
+      wiki: 'M2.500 3c2-1 4-1 5.500.5v10C6.500 12 4.500 12 2.500 13ZM13.500 3c-2-1-4-1-5.500.5v10c1.500-1.500 3.500-1.500 5.500-.5Z',
+      time: 'M4 2v12M4 4h8M4 8h5M4 12h9'
+    };
+    const ST = {
+      run: { c: '#5AD6A4', i: I.run, n: '실행 중', anim: 'wick 1.8s ease-in-out infinite' },
+      need: { c: '#FF8B3E', i: I.need, n: '확인 필요', anim: 'none' },
+      hold: { c: '#8E8F98', i: I.hold, n: '대기', anim: 'none' },
+      fresh: { c: '#74B7FF', i: I.fresh, n: '새 결과', anim: 'none' },
+      fail: { c: '#FF7B86', i: I.fail, n: '복구 필요', anim: 'none' },
+      direct: { c: '#BBA2FF', i: I.direct, n: '직접 조작 중', anim: 'none' },
+      idle: { c: '#6F7078', i: I.hold, n: '유휴', anim: 'none' },
+      lost: { c: '#9B9CA5', i: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM5.500 8h5', n: '연결 끊김', anim: 'none' },
+      ver: { c: '#F2C66D', i: I.fail, n: '연결 안 됨 · 버전 확인 필요', anim: 'none' }
+    };
+    const space = (name, branch, st, sel, href, icon, dev) => ({
+      name, branch, href, icon: icon ?? I.folder,
+      dev: dev ?? '', hasDev: !!dev, devFg: st === 'lost' || st === 'ver' ? '#8E8F98' : '#D6D7DC',
+      title: name + (dev ? ' · ' + dev : '') + ' · ' + branch,
+      cur: sel ? 'page' : 'false',
+      bg: sel ? '#26272D' : 'transparent',
+      fg: sel ? '#EDEDF0' : '#B0B1B8',
+      dot: ST[st].c, anim: ST[st].anim, stateName: ST[st].n
+    });
+    const project = (name, count, star, badge, spaces, href) => ({
+      name, count, star, badge, spaces, href: href ?? 'Session.dc.html',
+      chev: spaces.length ? I.down : I.right,
+      fg: spaces.length ? '#EDEDF0' : '#B0B1B8'
+    });
+    const kid = (t, k, st, href, sel, m) => ({
+      t, k, href, c: ST[st].c, i: ST[st].i, m: m ?? ST[st].n, anim: ST[st].anim,
+      bg: sel ? '#26272D' : 'transparent'
+    });
+    const ses = (t, k, m, c, kids, sel, href) => ({
+      t, k, m, c, kids: kids ?? [], href: href ?? 'Session.dc.html',
+      cur: sel ? 'page' : 'false', bg: sel ? '#26272D' : 'transparent'
+    });
+    const docsSite = project('docs-site', '공간 1', true, '', []);
+    const longOne = project('사내 정산 리포트 자동화 및 문서 정리 프로젝트', '공간 2', false, '', []);
+    const baseSpace = (st, sel) => space('기본 공간', 'main', st, sel, 'Session.dc.html');
+    const authSpace = (st, sel) => space('auth-tests', 'feat/refresh-tests', st, sel, 'Space.dc.html', I.branch);
+    const shell = ses('zsh', '$', '유휴 · 5분 전', '#8E8F98', [], false);
+
+    let projects, sessions = [], spaceName = '기본 공간', spacePath = '~/work/payments-api', projectName = 'payments-api';
+    const remoteSessions = () => [
+      ses('결제 웹훅 재시도 구현', 'Cl', '응답 완료 · 협업 1개 진행', '#B0B1B8', [
+        kid('웹훅 회귀 검토', 'Cx', 'need', 'RemoteInput.dc.html', false, '승인 필요')
+      ], true, 'RemoteSpace.dc.html'),
+      ses('zsh', '$', '유휴 · 10분 전', '#8E8F98', [], false, 'RemoteSpace.dc.html')
+    ];
+    const settleName = '사내 정산 리포트 자동화 및 문서 정리 프로젝트';
+    const settleOpen = (selLocal) => project(settleName, '공간 2', false, '', [
+      space('기본 공간', 'main', 'idle', selLocal, 'Session.dc.html'),
+      space('야간 배치', 'batch', 'ver', false, 'Devices.dc.html', I.folder, '개발 서버')
+    ]);
+    if (scene === 'fresh') {
+      projects = [project('payments-api', '공간 1', false, '', [baseSpace('idle', true)])];
+    } else if (scene === 'daily' || scene === 'files') {
+      projects = [project('payments-api', '공간 1', true, '', [baseSpace('run', true)]), docsSite, longOne];
+      sessions = [ses('로그인 오류 수정', 'Cl', '실행 중 · 12초 전', '#5AD6A4', [], true, 'Session.dc.html'), shell];
+    } else if (scene === 'collab') {
+      projects = [project('payments-api', '공간 2', true, '1', [baseSpace('need', true), authSpace('run', false)]), docsSite, longOne];
+      sessions = [ses('로그인 오류 수정', 'Cl', '응답 완료 · 협업 2개 진행', '#B0B1B8', [
+        kid('회귀 검토', 'Cx', 'need', 'Peek.dc.html', false, '승인 필요'),
+        kid('refresh 토큰 테스트 작성', 'Cl', 'run', 'Space.dc.html', false),
+        kid('변경 내용 문서화', 'Cl', 'hold', 'Collab2.dc.html', false, '선행 작업 대기')
+      ], true, 'Collab1.dc.html'), shell];
+    } else if (scene === 'direct') {
+      projects = [project('payments-api', '공간 2', true, '', [baseSpace('direct', true), authSpace('run', false)]), docsSite, longOne];
+      sessions = [ses('로그인 오류 수정', 'Cl', '응답 완료 · 협업 2개 진행', '#B0B1B8', [
+        kid('회귀 검토', 'Cx', 'direct', 'Direct.dc.html', true),
+        kid('refresh 토큰 테스트 작성', 'Cl', 'run', 'Space.dc.html', false),
+        kid('변경 내용 문서화', 'Cl', 'hold', 'Collab2.dc.html', false, '선행 작업 대기')
+      ], true, 'Collab1.dc.html'), shell];
+    } else if (scene === 'result') {
+      projects = [project('payments-api', '공간 2', true, '', [baseSpace('run', true), authSpace('idle', false)]), docsSite, longOne];
+      sessions = [ses('로그인 오류 수정', 'Cl', '실행 중 · 방금', '#5AD6A4', [
+        kid('회귀 검토', 'Cx', 'fresh', 'Result.dc.html', false),
+        kid('refresh 토큰 테스트 작성', 'Cl', 'fresh', 'Result.dc.html', true),
+        kid('변경 내용 문서화', 'Cl', 'run', 'Collab2.dc.html', false)
+      ], true, 'Collab1.dc.html'), shell];
+    } else if (scene === 'restored') {
+      projects = [project('payments-api', '공간 2', true, '', [baseSpace('idle', true), authSpace('idle', false)]), docsSite, longOne];
+      sessions = [
+        ses('로그인 오류 수정', 'Cl', '실행 종료 · 재개할 수 있어요', '#B0B1B8', [
+          kid('회귀 검토', 'Cx', 'idle', 'Reboot.dc.html', false, '실행 종료'),
+          kid('refresh 토큰 테스트 작성', 'Cl', 'idle', 'Reboot.dc.html', false, '실행 종료')
+        ], true, 'Reboot.dc.html'),
+        ses('zsh', '$', '실행 종료 · 기록 없음', '#8E8F98', [], false, 'Reboot.dc.html')
+      ];
+    } else if (scene === 'remote' || scene === 'remoteLost') {
+      const lost = scene === 'remoteLost';
+      const mini = space('기본 공간', 'main', lost ? 'lost' : 'need', true, 'RemoteSpace.dc.html', I.folder, '집 Mac mini');
+      projects = [project('payments-api', '공간 3', true, lost ? '' : '1', [baseSpace('idle', false), authSpace('run', false), mini]), docsSite, longOne];
+      spaceName = '기본 공간 · 집 Mac mini'; spacePath = '집 Mac mini:~/work/payments-api';
+      sessions = [
+        ses('결제 웹훅 재시도 구현', 'Cl', lost ? '마지막 확인 11:52 · 그때 응답 완료' : '응답 완료 · 협업 1개 진행', lost ? '#8E8F98' : '#B0B1B8', [
+          kid('웹훅 회귀 검토', 'Cx', lost ? 'lost' : 'need', 'RemoteInput.dc.html', false, lost ? '마지막 확인 11:52' : '승인 필요')
+        ], true, 'RemoteSpace.dc.html'),
+        ses('zsh', '$', lost ? '마지막 확인 11:52' : '유휴 · 10분 전', '#8E8F98', [], false, 'RemoteSpace.dc.html')
+      ];
+    } else if (scene === 'remoteResult') {
+      const mini = space('기본 공간', 'main', 'fresh', true, 'RemoteSpace.dc.html', I.folder, '집 Mac mini');
+      projects = [project('payments-api', '공간 3', true, '', [baseSpace('idle', false), authSpace('run', false), mini]), docsSite, longOne];
+      spaceName = '기본 공간 · 집 Mac mini'; spacePath = '집 Mac mini:~/work/payments-api';
+      sessions = [
+        ses('결제 웹훅 재시도 구현', 'Cl', '응답 완료 · 새 결과 1', '#74B7FF', [
+          kid('웹훅 회귀 검토', 'Cx', 'fresh', 'RemoteResult.dc.html', true)
+        ], true, 'RemoteSpace.dc.html'),
+        ses('zsh', '$', '유휴 · 12분 전', '#8E8F98', [], false, 'RemoteSpace.dc.html')
+      ];
+    } else if (scene === 'remoteFiles') {
+      const mini = space('기본 공간', 'main', 'need', true, 'RemoteSpace.dc.html', I.folder, '집 Mac mini');
+      projects = [project('payments-api', '공간 3', true, '1', [baseSpace('idle', false), authSpace('run', false), mini]), docsSite, longOne];
+      spaceName = '기본 공간 · 집 Mac mini'; spacePath = '집 Mac mini:~/work/payments-api';
+      sessions = remoteSessions();
+    } else if (scene === 'hosts') {
+      const mini = space('기본 공간', 'main', 'need', true, 'RemoteSpace.dc.html', I.folder, '집 Mac mini');
+      projects = [project('payments-api', '공간 3', true, '1', [baseSpace('idle', false), authSpace('run', false), mini]), docsSite, settleOpen(false)];
+      spaceName = '기본 공간 · 집 Mac mini'; spacePath = '집 Mac mini:~/work/payments-api';
+      sessions = remoteSessions();
+    } else if (scene === 'hostsSettle') {
+      projects = [project('payments-api', '공간 3', true, '1', []), docsSite, settleOpen(true)];
+      projectName = settleName; spacePath = '~/work/settlement-reports';
+      sessions = [ses('정산 리포트 초안 작성', 'Cl', '입력 대기 · 20분 전', '#B0B1B8', [], true, 'Session.dc.html'),
+                  ses('zsh', '$', '유휴 · 1시간 전', '#8E8F98', [], false, 'Session.dc.html')];
+    } else if (scene === 'fail') {
+      projects = [project('payments-api', '공간 2', true, '1', [baseSpace('need', true), authSpace('idle', false)]), docsSite, longOne];
+      sessions = [ses('로그인 오류 수정', 'Cl', '응답 완료 · 복구 필요 1', '#FF7B86', [
+        kid('회귀 검토', 'Cx', 'fresh', 'Result.dc.html', false),
+        kid('refresh 토큰 테스트 작성', 'Cl', 'fail', 'Failed.dc.html', true),
+        kid('변경 내용 문서화', 'Cl', 'hold', 'Collab2.dc.html', false, '선행 작업 대기')
+      ], true, 'Collab1.dc.html'), shell];
+    } else {
+      projects = [project('payments-api', '공간 2', true, '1', [baseSpace('need', false), authSpace('run', true)]), docsSite];
+      spaceName = 'auth-tests'; spacePath = '~/work/payments-api.worktrees/auth-tests';
+      sessions = [ses('refresh 토큰 테스트 작성', 'Cl', '실행 중 · 12초 전', '#5AD6A4', [], true, 'Space.dc.html'),
+                  ses('zsh', '$', '유휴 · 방금 생성', '#8E8F98', [], false, 'Space.dc.html')];
+    }
+    const remoteFiles = scene === 'remoteFiles';
+    const isFiles = scene === 'files' || remoteFiles;
+    const isStar = scene === 'split';
+    const dir = I.folder, file = I.file;
+    const fr = (t, d, i, sel, mod, href) => ({
+      t, i, mod, href: href ?? (remoteFiles ? 'RemoteDoc.dc.html' : 'Docs.dc.html'), path: (remoteFiles ? '집 Mac mini · ' : '') + t, pad: 8 + d * 14,
+      cur: sel ? 'page' : 'false',
+      bg: sel ? '#26272D' : 'transparent',
+      fg: sel ? '#EDEDF0' : '#B0B1B8'
+    });
+    const on = (v) => v ? { bg: '#33343B', fg: '#EDEDF0', cur: 'page' } : { bg: 'transparent', fg: '#8E8F98', cur: 'false' };
+    const tt = (t, i, href, active) => ({ t, i, href, cur: active ? 'page' : 'false', bg: active ? '#26272D' : 'transparent', fg: active ? '#EDEDF0' : '#B0B1B8' });
+    return {
+      projects, sessions, spaceName, spacePath, projectName,
+      hasDevices: ['remote', 'remoteLost', 'remoteResult', 'remoteFiles', 'hosts', 'hostsSettle'].includes(scene),
+      isFiles, isSessions: !isFiles, noSessions: !isFiles && sessions.length === 0,
+      files: remoteFiles ? [
+        fr('src', 0, dir), fr('webhooks', 1, dir),
+        fr('retry.ts', 2, file), fr('retry.test.ts', 2, file),
+        fr('docs', 0, dir), fr('webhooks.md', 1, file, true, true), fr('decisions.md', 1, file),
+        fr('README.md', 0, file), fr('package.json', 0, file)
+      ] : [
+        fr('src', 0, dir), fr('auth', 1, dir),
+        fr('session.ts', 2, file), fr('refresh.ts', 2, file),
+        fr('docs', 0, dir), fr('auth-notes.md', 1, file, true, true), fr('decisions.md', 1, file),
+        fr('README.md', 0, file), fr('package.json', 0, file)
+      ],
+      allBg: on(!isStar).bg, allFg: on(!isStar).fg, allCur: on(!isStar).cur,
+      starBg: on(isStar).bg, starFg: on(isStar).fg, starCur: on(isStar).cur, starFill: isStar ? '#EDEDF0' : 'none',
+      sesBg: on(!isFiles).bg, sesFg: on(!isFiles).fg, sesCur: on(!isFiles).cur,
+      filBg: on(isFiles).bg, filFg: on(isFiles).fg, filCur: on(isFiles).cur,
+      sessionsHref: scene === 'files' ? 'Session.dc.html' : (remoteFiles ? 'RemoteSpace.dc.html' : '#'),
+      filesHref: ['remote', 'remoteResult', 'remoteFiles', 'hosts'].includes(scene) ? 'RemoteDoc.dc.html' : 'Docs.dc.html',
+      tools: [
+        tt('기록', I.history, 'History.dc.html', tool === 'history'),
+        tt('위키', I.wiki, 'WikiHome.dc.html', tool === 'wiki'),
+        tt('타임라인', I.time, 'TimelineHome.dc.html', tool === 'timeline')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

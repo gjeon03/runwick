@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>기기별 활동</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="position:relative;width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" machine="집 Mac mini" needs="1" running="4" activity-href="RemoteSpace.dc.html" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="hosts" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#0B0C0E">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden"><dc-import name="Term" scene="remote" caret="false" label="집 Mac mini의 결제 웹훅 재시도 구현 터미널" hint-size="100%,100%"></dc-import></div>
+      <div style="flex:none"><dc-import name="SessionBar" state="idle" label="응답 완료" meta="집 Mac mini에서 실행" collab="협업 1" need="확인 필요 1" hint-size="100%,34px"></dc-import></div>
+    </main>
+  </div>
+  <section aria-label="전체 활동" style="position:absolute;top:44px;right:0;bottom:0;width:500px;max-width:100%;box-sizing:border-box;display:flex;flex-direction:column;background:#17181C;box-shadow:-20px 0 48px rgba(0,0,0,.4)">
+    <header style="flex:none;display:flex;flex-direction:column;gap:10px;padding:14px 10px 12px 16px;border-bottom:1px solid #25262B">
+      <div style="display:flex;align-items:center;gap:8px">
+        <h1 style="flex:1;margin:0;font-size:16px;font-weight:600">전체 활동</h1>
+        <div role="group" aria-label="묶는 기준" style="flex:none;display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+          <sc-for list="{{views}}" as="v" hint-placeholder-count="2">
+            <button type="button" aria-pressed="{{v.on}}" onClick="{{v.pick}}" style="height:24px;padding:0 9px;border:0;border-radius:5px;background:{{v.bg}};color:{{v.fg}};font:inherit;font-size:12px;cursor:pointer">{{v.t}}</button>
+          </sc-for>
+        </div>
+        <a href="RemoteSpace.dc.html" aria-label="활동 닫기" title="닫기 (Esc)" style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:6px;color:#B0B1B8">
+          <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.600;stroke-linecap:round"><path d="M4 4l8 8M12 4l-8 8"></path></svg>
+        </a>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+          <a href="#" style="height:26px;display:flex;align-items:center;gap:5px;padding:0 9px;border-radius:6px;background:#26272D;font-size:12px;color:#D6D7DC">{{f}}<svg width="10" height="10" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:#8E8F98;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M4 6l4 4 4-4"></path></svg></a>
+        </sc-for>
+      </div>
+    </header>
+    <div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:16px;padding:12px 8px">
+      <sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+        <section aria-label="{{g.t}}" style="display:flex;flex-direction:column;gap:3px">
+          <sc-if value="{{g.isDevice}}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:3px;padding:2px 8px 6px">
+              <span style="display:flex;align-items:center;gap:7px">
+                <svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:#D6D7DC;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{g.di}}"></path></svg>
+                <span style="flex:1;min-width:0;font-weight:600">{{g.t}}</span>
+                <span style="flex:none;display:flex;align-items:center;gap:5px;font-size:12px;color:{{g.sc}}"><span aria-hidden="true" style="width:6px;height:6px;border-radius:50%;background:{{g.sc}}"></span>{{g.st}}</span>
+              </span>
+              <span style="padding-left:21px;font-size:12px;color:#8E8F98">{{g.res}}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{g.isState}}" hint-placeholder-val="{{ false }}">
+            <h2 style="margin:0;padding:0 8px 3px;font-size:12px;font-weight:500;color:{{g.sc}}">{{g.t}} {{g.n}}</h2>
+          </sc-if>
+          <sc-for list="{{g.rows}}" as="r" hint-placeholder-count="2">
+            <a href="{{r.href}}" style="display:flex;align-items:flex-start;gap:9px;padding:9px 10px;border-radius:8px;background:#1F2025">
+              <svg width="15" height="15" viewBox="0 0 16 16" role="img" aria-label="{{r.state}}" style="flex:none;margin-top:2px;fill:none;stroke:{{r.c}};stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round;animation:{{r.anim}}"><path d="{{r.i}}"></path></svg>
+              <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                <span style="color:#EDEDF0;font-weight:500">{{r.t}}</span>
+                <span style="font-size:12px;color:#D6D7DC">{{r.state}} · {{r.when}}</span>
+                <span style="display:flex;align-items:center;gap:6px;min-width:0;font-size:11.500px;color:#8E8F98">
+                  <sc-if value="{{r.showDev}}" hint-placeholder-val="{{ false }}"><span style="flex:none;height:17px;display:flex;align-items:center;padding:0 5px;border-radius:4px;background:#26272D;color:#D6D7DC;font-size:10.500px">{{r.dev}}</span></sc-if>
+                  <span title="{{r.where}}" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{r.where}}</span>
+                </span>
+                <span style="font-size:11.500px;color:#8E8F98">{{r.why}}</span>
+              </span>
+              <span style="flex:none;height:26px;display:flex;align-items:center;padding:0 9px;border-radius:6px;background:#33343B;font-size:12px;color:#EDEDF0">{{r.act}}</span>
+            </a>
+          </sc-for>
+        </section>
+      </sc-for>
+    </div>
+    <footer style="flex:none;display:flex;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid #25262B;font-size:12px;color:#8E8F98">
+      <span style="flex:1;min-width:0">관측한 실행 4개 · 이 Mac 1 · 집 Mac mini 3 · 개발 서버는 연결돼야 셀 수 있어요</span>
+      <a href="Devices.dc.html" style="flex:none;color:#B0B1B8;text-decoration:underline">기기 설정</a>
+    </footer>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { view: 'device' };
+  renderVals() {
+    const { view } = this.state;
+    const I = {
+      need: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 4.500V9M8 11.500h.01',
+      run: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',
+      hold: 'M5.500 3.500v9M10.500 3.500v9',
+      unknown: 'M8 14.500a6.500 6.500 0 1 0 0-13 6.500 6.500 0 0 0 0 13ZM5.500 8h5',
+      laptop: 'M3 3h10v7H3ZM1.500 12.500h14',
+      mini: 'M1.500 3h13v8.500h-13ZM5.500 14h5M8 11.500V14',
+      server: 'M2 2.500h12v4H2ZM2 9.500h12v4H2ZM4.500 4.500h.01M4.500 11.500h.01'
+    };
+    const S = {
+      need: { n: '내 답변·승인 필요', c: '#FF8B3E', i: I.need, anim: 'none' },
+      unknown: { n: '상태 확인 불가', c: '#9B9CA5', i: I.unknown, anim: 'none' },
+      run: { n: '실행 중', c: '#5AD6A4', i: I.run, anim: 'wick 1.8s ease-in-out infinite' },
+      hold: { n: '대기', c: '#9B9CA5', i: I.hold, anim: 'none' }
+    };
+    const R = [
+      { dev: 'mini', s: 'need', t: '웹훅 회귀 검토', state: '승인 필요', when: '40초 전', where: 'payments-api / 기본 공간', why: '결제 웹훅 재시도 구현에서 위임 · Codex', act: '보기', href: 'RemoteInput.dc.html' },
+      { dev: 'dev', s: 'unknown', t: '야간 정산 배치 검증', state: '지금 상태를 알 수 없음', when: '마지막 확인 09:12 · 그때 실행 중', where: '사내 정산 리포트 자동화 및 문서 정리 프로젝트 / 야간 배치', why: '실패로 보지 않아요. 연결되면 실제 상태를 가져와요.', act: '기기 확인', href: 'Devices.dc.html' },
+      { dev: 'local', s: 'run', t: 'refresh 토큰 테스트 작성', state: '응답 생성 중', when: '12초 전 업데이트', where: 'payments-api / auth-tests', why: '내가 시작한 세션 · Claude Code', act: '열기', href: 'Space.dc.html' },
+      { dev: 'mini', s: 'run', t: '위키 변경분 정리', state: '자동 · 실행 중', when: '3분 전 시작', where: 'payments-api', why: '집 Mac mini가 맡은 정리 · 전원 연결이라 진행 중', act: '설정', href: 'Devices.dc.html' },
+      { dev: 'local', s: 'hold', t: '타임라인 요약', state: '보류 · 배터리 사용 중', when: '전원을 연결하면 시작', where: 'docs-site', why: '자동 작업 · 이 Mac 배터리 기준이라 집 Mac mini 작업과는 무관해요', act: '설정', href: 'Automation.dc.html' }
+    ];
+    const DEV = {
+      local: { t: '이 Mac · MacBook Pro', di: I.laptop, st: '배터리 사용 중', sc: '#B0B1B8', res: 'CPU 12% · 메모리 1.8GB · 12:10 측정', chip: '이 Mac' },
+      mini: { t: '집 Mac mini', di: I.mini, st: '연결됨 · 42ms', sc: '#5AD6A4', res: 'CPU 34% · 메모리 5.2GB · 전원 연결 · 12:10 측정', chip: '집 Mac mini' },
+      dev: { t: '개발 서버', di: I.server, st: '연결 안 됨 · 버전 확인 필요', sc: '#F2C66D', res: '자원 측정 없음 · 0이 아니라 연결돼야 볼 수 있어요 · 마지막 확인 09:12', chip: '개발 서버' }
+    };
+    const row = (x, showDev) => ({
+      t: x.t, state: x.state, when: x.when, where: x.where, why: x.why, act: x.act, href: x.href,
+      c: S[x.s].c, i: S[x.s].i, anim: S[x.s].anim,
+      showDev, dev: DEV[x.dev].chip
+    });
+    const groups = view === 'device'
+      ? ['mini', 'dev', 'local'].map((k) => ({
+          isDevice: true, isState: false, t: DEV[k].t, di: DEV[k].di, st: DEV[k].st, sc: DEV[k].sc, res: DEV[k].res, n: '',
+          rows: R.filter((x) => x.dev === k).map((x) => row(x, false))
+        }))
+      : ['need', 'unknown', 'run', 'hold'].map((s) => {
+          const rows = R.filter((x) => x.s === s).map((x) => row(x, true));
+          return { isDevice: false, isState: true, t: S[s].n, sc: S[s].c, di: '', st: '', res: '', n: rows.length, rows };
+        }).filter((g) => g.rows.length > 0);
+    const V = [['device', '기기별'], ['state', '상태별']];
+    return {
+      tabs: [
+        { t: '결제 웹훅 재시도 구현', k: 'Cl', st: 'need', sel: true, href: 'RemoteSpace.dc.html' },
+        { t: 'zsh', k: '$', href: 'RemoteSpace.dc.html' }
+      ],
+      views: V.map((v) => ({ t: v[1], on: view === v[0] ? 'true' : 'false', bg: view === v[0] ? '#33343B' : 'transparent', fg: view === v[0] ? '#EDEDF0' : '#8E8F98', pick: () => this.setState({ view: v[0] }) })),
+      filters: ['기기 전체', '프로젝트 전체', '종류 전체'],
+      groups
+    };
+  }
+}
+</script>
+</body>
+</html>

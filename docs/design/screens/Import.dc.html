@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>Pinloom 가져오기</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:auto;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <header style="flex:none;height:44px;box-sizing:border-box;display:flex;align-items:center;gap:12px;padding:0 14px;background:#15161A;border-bottom:1px solid #25262B">
+    <div style="flex:none;display:flex;gap:8px">
+      <a href="Main.dc.html" aria-label="가져오기 닫기" style="display:block;width:12px;height:12px;border-radius:50%;background:#FF5F57"></a>
+      <span aria-hidden="true" style="display:block;width:12px;height:12px;border-radius:50%;background:#FEBC2E"></span>
+      <span aria-hidden="true" style="display:block;width:12px;height:12px;border-radius:50%;background:#28C840"></span>
+    </div>
+    <span style="font-size:12.500px;font-weight:500">Pinloom 기록 가져오기</span>
+  </header>
+  <main style="flex:1;padding:32px;box-sizing:border-box">
+    <div style="max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:22px">
+      <ol aria-label="가져오기 단계" style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:12.500px">
+        <sc-for list="{{steps}}" as="s" hint-placeholder-count="6">
+          <li aria-current="{{s.cur}}" style="display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:14px;background:{{s.bg}};color:{{s.fg}};font-weight:{{s.w}}">
+            <sc-if value="{{s.done}}" hint-placeholder-val="{{ true }}"><svg width="12" height="12" viewBox="0 0 16 16" role="img" aria-label="완료" style="fill:none;stroke:#5AD6A4;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M3 8.500l3.500 3.500L13 4.500"></path></svg></sc-if>{{s.t}}
+          </li>
+        </sc-for>
+      </ol>
+      <header style="display:flex;flex-direction:column;gap:6px">
+        <h1 style="margin:0;font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.01em">시험 가져오기 결과를 확인해 주세요</h1>
+        <p style="margin:0;color:#B0B1B8">아직 활성 데이터에 섞이지 않았어요. Pinloom 원본은 읽기만 했고, 언제든 그대로 쓸 수 있습니다.</p>
+      </header>
+      <section aria-label="종류별 검증" style="overflow-x:auto;border-radius:12px;background:#17181C">
+        <div style="min-width:560px;display:flex;flex-direction:column">
+          <div style="display:grid;grid-template-columns:160px 80px 80px minmax(0,1fr);gap:0 16px;align-items:center;min-height:38px;padding:0 14px;font-size:12px;font-weight:500;color:#8E8F98">
+            <span>종류</span><span style="text-align:right">원본</span><span style="text-align:right">가져옴</span><span>확인할 점</span>
+          </div>
+          <sc-for list="{{rows}}" as="r" hint-placeholder-count="5">
+            <div style="display:grid;grid-template-columns:160px 80px 80px minmax(0,1fr);gap:0 16px;align-items:center;min-height:42px;padding:0 14px;border-top:1px solid #25262B">
+              <span style="font-weight:500">{{r.t}}</span>
+              <span style="text-align:right;font-family:'JetBrains Mono',Menlo,monospace;font-size:12.500px;color:#B0B1B8">{{r.a}}</span>
+              <span style="text-align:right;font-family:'JetBrains Mono',Menlo,monospace;font-size:12.500px">{{r.b}}</span>
+              <span style="font-size:12.500px;color:{{r.c}}">{{r.note}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+      <p style="margin:0;font-size:12.500px;color:#B0B1B8">가져온다고 CLI나 Teams를 실행하지 않아요. 자동 위키와 임베딩도 시작하지 않습니다. 수치는 시안용 예시입니다.</p>
+      <footer style="display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px">
+        <a href="Main.dc.html" style="height:34px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D">중단</a>
+        <a href="#" style="height:34px;display:flex;align-items:center;padding:0 12px;border-radius:7px;background:#26272D">문제 항목 2개 보기</a>
+        <a href="History.dc.html" style="height:34px;display:flex;align-items:center;padding:0 14px;border-radius:7px;background:#FF8B3E;color:#1B0F06;font-weight:600">검증한 기록 활성화</a>
+      </footer>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const names = ['원본 선택', '목록 확인', '경로 매핑', '시험 가져오기', '검증 보고', '활성화'];
+    const now = 4;
+    const ok = '#8E8F98', warn = '#F2C66D', fail = '#FF7B86';
+    return {
+      steps: names.map((t, i) => ({
+        t,
+        done: i < now,
+        cur: i === now ? 'step' : 'false',
+        bg: i === now ? '#33343B' : (i < now ? '#17181C' : 'transparent'),
+        fg: i > now ? '#8E8F98' : '#EDEDF0',
+        w: i === now ? 600 : 400
+      })),
+      rows: [
+        { t: '프로젝트', a: '6', b: '6', note: '경로 1개 다시 연결함', c: ok },
+        { t: '대화', a: '1,204', b: '1,198', note: '지원하지 않는 형식 6개는 목록으로 남겼어요', c: warn },
+        { t: '핀', a: '88', b: '88', note: '누락 없음', c: ok },
+        { t: '위키 문서', a: '41', b: '41', note: '누락 없음', c: ok },
+        { t: '첨부', a: '73', b: '72', note: '해시 불일치 1개', c: fail },
+        { t: 'Teams 이력', a: '5', b: '5', note: '과거 관계로 보관 · 작업 방식 후보 2개', c: ok }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

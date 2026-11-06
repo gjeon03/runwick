@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>타임라인 모아보기</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:hover,button:hover{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:640px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:13px;line-height:1.45">
+  <div style="flex:none"><dc-import name="Titlebar" needs="0" running="1" hint-size="100%,44px"></dc-import></div>
+  <div style="flex:1;min-height:0;display:flex;flex-wrap:wrap;overflow:auto">
+    <nav aria-label="프로젝트 탐색" style="flex:0 0 264px;min-width:0;min-height:480px;display:flex;flex-direction:column;overflow:hidden;background:#15161A;border-right:1px solid #25262B"><dc-import name="Sidebar" scene="daily" tool="timeline" hint-size="264px,100%"></dc-import></nav>
+    <main style="flex:999 1 520px;min-width:0;min-height:480px;display:flex;flex-direction:column;background:#101114">
+      <div style="flex:none"><dc-import name="Tabs" tabs="{{tabs}}" hint-size="100%,38px"></dc-import></div>
+      <div style="flex:1;min-height:0;overflow-y:auto;padding:22px 28px 28px">
+        <div style="max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:16px">
+          <header style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px">
+            <div style="flex:1 1 320px;min-width:0;display:flex;flex-direction:column;gap:4px">
+              <h1 style="margin:0;font-size:22px;line-height:1.3;font-weight:600;letter-spacing:-0.01em">타임라인</h1>
+              <p style="margin:0;color:#B0B1B8">세션, 핀, 파일 변경, 위키, 협업 기록을 날짜별로 모아요. AI 요약이 없어도 실제 기록은 그대로 보여요.</p>
+            </div>
+            <div role="group" aria-label="기간" style="flex:none;display:flex;align-items:center;gap:4px">
+              <a href="#" aria-label="지난 주" title="지난 주" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#1F2025">
+                <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.800;stroke-linecap:round;stroke-linejoin:round"><path d="M10 4 6 8l4 4"></path></svg>
+              </a>
+              <span style="min-width:124px;text-align:center;font-weight:500">11월 2일 – 8일</span>
+              <a href="#" aria-label="다음 주" title="다음 주" style="width:30px;height:30px;display:flex;align-items:center;justify-content:center;border-radius:7px;background:#1F2025">
+                <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.800;stroke-linecap:round;stroke-linejoin:round"><path d="M6 4l4 4-4 4"></path></svg>
+              </a>
+              <button type="button" onClick="{{goToday}}" style="height:30px;margin-left:4px;padding:0 11px;border:0;border-radius:7px;background:#26272D;color:#EDEDF0;font:inherit;font-size:12.500px;cursor:pointer">오늘</button>
+            </div>
+          </header>
+
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px">
+            <div role="group" aria-label="범위" style="flex:none;display:flex;gap:2px;padding:2px;border-radius:7px;background:#1F2025">
+              <span aria-current="page" style="height:26px;display:flex;align-items:center;padding:0 10px;border-radius:5px;background:#33343B;color:#EDEDF0;font-size:12px">모든 프로젝트</span>
+              <a href="Timeline.dc.html" style="height:26px;display:flex;align-items:center;padding:0 10px;border-radius:5px;color:#8E8F98;font-size:12px">payments-api</a>
+            </div>
+            <div role="group" aria-label="기록 종류" style="flex:1 1 320px;min-width:0;display:flex;flex-wrap:wrap;gap:4px">
+              <sc-for list="{{kinds}}" as="k" hint-placeholder-count="5">
+                <button type="button" aria-pressed="{{k.on}}" onClick="{{k.pick}}" style="height:26px;display:flex;align-items:center;gap:5px;padding:0 10px;border:0;border-radius:13px;background:{{k.bg}};color:{{k.fg}};font:inherit;font-size:12px;cursor:pointer">
+                  <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round;stroke-linejoin:round"><path d="{{k.i}}"></path></svg>{{k.t}}
+                </button>
+              </sc-for>
+            </div>
+            <button type="button" role="switch" aria-checked="{{sumOn}}" onClick="{{toggleSum}}" style="flex:none;height:28px;display:flex;align-items:center;gap:8px;padding:0 2px;border:0;background:transparent;color:#D6D7DC;font:inherit;font-size:12px;cursor:pointer">
+              <span aria-hidden="true" style="position:relative;display:block;width:30px;height:18px;border-radius:9px;background:{{sumBg}}">
+                <span style="position:absolute;top:2px;left:{{sumX}}px;width:14px;height:14px;border-radius:50%;background:{{sumDot}}"></span>
+              </span>
+              AI 요약 함께 보기
+            </button>
+          </div>
+
+          <section aria-label="이번 주 한눈에 보기" style="border-radius:12px;background:#17181C;overflow-x:auto">
+            <div style="min-width:660px;display:flex;flex-direction:column;gap:4px;padding:10px 12px 12px">
+              <div style="display:grid;grid-template-columns:minmax(170px,230px) repeat(7,minmax(52px,1fr));gap:4px;align-items:center">
+                <span style="padding:0 6px;font-size:12px;color:#8E8F98">프로젝트</span>
+                <sc-for list="{{heads}}" as="h" hint-placeholder-count="7">
+                  <button type="button" aria-pressed="{{h.on}}" aria-disabled="{{h.dis}}" aria-label="{{h.label}}" onClick="{{h.pick}}" style="height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:0;border-radius:7px;background:{{h.bg}};color:{{h.fg}};font:inherit;cursor:{{h.cursor}}">
+                    <span style="font-size:12px;font-weight:500">{{h.d}} {{h.n}}</span>
+                    <span style="font-size:10.500px;line-height:13px;color:{{h.subc}}">{{h.sub}}</span>
+                  </button>
+                </sc-for>
+              </div>
+              <sc-for list="{{rows}}" as="r" hint-placeholder-count="3">
+                <div style="display:grid;grid-template-columns:minmax(170px,230px) repeat(7,minmax(52px,1fr));gap:4px;align-items:center">
+                  <a href="{{r.href}}" title="{{r.t}}" style="min-width:0;display:flex;flex-direction:column;justify-content:center;padding:0 6px">
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;color:#EDEDF0">{{r.t}}</span>
+                    <span style="font-size:11.500px;color:{{r.sc}}">{{r.sub}}</span>
+                  </a>
+                  <sc-for list="{{r.cells}}" as="c" hint-placeholder-count="7">
+                    <button type="button" aria-label="{{c.label}}" aria-disabled="{{c.dis}}" onClick="{{c.pick}}" style="position:relative;height:38px;border:0;border-radius:6px;background:{{c.bg}};box-shadow:{{c.ring}};color:{{c.fg}};font-family:'JetBrains Mono',Menlo,monospace;font-size:12px;cursor:{{c.cursor}}">
+                      {{c.txt}}<span aria-hidden="true" style="position:absolute;top:5px;right:6px;width:5px;height:5px;border-radius:50%;background:{{c.dot}}"></span>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-for>
+              <p style="margin:6px 6px 0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;font-size:12px;color:#8E8F98">
+                <span>숫자는 그날 실제로 남은 기록 수예요.</span>
+                <span style="display:flex;align-items:center;gap:6px"><span aria-hidden="true" style="width:5px;height:5px;border-radius:50%;background:#74B7FF"></span>AI 요약 있음</span>
+                <span>칸이나 요일을 누르면 아래에 그날 기록을 펼쳐요.</span>
+              </p>
+            </div>
+          </section>
+
+          <section aria-label="{{dayTitle}} 기록" style="display:flex;flex-direction:column;gap:12px">
+            <header style="display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px">
+              <h2 style="margin:0;font-size:16px;font-weight:600">{{dayTitle}}</h2>
+              <span style="font-size:12.500px;color:#8E8F98">{{dayMeta}}</span>
+            </header>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(320px,100%),1fr));gap:12px;align-items:stretch">
+              <sc-for list="{{cards}}" as="c" hint-placeholder-count="3">
+                <article aria-label="{{c.t}}" style="min-width:0;display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:12px;background:#17181C">
+                  <header style="display:flex;align-items:baseline;gap:8px">
+                    <span title="{{c.t}}" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600">{{c.t}}</span>
+                    <span style="flex:none;font-size:12px;color:#8E8F98">{{c.count}}</span>
+                  </header>
+                  <sc-if value="{{c.hasSum}}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:8px;background:#132232">
+                      <span style="font-size:11px;font-weight:500;color:#74B7FF">{{c.sumAt}}</span>
+                      <span style="font-size:12.500px;color:#C5E0FF">{{c.sumText}}</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{c.hasHold}}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:6px;min-height:28px;font-size:12px;color:#9B9CA5">
+                      <svg width="13" height="13" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;fill:none;stroke:currentColor;stroke-width:1.500;stroke-linecap:round"><path d="M5.500 3.500v9M10.500 3.500v9"></path></svg>{{c.hold}}
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{c.hasOff}}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-height:28px;font-size:12px;color:#8E8F98">
+                      <span style="flex:1 1 160px;min-width:0">자동 요약 꺼짐 · 실제 기록만 보여요</span>
+                      <a href="#" style="flex:none;height:26px;display:flex;align-items:center;padding:0 9px;border-radius:6px;background:#26272D;color:#D6D7DC">이 날 요약 만들기</a>
+                    </div>
+                  </sc-if>
+                  <div style="display:flex;flex-direction:column;margin:0 -6px">
+                    <sc-for list="{{c.events}}" as="v" hint-placeholder-count="3">
+                      <a href="{{v.href}}" style="display:flex;align-items:center;gap:10px;min-height:30px;padding:3px 6px;border-radius:6px">
+                        <span style="flex:none;width:38px;font-family:'JetBrains Mono',Menlo,monospace;font-size:11px;color:#8E8F98">{{v.time}}</span>
+                        <svg width="14" height="14" viewBox="0 0 16 16" role="img" aria-label="{{v.kind}}" style="flex:none;fill:none;stroke:#B0B1B8;stroke-width:1.400;stroke-linecap:round;stroke-linejoin:round"><path d="{{v.i}}"></path></svg>
+                        <span title="{{v.t}}" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#EDEDF0">{{v.t}}</span>
+                      </a>
+                    </sc-for>
+                    <sc-if value="{{c.none}}" hint-placeholder-val="{{ false }}">
+                      <p style="margin:0;padding:6px;font-size:12px;color:#8E8F98">선택한 종류의 기록이 없어요.</p>
+                    </sc-if>
+                  </div>
+                  <footer style="display:flex;align-items:center;gap:8px;margin-top:auto;font-size:12px">
+                    <span style="flex:1;min-width:0;color:#8E8F98">{{c.more}}</span>
+                    <a href="{{c.href}}" style="flex:none;display:flex;align-items:center;gap:4px;color:#D6D7DC">프로젝트 타임라인<svg width="11" height="11" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.800;stroke-linecap:round;stroke-linejoin:round"><path d="M6 4l4 4-4 4"></path></svg></a>
+                  </footer>
+                </article>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { day: 3, off: {}, sum: true };
+  renderVals() {
+    const { day, off, sum } = this.state;
+    const I = {
+      session: 'M2 3h12v10H2ZM4.500 6l2 2-2 2M8 10.500h3.500',
+      pin: 'M9.500 1.500l5 5-2.500.8-3 3-.5 3-6-6 3-.5 3-3ZM5 11l-3.500 3.500',
+      file: 'M4 1.500h5L12.500 5v9.500H4ZM9 1.500V5h3.500',
+      wiki: 'M2.500 3c2-1 4-1 5.500.5v10C6.500 12 4.500 12 2.500 13ZM13.500 3c-2-1-4-1-5.500.5v10c1.500-1.500 3.500-1.500 5.500-.5Z',
+      collab: 'M6 7.500a2.500 2.500 0 1 0 0-5 2.500 2.500 0 0 0 0 5ZM1.500 14c0-2.500 2-4 4.500-4s4.500 1.500 4.500 4M11 2.800a2.500 2.500 0 0 1 0 4.400M12.500 10.300c1.200.6 2 1.900 2 3.700'
+    };
+    const KIND = {
+      session: { t: '세션', i: I.session, href: 'Context.dc.html' },
+      pin: { t: '핀', i: I.pin, href: 'Context.dc.html' },
+      file: { t: '파일 변경', i: I.file, href: 'Docs.dc.html' },
+      wiki: { t: '위키', i: I.wiki, href: 'Wiki.dc.html' },
+      collab: { t: '협업', i: I.collab, href: 'Result.dc.html' }
+    };
+    const DAYS = [
+      { d: '월', n: 2, full: '11월 2일 월요일' },
+      { d: '화', n: 3, full: '11월 3일 화요일' },
+      { d: '수', n: 4, full: '11월 4일 수요일' },
+      { d: '목', n: 5, full: '11월 5일 목요일' },
+      { d: '금', n: 6, full: '11월 6일 금요일', today: true },
+      { d: '토', n: 7, full: '11월 7일 토요일', future: true },
+      { d: '일', n: 8, full: '11월 8일 일요일', future: true }
+    ];
+    const e = (time, kind, t) => ({ time, kind, t });
+    const PROJ = [
+      { t: 'payments-api', on: true, href: 'Timeline.dc.html', days: [
+        { n: 12, sum: { at: '18:10', text: '결제 웹훅 실패 원인을 조사하고 재시도 정책 초안을 정리했습니다.' }, ev: [
+          e('16:20', 'session', '웹훅 재시도 조사 마무리'), e('15:02', 'pin', '“멱등 키 누락” 핀 고정'),
+          e('11:48', 'file', 'src/webhooks/retry.ts 변경'), e('10:15', 'session', '웹훅 재시도 조사 시작')] },
+        { n: 0, ev: [] },
+        { n: 18, sum: { at: '19:30', text: '배포 절차의 스테이징 확인 단계를 손보고 웹훅 테스트를 보강했습니다.' }, ev: [
+          e('19:02', 'wiki', '“배포 절차” AI 변경 제안 도착'), e('15:44', 'file', 'src/webhooks/retry.test.ts 변경'),
+          e('14:10', 'session', '웹훅 테스트 보강'), e('10:30', 'pin', '“스테이징 확인 순서” 핀 고정')] },
+        { n: 42, sum: { at: '18:50', text: '로그인 만료 오류를 찾아 고치고 회귀 검토와 테스트를 위임했습니다.' }, ev: [
+          e('18:42', 'wiki', '“로그인과 세션” 제안 적용'), e('11:40', 'collab', 'refresh 토큰 테스트 결과 도착'),
+          e('11:04', 'pin', '“세션 만료 원인” 핀 고정'), e('11:01', 'session', '로그인 오류 수정 시작')] },
+        { n: 9, hold: '오늘 요약 전 · 배터리라 새 분석 보류', ev: [
+          e('09:40', 'session', '로그인 오류 수정 이어서 시작'), e('09:36', 'collab', 'auth-tests 통합 준비'),
+          e('09:31', 'pin', '“통합 전 확인할 것” 핀 고정')] }
+      ] },
+      { t: 'docs-site', on: false, href: '#', days: [
+        { n: 3, ev: [e('13:40', 'file', 'docs/index.md 변경'), e('13:10', 'session', '문서 사이트 빌드 확인')] },
+        { n: 7, ev: [e('17:05', 'wiki', '“문서 사이트 빌드 규칙” 직접 편집'), e('15:30', 'file', 'scripts/check-links.ts 변경'), e('14:00', 'session', '링크 검사 추가')] },
+        { n: 6, ev: [e('17:20', 'wiki', '“인증 가이드 초안” 직접 편집'), e('16:58', 'pin', 'payments-api 핀 “쿠키 만료 기준” 참조'), e('16:30', 'session', '인증 가이드 작성')] },
+        { n: 11, ev: [e('17:48', 'file', 'docs/auth-guide.md 변경'), e('16:02', 'collab', 'payments-api “변경 내용 문서화” 협업 참조'), e('14:10', 'session', '인증 가이드 다듬기')] },
+        { n: 2, ev: [e('09:12', 'file', 'docs/auth-guide.md 변경'), e('09:05', 'session', '인증 가이드 검토')] }
+      ] },
+      { t: '사내 정산 리포트 자동화 및 문서 정리 프로젝트', on: false, href: '#', days: [
+        { n: 0, ev: [] },
+        { n: 5, ev: [e('11:20', 'pin', '“대사 예외 기준” 핀 고정'), e('10:02', 'session', '월말 정산 쿼리 점검')] },
+        { n: 0, ev: [] },
+        { n: 8, ev: [e('15:30', 'session', '정산 리포트 생성 스크립트 수정'), e('15:12', 'pin', '“환불 건 제외 조건” 핀 고정'), e('14:48', 'file', 'reports/monthly.sql 변경')] },
+        { n: 0, ev: [] }
+      ] }
+    ];
+    const pickDay = (i) => () => this.setState({ day: i });
+    const noop = () => {};
+    const shade = (n) => n === 0 ? 'transparent' : n <= 5 ? '#1F2025' : n <= 15 ? '#26272D' : n <= 30 ? '#33343B' : '#43444C';
+
+    const heads = DAYS.map((x, i) => {
+      const on = i === day;
+      return {
+        d: x.d, n: x.n, sub: x.today ? '오늘' : ' ',
+        on: on ? 'true' : 'false', dis: x.future ? 'true' : 'false',
+        label: x.full + (x.future ? ', 아직 오지 않은 날' : ''),
+        bg: on ? '#33343B' : 'transparent',
+        fg: x.future ? '#6F7078' : (on ? '#EDEDF0' : '#B0B1B8'),
+        subc: on ? '#D6D7DC' : '#8E8F98',
+        cursor: x.future ? 'default' : 'pointer',
+        pick: x.future ? noop : pickDay(i)
+      };
+    });
+
+    const rows = PROJ.map((p) => ({
+      t: p.t, href: p.href,
+      sub: p.on ? 'AI 요약 켜짐' : 'AI 요약 꺼짐',
+      sc: p.on ? '#B0B1B8' : '#8E8F98',
+      cells: DAYS.map((x, i) => {
+        if (x.future) {
+          return { txt: '', label: p.t + ' ' + x.full + ', 아직 오지 않은 날', dis: 'true', bg: 'transparent', ring: 'inset 0 0 0 1px #1F2025', fg: '#6F7078', dot: 'transparent', cursor: 'default', pick: noop };
+        }
+        const dd = p.days[i];
+        const hasSum = sum && !!dd.sum;
+        return {
+          txt: dd.n === 0 ? '·' : String(dd.n),
+          label: p.t + ' ' + x.full + ' 기록 ' + dd.n + '건' + (hasSum ? ', AI 요약 있음' : ''),
+          dis: 'false',
+          bg: shade(dd.n),
+          ring: i === day ? 'inset 0 0 0 1px #8E8F98' : 'none',
+          fg: dd.n === 0 ? '#45464E' : (dd.n > 30 ? '#EDEDF0' : '#D6D7DC'),
+          dot: hasSum ? '#74B7FF' : 'transparent',
+          cursor: 'pointer',
+          pick: pickDay(i)
+        };
+      })
+    }));
+
+    let total = 0;
+    const cards = PROJ.filter((p) => p.days[day] && p.days[day].n > 0).map((p) => {
+      const dd = p.days[day];
+      total += dd.n;
+      const shown = dd.ev.filter((v) => !off[v.kind]).slice(0, 4);
+      const rest = dd.n - shown.length;
+      return {
+        t: p.t, href: p.href, count: '기록 ' + dd.n + '건',
+        hasSum: sum && !!dd.sum,
+        sumAt: dd.sum ? 'AI 요약 · ' + dd.sum.at + ' 생성 · 기록 ' + dd.n + '건 기준' : '',
+        sumText: dd.sum ? dd.sum.text : '',
+        hasHold: sum && !!dd.hold, hold: dd.hold ?? '',
+        hasOff: sum && !p.on,
+        events: shown.map((v) => ({ time: v.time, t: v.t, kind: KIND[v.kind].t, i: KIND[v.kind].i, href: KIND[v.kind].href })),
+        none: shown.length === 0,
+        more: rest > 0 ? '나머지 기록 ' + rest + '건' : ''
+      };
+    });
+    const D = DAYS[day];
+    return {
+      tabs: [
+        { t: '로그인 오류 수정', k: 'Cl', st: 'run', href: 'Session.dc.html' },
+        { t: '타임라인', k: 'tl', sel: true, href: 'TimelineHome.dc.html' }
+      ],
+      kinds: Object.keys(KIND).map((k) => ({
+        t: KIND[k].t, i: KIND[k].i,
+        on: off[k] ? 'false' : 'true',
+        bg: off[k] ? 'transparent' : '#26272D',
+        fg: off[k] ? '#8E8F98' : '#EDEDF0',
+        pick: () => this.setState({ off: { ...this.state.off, [k]: !this.state.off[k] } })
+      })),
+      sumOn: sum ? 'true' : 'false',
+      sumBg: sum ? '#FF8B3E' : '#33343B',
+      sumDot: sum ? '#1B0F06' : '#B0B1B8',
+      sumX: sum ? 14 : 2,
+      toggleSum: () => this.setState({ sum: !this.state.sum }),
+      goToday: () => this.setState({ day: 4 }),
+      heads, rows, cards,
+      dayTitle: D.full + (D.today ? ' · 오늘' : ''),
+      dayMeta: '프로젝트 ' + cards.length + '곳 · 기록 ' + total + '건'
+    };
+  }
+}
+</script>
+</body>
+</html>

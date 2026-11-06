@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>모바일에서 답하기</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F1012}
+a{color:inherit;text-decoration:none}
+a:active,button:active{filter:brightness(1.18)}
+:focus-visible{outline:2px solid #EDEDF0;outline-offset:1px}
+@keyframes wick{0%,100%{opacity:1}50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</helmet>
+<div style="width:100%;height:100vh;min-height:700px;display:flex;flex-direction:column;overflow:hidden;background:#0F1012;color:#EDEDF0;font-family:Geist,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;font-size:14px;line-height:1.45">
+  <div aria-hidden="true" style="flex:none;height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 26px 0 32px;font-size:15px;font-weight:600">
+    <span>12:14</span>
+    <span style="display:flex;align-items:center;gap:6px">
+      <svg width="17" height="11" viewBox="0 0 17 11" style="fill:#EDEDF0"><path d="M0 8h3v3H0ZM4.500 6h3v5h-3ZM9 3.500h3V11H9ZM13.500 1h3v10h-3Z"></path></svg>
+      <svg width="24" height="12" viewBox="0 0 24 12"><path d="M1.500.5h18a1.500 1.500 0 0 1 1.500 1.500v8a1.500 1.500 0 0 1-1.500 1.500h-18A1.500 1.500 0 0 1 0 10V2A1.500 1.500 0 0 1 1.500.5Z" style="fill:none;stroke:#8E8F98"></path><path d="M2 2.500h12v7H2Z" style="fill:#EDEDF0"></path><path d="M22.500 4.500v3" style="stroke:#8E8F98;stroke-width:1.500;stroke-linecap:round"></path></svg>
+    </span>
+  </div>
+
+  <header style="flex:none;display:flex;align-items:center;gap:6px;padding:4px 14px 10px 6px;border-bottom:1px solid #25262B">
+    <a href="RemotePhone.dc.html" aria-label="작업 목록으로" style="flex:none;width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:10px">
+      <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.800;stroke-linecap:round;stroke-linejoin:round"><path d="M10 3 5 8l5 5"></path></svg>
+    </a>
+    <span style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;font-weight:600">웹훅 회귀 검토</span>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.500px;color:#8E8F98">Codex · payments-api · 집 Mac mini</span>
+    </span>
+    <span style="flex:none;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:{{stC}}"><span aria-hidden="true" style="width:7px;height:7px;border-radius:50%;background:{{stC}};animation:{{stAnim}}"></span>{{st}}</span>
+    <sc-if value="{{canHalt}}" hint-placeholder-val="{{ true }}">
+      <button type="button" onClick="{{haltAsk}}" style="flex:none;height:32px;margin-left:4px;padding:0 10px;border:0;border-radius:8px;background:#1F2025;color:#D6D7DC;font:inherit;font-size:13px;cursor:pointer">중지</button>
+    </sc-if>
+  </header>
+
+  <div role="log" aria-label="터미널 출력" style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column-reverse;background:#0B0C0E">
+    <div style="display:flex;flex-direction:column;padding:12px 14px 14px;font-family:'JetBrains Mono',Menlo,monospace;font-size:11.500px;line-height:1.6">
+      <sc-for list="{{lines}}" as="l" hint-placeholder-count="10">
+        <div style="min-height:1.6em;white-space:pre-wrap;overflow-wrap:anywhere"><sc-for list="{{l.s}}" as="s" hint-placeholder-count="2"><span style="color:{{s.c}};font-weight:{{s.w}}">{{s.t}}</span></sc-for></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <section aria-label="응답" style="flex:none;display:flex;flex-direction:column;gap:10px;padding:14px 16px 8px;border-radius:16px 16px 0 0;background:#1F2025;box-shadow:0 -1px 0 #33343B">
+    <sc-if value="{{haltOpen}}" hint-placeholder-val="{{ false }}">
+      <span style="font-size:15px;font-weight:600">웹훅 회귀 검토를 멈출까요?</span>
+      <span style="font-size:13px;color:#B0B1B8">집 Mac mini에서 Codex 실행을 멈춰요. 결제 웹훅 재시도 구현은 계속돼요.</span>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button type="button" onClick="{{halt}}" style="height:48px;border:0;border-radius:11px;background:#FF7B86;color:#2A0D10;font:inherit;font-size:15px;font-weight:600;cursor:pointer">멈추기</button>
+        <button type="button" onClick="{{haltCancel}}" style="height:48px;border:0;border-radius:11px;background:#33343B;color:#EDEDF0;font:inherit;font-size:15px;cursor:pointer">취소</button>
+      </div>
+    </sc-if>
+    <sc-if value="{{halted}}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:1px;fill:none;stroke:#B0B1B8;stroke-width:1.700;stroke-linecap:round;stroke-linejoin:round"><path d="M5.500 3.500v9M10.500 3.500v9"></path></svg>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <span style="font-weight:600">멈췄어요 · 12:15</span>
+          <span style="font-size:12.500px;color:#B0B1B8">집 Mac mini에서 멈춘 것까지 확인했어요. 기록은 그쪽에 남아요.</span>
+        </span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ask}}" hint-placeholder-val="{{ true }}">
+      <span style="font-size:13.500px;font-weight:600;color:#F2C66D">명령 실행 허용?</span>
+      <code style="display:block;padding:9px 11px;border-radius:9px;background:#0B0C0E;font-family:'JetBrains Mono',Menlo,monospace;font-size:13px;color:#EDEDF0;overflow-wrap:anywhere">pnpm test:e2e --grep webhook</code>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button type="button" onClick="{{yes}}" style="height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:11px;background:#FF8B3E;color:#1B0F06;font:inherit;font-size:15px;font-weight:600;cursor:pointer">이번만 허용<span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12px;font-weight:500;opacity:.65">y</span></button>
+        <button type="button" onClick="{{no}}" style="height:48px;display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:11px;background:#33343B;color:#EDEDF0;font:inherit;font-size:15px;cursor:pointer">거부<span style="font-family:'JetBrains Mono',Menlo,monospace;font-size:12px;opacity:.6">n</span></button>
+      </div>
+      <p style="margin:0;font-size:12.500px;color:#8E8F98">누르면 터미널에 y 또는 n을 그대로 보내요. ‘항상 허용’은 컴퓨터에서만 고를 수 있어요.</p>
+    </sc-if>
+    <sc-if value="{{answered}}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="flex:none;margin-top:1px;fill:none;stroke:{{doneC}};stroke-width:1.700;stroke-linecap:round;stroke-linejoin:round"><path d="{{doneI}}"></path></svg>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <span style="font-weight:600">{{doneT}}</span>
+          <span style="font-size:12.500px;color:#B0B1B8">{{doneM}}</span>
+        </span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <label style="flex:1;min-width:0;height:44px;box-sizing:border-box;display:flex;align-items:center;padding:0 12px;border-radius:11px;background:#0F1012;box-shadow:inset 0 0 0 1px #33343B">
+          <input aria-label="Codex에게 메시지" placeholder="Codex에게 메시지" value="{{draft}}" style="flex:1;width:100%;min-width:0;padding:0;background:transparent;border:0;outline:0;color:#EDEDF0;font:inherit;font-size:14px">
+        </label>
+        <button type="button" aria-label="보내기" onClick="{{send}}" style="flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:0;border-radius:11px;background:{{sendBg}};color:{{sendFg}};cursor:pointer">
+          <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" style="fill:none;stroke:currentColor;stroke-width:1.800;stroke-linecap:round;stroke-linejoin:round"><path d="M8 13V3M3.500 7.500 8 3l4.500 4.500"></path></svg>
+        </button>
+      </div>
+    </sc-if>
+    <div aria-hidden="true" style="height:18px;display:flex;align-items:flex-end;justify-content:center"><span style="width:134px;height:5px;border-radius:3px;background:#EDEDF0"></span></div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  state = { a: 'ask', sent: false, halt: 'none' };
+  renderVals() {
+    const { a, sent, halt } = this.state;
+    const C = { f: '#D6D7DC', d: '#8E8F98', g: '#7EE0A8', y: '#F2C66D', c: '#7CCFE6', m: '#D9CCFF', e: '#FF8B3E', w: '#FFFFFF' };
+    const L = (...x) => ({ s: x.map((p) => ({ t: p[0], c: C[p[1] ?? 'f'], w: p[2] ?? 400 })) });
+    const B = L([' ']);
+    let lines = [
+      L(['Codex', 'c', 500], ['  ~/work/payments-api', 'd']),
+      L(['맡긴 일  ', 'd'], ['결제 웹훅 재시도 구현의 회귀 검토', 'f']),
+      B,
+      L(['• ', 'c'], ['src/webhooks/retry.ts 변경분을 읽었습니다.']),
+      L(['• ', 'c'], ['백오프 상한은 적절합니다. 재시도마다 멱등 키가 유지되는지 확인합니다.']),
+      L(['  $ ', 'd'], ['rg "idempotencyKey" src/webhooks', 'y']),
+      L(['  src/webhooks/retry.ts:31', 'd']),
+      L(['  src/webhooks/handler.ts:12', 'd']),
+      B,
+      L(['• ', 'c'], ['키는 유지됩니다. 실제 수신 흐름을 e2e로 확인하고 싶습니다.']),
+      B,
+      L(['┌ 명령 실행 허용?', 'y', 500]),
+      L(['│ ', 'y'], ['pnpm test:e2e --grep webhook', 'w']),
+      L(['└ ', 'y'], ['[y] 이번만 허용  [a] 항상 허용  [n] 거부', 'f'])
+    ];
+    if (a === 'yes') {
+      lines = lines.concat([
+        B,
+        L(['y', 'w', 500], ['  이번만 허용 · 이 휴대폰에서 응답', 'm']),
+        L(['  $ ', 'd'], ['pnpm test:e2e --grep webhook', 'y']),
+        L(['  ⋯ 실행 중', 'd'])
+      ]);
+    }
+    if (a === 'no') {
+      lines = lines.concat([B, L(['n', 'w', 500], ['  거부됨 · 이 휴대폰에서 응답', 'm'])]);
+      if (sent) {
+        lines = lines.concat([
+          B,
+          L(['❯ ', 'e'], ['e2e는 스테이징이 필요해. 통합 테스트만 돌려줘', 'w', 500]),
+          B,
+          L(['• ', 'c'], ['알겠습니다. 통합 테스트만 실행합니다.']),
+          L(['  $ ', 'd'], ['pnpm test:integration webhooks', 'y']),
+          L(['  ⋯ 실행 중', 'd'])
+        ]);
+      }
+    }
+    const halted = halt === 'done';
+    if (halted) lines = lines.concat([B, L(['■ 중지됨', 'd', 500], ['  휴대폰에서 요청 · 12:15', 'm'])]);
+    const running = (a === 'yes' || sent) && !halted;
+    const ok = 'M3 8.500l3.200 3L13 4.500';
+    const x = 'M4 4l8 8M12 4l-8 8';
+    const free = halt === 'none';
+    return {
+      lines,
+      ask: a === 'ask' && free,
+      answered: a !== 'ask' && free,
+      haltOpen: halt === 'ask',
+      halted,
+      canHalt: free,
+      haltAsk: () => this.setState({ halt: 'ask' }),
+      haltCancel: () => this.setState({ halt: 'none' }),
+      halt: () => this.setState({ halt: 'done' }),
+      st: halted ? '멈춤' : a === 'ask' ? '승인 필요' : (running ? '실행 중' : '입력 대기'),
+      stC: halted ? '#9B9CA5' : a === 'ask' ? '#FF8B3E' : (running ? '#5AD6A4' : '#B0B1B8'),
+      stAnim: running ? 'wick 1.8s ease-in-out infinite' : 'none',
+      doneI: a === 'yes' ? ok : x,
+      doneC: a === 'yes' ? '#5AD6A4' : '#B0B1B8',
+      doneT: a === 'yes' ? '이번만 허용했어요 · 12:14' : (sent ? '보냈어요 · 12:14' : '거부했어요 · 12:14'),
+      doneM: a === 'yes'
+        ? '집 Mac mini의 터미널에도 휴대폰에서 답한 것으로 남아요.'
+        : (sent ? 'Codex가 통합 테스트를 시작했어요.' : '대신 할 일을 알려 주세요. Codex가 입력을 기다리고 있어요.'),
+      draft: a === 'no' && !sent ? 'e2e는 스테이징이 필요해. 통합 테스트만 돌려줘' : '',
+      sendBg: a === 'no' && !sent ? '#FF8B3E' : '#33343B',
+      sendFg: a === 'no' && !sent ? '#1B0F06' : '#8E8F98',
+      yes: () => this.setState({ a: 'yes' }),
+      no: () => this.setState({ a: 'no' }),
+      send: () => { if (a === 'no') this.setState({ sent: true }); }
+    };
+  }
+}
+</script>
+</body>
+</html>
