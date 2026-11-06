@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Runwick — 맥락을 이어 가는 AI CLI 작업실</title>
+  <meta name="description" content="Claude Code, Codex, 셸을 프로젝트별로. 실행은 이어지고, 대화와 파일은 한곳에 남습니다. Rust와 egui로 만든 macOS용 AI CLI 작업실, Runwick." />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Runwick" />
+  <meta property="og:title" content="Runwick — 맥락을 이어 가는 AI CLI 작업실" />
+  <meta property="og:description" content="Claude Code, Codex, 셸을 프로젝트별로. 실행은 이어지고, 대화와 파일은 한곳에 남습니다. Rust와 egui로 만든 macOS용 AI CLI 작업실, Runwick." />
+  <meta property="og:image" content="https://gjeon03.github.io/runwick/assets/work.png" />
+  <meta property="og:image:width" content="2000" />
+  <meta property="og:image:height" content="1250" />
+  <meta property="og:image:alt" content="Runwick에서 프로젝트 터미널과 README 문서를 나란히 연 화면" />
+  <meta property="og:url" content="https://gjeon03.github.io/runwick/" />
+  <meta property="og:locale" content="ko_KR" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#0F1012" />
+  <link rel="canonical" href="https://gjeon03.github.io/runwick/" />
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/icon.png" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&amp;display=swap" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="main.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="a11y.skip">본문으로 건너뛰기</a>
+
+  <svg class="svg-defs" width="0" height="0" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6" /></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M5 16v4h14v-4" /></symbol>
+      <symbol id="i-terminal" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3" /><path d="m7 9 3 3-3 3m6 0h4" /></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5m-13-10h5" /></symbol>
+      <symbol id="i-files" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v13m10-15 6 6v12a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V7m7-5v6h6M11 13h5m-5 4h5" /></symbol>
+      <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5v16M3 3h5a4 4 0 0 1 4 3 4 4 0 0 1 4-3h5v16h-5a4 4 0 0 0-4 2 4 4 0 0 0-4-2H3Z" /></symbol>
+      <symbol id="i-branch" viewBox="0 0 24 24"><circle cx="6" cy="5" r="2" /><circle cx="6" cy="19" r="2" /><circle cx="18" cy="5" r="2" /><path d="M6 7v10m0-4h5a7 7 0 0 0 7-6" /></symbol>
+      <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 7a8 8 0 0 0-14-2L3 8m0-5v5h5M4 17a8 8 0 0 0 14 2l3-3m0 5v-5h-5" /></symbol>
+      <symbol id="i-backup" viewBox="0 0 24 24"><path d="M7 18H6a4 4 0 0 1-1-7.9A7 7 0 0 1 18.5 8 5 5 0 0 1-.5 10h-1m-5 3V11m-4 4 4-4 4 4" /></symbol>
+      <symbol id="i-devices" viewBox="0 0 24 24"><rect x="2" y="3" width="14" height="11" rx="2" /><rect x="15" y="10" width="7" height="11" rx="2" /><path d="M6 18h6m-3-4v4m9 0h1" /></symbol>
+      <symbol id="i-github" viewBox="0 0 24 24"><path d="M9 19c-4 1-4-2-6-2m12 5v-4a3.5 3.5 0 0 0-1-2.5c3-.3 6-1.5 6-6a4.7 4.7 0 0 0-1.3-3.3 4.4 4.4 0 0 0-.1-3.2S17.4 2.6 15 4a11.5 11.5 0 0 0-6 0C6.6 2.6 5.4 3 5.4 3a4.4 4.4 0 0 0-.1 3.2A4.7 4.7 0 0 0 4 9.5c0 4.5 3 5.7 6 6A3.5 3.5 0 0 0 9 18v4" /></symbol>
+    </defs>
+  </svg>
+
+  <header class="site-header" id="top">
+    <nav class="nav wrap" aria-label="주 탐색" data-i18n-label="a11y.nav">
+      <a class="brand" href="#top"><img src="assets/icon.png" width="36" height="36" alt="" /><span>Runwick</span></a>
+      <div class="nav-links">
+        <a href="#features" data-i18n="nav.features">기능</a>
+        <a href="#how" data-i18n="nav.how">사용 방법</a>
+        <a href="#install" data-i18n="nav.install">설치</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div class="nav-right">
+        <button class="lang" type="button" data-lang-toggle aria-label="Switch to English" hidden>EN</button>
+        <a class="icon-link" href="https://github.com/gjeon03/runwick" aria-label="Runwick GitHub"><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg></a>
+        <a class="btn btn-sm btn-primary" href="https://github.com/gjeon03/runwick/releases/latest" data-i18n="nav.download">다운로드</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="status-dot" aria-hidden="true"></span><span data-i18n="hero.eyebrow">macOS를 위한 AI CLI 작업실</span></p>
+        <h1 id="hero-title" data-i18n-html="hero.title">CLI는 자유롭게.<br /><span>맥락은 그대로.</span></h1>
+        <p class="hero-sub" data-i18n="hero.sub">Claude Code, Codex, 셸을 프로젝트별로 오가세요. 익숙한 CLI에서 하던 일을 이어 가고, 대화와 파일은 한곳에 남겨 두세요.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="https://github.com/gjeon03/runwick/releases/latest"><svg class="icon" aria-hidden="true"><use href="#i-download" /></svg><span data-i18n="hero.download">macOS용 다운로드</span></a>
+          <a class="btn btn-secondary" href="https://github.com/gjeon03/runwick"><svg class="icon" aria-hidden="true"><use href="#i-github" /></svg><span>GitHub</span></a>
+        </div>
+        <ul class="hero-meta" aria-label="앱 정보" data-i18n-label="a11y.appInfo">
+          <li>macOS 11+</li><li>Rust + egui</li><li data-i18n="hero.free">무료 · MIT</li>
+        </ul>
+      </div>
+      <figure class="hero-visual">
+        <div class="visual-label"><span class="mono">RUNWICK / WORKROOM</span><span class="live-label"><span class="status-dot" aria-hidden="true"></span><span data-i18n="hero.live">작업은 이어집니다</span></span></div>
+        <a class="screenshot-link" href="assets/work.png" aria-label="작업 화면 크게 보기" data-i18n-label="a11y.workOpen"><img src="assets/work.png" width="2000" height="1250" alt="Runwick에서 프로젝트 터미널과 README 문서를 나란히 연 화면" data-i18n-alt="image.work" fetchpriority="high" /></a>
+        <figcaption><span data-i18n="hero.caption">프로젝트 · 작업 공간 · 세션, 한 화면에서.</span><span class="visual-tools mono">Claude Code / Codex / Shell</span></figcaption>
+      </figure>
+    </section>
+
+    <div class="principle wrap"><svg class="icon" aria-hidden="true"><use href="#i-terminal" /></svg><p data-i18n-html="principle">쓰던 CLI 그대로. <strong>작업에 필요한 맥락을 곁에.</strong></p><span class="mono" aria-hidden="true">01 — 08</span></div>
+
+    <section class="section wrap" id="features" aria-labelledby="features-title">
+      <div class="section-heading"><p class="kicker" data-i18n="features.kicker">작업실 안에서</p><h2 id="features-title" data-i18n-html="features.title">실행부터 다음 작업까지,<br />흐름이 끊기지 않도록.</h2><p class="section-sub" data-i18n="features.sub">터미널, 기록, 문서를 프로젝트별로 연결합니다. 폴더 하나를 열면 기본 공간에서 바로 시작할 수 있습니다.</p></div>
+      <div class="feature-grid">
+        <article class="feature"><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-terminal" /></svg></span><h3 data-i18n="f1.title">실행 유지</h3><p data-i18n="f1.body">창을 닫아도 CLI는 계속 실행됩니다. 메뉴 막대에서 상태를 확인하고, 다시 열면 같은 실행에 연결됩니다.</p></article>
+        <article class="feature"><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-search" /></svg></span><h3 data-i18n="f2.title">기록 검색과 핀</h3><p data-i18n="f2.body">지난 대화를 한국어 부분 검색으로 찾으세요. 다시 볼 메시지와 터미널 발췌는 핀으로 남길 수 있습니다.</p></article>
+        <article class="feature"><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-files" /></svg></span><h3 data-i18n="f3.title">파일과 문서</h3><p data-i18n="f3.body">파일 트리에서 찾고, Markdown과 텍스트를 편집하고 미리 보세요. CLI와 편집이 겹치면 3열 비교로 확인합니다.</p></article>
+        <article class="feature"><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-book" /></svg></span><h3 data-i18n="f4.title">위키와 타임라인</h3><p data-i18n="f4.body">문서의 연결은 위키 그래프로, 작업의 흐름은 날짜별 타임라인으로. AI 정리는 프로젝트별로 켜고, 배터리에서는 보류합니다.</p></article>
+        <article class="feature"><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-branch" /></svg></span><h3 data-i18n="f5.title">CLI끼리 일 맡기기</h3><p data-i18n-html="f5.body"><code>runwick delegate</code>로 다른 CLI에 일을 맡기고 결과를 받으세요. 필요하면 작업자를 살펴보거나 직접 대화할 수 있습니다.</p></article>
+        <article class="feature"><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-refresh" /></svg></span><h3 data-i18n="f6.title">공통 환경변수와 세션 새로고침</h3><p data-i18n="f6.body">환경변수는 공통 설정으로 관리하고, 비밀값은 macOS 키체인에 둡니다. 설정이 바뀌어도 같은 대화를 유지하며 새로고침합니다.</p></article>
+        <article class="feature"><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-backup" /></svg></span><h3 data-i18n="f7.title">GitHub 백업·동기화</h3><p data-i18n="f7.body">기록, 핀, 위키, 설정을 비공개 저장소에 백업하고 다른 컴퓨터에서 이어 쓰세요. 설정의 비밀값은 동기화에서 제외합니다.</p></article>
+        <article class="feature"><span class="feature-icon"><svg class="icon" aria-hidden="true"><use href="#i-devices" /></svg></span><h3 data-i18n="f8.title">여러 기기</h3><p data-i18n="f8.body">SSH로 다른 Mac의 Runwick에 연결하세요. 같은 사이드바에서 원격 작업 공간을 열고, 각 기기가 자신의 실행을 유지합니다.</p></article>
+      </div>
+    </section>
+
+    <section class="section showcase wrap" aria-labelledby="showcase-title">
+      <div class="section-heading"><p class="kicker" data-i18n="showcase.kicker">쌓이는 맥락</p><h2 id="showcase-title" data-i18n="showcase.title">끝난 대화도, 다음 작업의 시작.</h2><p class="section-sub" data-i18n="showcase.sub">무엇을 결정했고 어디까지 했는지, 기록으로 돌아와 이어 가세요.</p></div>
+      <div class="showcase-grid">
+        <figure class="showcase-card"><figcaption><span class="shot-number mono">01 / WIKI</span><h3 data-i18n="showcase.graph.title">흩어진 지식을 연결하고</h3><p data-i18n="showcase.graph.body">위키 문서와 근거 기록을 그래프로 살펴보고, AI가 제안한 변경은 검토한 뒤 반영합니다.</p></figcaption><a class="screenshot-link" href="assets/graph.png" aria-label="위키 그래프 크게 보기" data-i18n-label="a11y.graphOpen"><img src="assets/graph.png" width="2000" height="1250" loading="lazy" decoding="async" alt="위키 문서의 링크와 근거 기록을 연결해 보여 주는 Runwick 관계 그래프" data-i18n-alt="image.graph" /></a></figure>
+        <figure class="showcase-card"><figcaption><span class="shot-number mono">02 / TIMELINE</span><h3 data-i18n="showcase.timeline.title">어제의 흐름을 이어 가세요</h3><p data-i18n="showcase.timeline.body">세션, 핀, 커밋, 위키와 협업 기록을 날짜별로 모아 봅니다. AI 요약이 없어도 실제 기록은 남습니다.</p></figcaption><a class="screenshot-link" href="assets/timeline.png" aria-label="타임라인 크게 보기" data-i18n-label="a11y.timelineOpen"><img src="assets/timeline.png" width="2000" height="1250" loading="lazy" decoding="async" alt="프로젝트별 주간 기록과 날짜별 작업 카드를 보여 주는 Runwick 타임라인" data-i18n-alt="image.timeline" /></a></figure>
+      </div>
+    </section>
+
+    <section class="section wrap" id="how" aria-labelledby="how-title">
+      <div class="section-heading"><p class="kicker" data-i18n="how.kicker">사용 방법</p><h2 id="how-title" data-i18n="how.title">폴더를 열면, 작업실이 됩니다.</h2></div>
+      <ol class="steps">
+        <li><span class="step-n mono">01</span><h3 data-i18n="how.s1.title">폴더 열기</h3><p data-i18n="how.s1.body">프로젝트 폴더를 열면 기본 작업 공간이 준비됩니다. Git 저장소가 아닌 폴더도 사용할 수 있습니다.</p></li>
+        <li><span class="step-n mono">02</span><h3 data-i18n="how.s2.title">CLI 고르기</h3><p data-i18n="how.s2.body">설치한 Claude Code, Codex, 셸 중에서 고르세요. 익숙한 터미널에서 시작하고, 필요할 때 작업을 나누세요.</p></li>
+        <li><span class="step-n mono">03</span><h3 data-i18n="how.s3.title">창을 닫아도 계속</h3><p data-i18n="how.s3.body">진행 중인 작업은 그대로 두고 창을 닫으세요. 다시 열면 같은 실행에 연결되어 하던 일을 이어 갑니다.</p></li>
+      </ol>
+      <p class="note" data-i18n="how.note">재부팅 후에는 기록과 마지막 화면을 복원합니다. 다시 실행할 세션은 직접 선택합니다.</p>
+    </section>
+
+    <section class="section wrap" id="install" aria-labelledby="install-title">
+      <div class="section-heading"><p class="kicker" data-i18n="install.kicker">설치</p><h2 id="install-title" data-i18n="install.title">Mac에 작은 작업실 하나.</h2><p class="section-sub" data-i18n="install.sub">macOS 11 이상. 사용할 AI CLI는 별도로 설치하고 로그인해 주세요.</p></div>
+      <div class="install-grid">
+        <div class="install-guide">
+          <ol class="install-steps">
+            <li><span class="step-n mono">01</span><div><h3 data-i18n="install.s1.title">다운로드</h3><p data-i18n-html="install.s1.body"><a href="https://github.com/gjeon03/runwick/releases/latest">최신 릴리스</a>에서 Mac에 맞는 배포 파일을 받으세요.</p></div></li>
+            <li><span class="step-n mono">02</span><div><h3 data-i18n="install.s2.title">응용 프로그램으로 옮기기</h3><p data-i18n-html="install.s2.body">다운로드한 파일을 열고 <strong>Runwick.app</strong>을 <strong>응용 프로그램</strong> 폴더로 옮기세요.</p></div></li>
+            <li><span class="step-n mono">03</span><div><h3 data-i18n="install.s3.title">처음 열 때</h3><p data-i18n-html="install.s3.body">Finder에서 Runwick을 우클릭한 뒤 <strong>열기</strong>를 선택하세요. macOS가 계속 차단한다면 아래 안내를 확인하세요.</p></div></li>
+          </ol>
+          <details class="install-help"><summary data-i18n="install.help.title">macOS가 실행을 막는다면</summary><div class="install-help-body"><p data-i18n="install.help.body">현재 번들은 ad-hoc 서명이며 Apple 공증은 아직 적용되지 않았습니다. 공식 GitHub 릴리스에서 받은 앱인지 확인한 뒤, 터미널에서 이 앱의 격리 속성만 제거할 수 있습니다.</p><pre tabindex="0" aria-label="실행 차단 해제 명령" data-i18n-label="a11y.quarantine"><code>xattr -dr com.apple.quarantine /Applications/Runwick.app</code></pre><p data-i18n="install.help.after">명령을 실행한 다음 응용 프로그램 폴더에서 Runwick을 다시 여세요.</p></div></details>
+        </div>
+        <aside class="install-card" aria-label="Runwick 다운로드" data-i18n-label="a11y.download">
+          <img src="assets/icon.png" width="104" height="104" loading="lazy" alt="" />
+          <p class="install-name">Runwick</p><p class="install-meta mono">macOS 11+ · Rust + egui</p>
+          <a class="btn btn-primary" href="https://github.com/gjeon03/runwick/releases/latest"><svg class="icon" aria-hidden="true"><use href="#i-download" /></svg><span data-i18n="hero.download">macOS용 다운로드</span></a>
+          <a class="small-link" href="https://github.com/gjeon03/runwick/releases"><span data-i18n="install.all">모든 릴리스 보기</span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a>
+          <p class="install-license" data-i18n="install.free">무료 · 오픈소스 · MIT 라이선스</p>
+        </aside>
+      </div>
+      <div class="source-build"><div><h3 data-i18n="install.build.title">소스에서 빌드</h3><p data-i18n="install.build.body">Rust stable과 Xcode 또는 Command Line Tools가 필요합니다. 저장소를 받은 뒤 아래 명령을 실행하세요.</p></div><pre tabindex="0" aria-label="소스 빌드 명령" data-i18n-label="a11y.build"><code>sh scripts/bundle-macos.sh</code></pre><a class="small-link" href="https://github.com/gjeon03/runwick#readme"><span data-i18n="install.build.link">빌드 안내</span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></div>
+    </section>
+
+    <section class="section faq-section wrap" id="faq" aria-labelledby="faq-title">
+      <div class="section-heading"><p class="kicker">FAQ</p><h2 id="faq-title" data-i18n="faq.title">궁금한 점이 있나요?</h2><a class="small-link" href="https://github.com/gjeon03/runwick/issues"><span data-i18n="faq.issues">GitHub에 질문 남기기</span><svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg></a></div>
+      <div class="faq">
+        <details><summary data-i18n="faq.q1">Electron 앱인가요?</summary><p data-i18n="faq.a1">아니요. Rust와 egui로 만든 macOS용 네이티브 앱입니다. CLI는 앱 안의 터미널에서 원래 화면 그대로 실행됩니다.</p></details>
+        <details><summary data-i18n="faq.q2">비밀값이 GitHub에 올라가나요?</summary><p data-i18n="faq.a2">아니요. 비밀 환경변수 값은 macOS 키체인에 두고 백업·동기화에서 제외합니다. 기록과 위키 등은 연결한 비공개 저장소로 동기화하므로, 대화나 문서에 직접 적은 민감한 내용은 따로 확인해 주세요.</p></details>
+        <details><summary data-i18n="faq.q3">창을 닫으면 작업도 끝나나요?</summary><p data-i18n="faq.a3">창만 닫으면 CLI는 계속 실행되고 메뉴 막대에서 상태를 볼 수 있습니다. 작업을 멈추려면 ‘작업까지 종료’를 선택하세요. 컴퓨터를 재부팅한 뒤에는 기록과 화면을 복원하고, 재개할 세션을 직접 고릅니다.</p></details>
+        <details><summary data-i18n="faq.q4">어떤 CLI를 쓸 수 있나요?</summary><p data-i18n="faq.a4">Claude Code, Codex, 일반 셸을 지원합니다. 각 AI CLI의 설치와 로그인은 별도로 필요하며, 해당 서비스의 이용 조건과 요금이 적용됩니다.</p></details>
+        <details><summary data-i18n="faq.q5">다른 컴퓨터에서도 이어 쓸 수 있나요?</summary><p data-i18n="faq.a5">GitHub 백업·동기화로 기록을 다른 컴퓨터에서 이어 쓸 수 있습니다. SSH로 다른 Mac의 Runwick에 연결하면 그 기기의 작업 공간도 열 수 있습니다. 원격 실행은 구현되어 있지만 실제 두 Mac 사이의 연결 검증은 아직 남아 있습니다.</p></details>
+        <details><summary data-i18n="faq.q6">무료인가요? 라이선스는요?</summary><p data-i18n-html="faq.a6">Runwick은 무료 오픈소스이며 <a href="https://github.com/gjeon03/runwick/blob/main/LICENSE">MIT 라이선스</a>로 공개합니다. 사용하는 AI CLI 서비스의 비용은 별도입니다.</p></details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer wrap"><a class="brand" href="#top"><img src="assets/icon.png" width="30" height="30" alt="" /><span>Runwick</span></a><p data-i18n="footer.tagline">작업은 이어지고, 맥락은 남습니다.</p><div class="footer-links"><a href="https://github.com/gjeon03/runwick/blob/main/LICENSE">MIT License</a><a href="https://github.com/gjeon03/runwick">GitHub</a><a href="https://github.com/gjeon03">gjeon03 <span aria-hidden="true">↗</span></a></div></footer>
+</body>
+</html>
