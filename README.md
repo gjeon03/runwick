@@ -29,6 +29,7 @@ UI 디자인을 위한 읽기 순서는 **전체 제품 기획 → 협업 설계
 | [화면 명세](docs/ui-spec.md) | 15개 화면/패널의 정보·행동·상태·반응형·디자인 산출물 |
 | [사용 흐름·수용 기준](docs/user-flows.md) | 15개 흐름과 예외 처리, 요구사항→화면→검증 추적표 |
 | [Pinloom·Herdr 협업 코드 비교](docs/research/collaboration-models.md) | 실제 생성·전달·상태·개입·종료 경로, 세 가지 설계안 비교 |
+| [Orca·Tailscale 원격 검토](docs/research/orca-remote.md) | 원격 실행·기기 전환·페어링 근거, Runwick 적용 후보와 검증 과제 |
 | [제품 방향](docs/product-direction.md) | 사용 흐름, 차별점 가설, 구현 전 비교할 선택지 |
 | [Herdr 조사](docs/research/herdr.md) | 공식 문서·코드·실행 확인에서 얻은 사실과 적용 후보 |
 | [Pinloom 검토](docs/research/pinloom.md) | 살릴 경험, 현재 구현, 새 제품에서 개선할 부분 |
