@@ -89,7 +89,12 @@ __attribute__((constructor)) static void injected(void) {
   if (f) fclose(f);
 }
 C
-if cc -dynamiclib -o "$CHECK/inject.dylib" "$CHECK/inject.c" >/dev/null 2>&1; then
+if ! csrutil status 2>/dev/null | grep -q 'status: enabled'; then
+  # Without System Integrity Protection (as on hosted CI runners) macOS does not enforce the
+  # hardened runtime's DYLD restrictions, so the proof is meaningless here. The signature flag
+  # was checked above; build on a Mac with SIP enabled to run the proof.
+  echo "warning: System Integrity Protection is off, the injection check was skipped" >&2
+elif cc -dynamiclib -o "$CHECK/inject.dylib" "$CHECK/inject.c" >/dev/null 2>&1; then
   RUNWICK_INJECT_MARKER="$CHECK/ran" DYLD_INSERT_LIBRARIES="$CHECK/inject.dylib" \
     "$APP/Contents/MacOS/runwick" --version >/dev/null 2>&1 || true
   if [ -e "$CHECK/ran" ]; then
