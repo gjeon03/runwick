@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing v* version tag to build and release (for example, v0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+      RUNWICK_HOME: ${{ runner.temp }}/runwick-release
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Validate release tag
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[[:alnum:]][[:alnum:].+_-]*$ ]]; then
+            echo 'Expected a v* version tag containing only letters, digits, dots, plus signs, underscores, or hyphens.' >&2
+            exit 1
+          fi
+          git check-ref-format "refs/tags/$RELEASE_TAG"
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.RELEASE_TAG }}
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Build and verify app bundle
+        run: sh scripts/bundle-macos.sh
+      - name: Package app and checksum
+        run: |
+          archive="Runwick-${RELEASE_TAG}-macos-arm64.zip"
+          ditto -c -k --keepParent dist/Runwick.app "$archive"
+          shasum -a 256 "$archive" > "$archive.sha256"
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          archive="Runwick-${RELEASE_TAG}-macos-arm64.zip"
+          notes="$RUNNER_TEMP/runwick-release-notes.md"
+          cat > "$notes" <<'NOTES'
+          Runwick for macOS (Apple Silicon, arm64).
+
+          This app is ad-hoc signed with the hardened runtime and is not notarized.
+
+          First launch: unzip the download and move Runwick.app to /Applications.
+          Right-click Runwick.app → 열기, or run the following command before opening it:
+
+          ```sh
+          xattr -dr com.apple.quarantine /Applications/Runwick.app
+          ```
+
+          The accompanying .sha256 file contains the archive's SHA-256 checksum.
+          NOTES
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$archive" "$archive.sha256" \
+              --repo "$GITHUB_REPOSITORY" --clobber
+            gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --notes-file "$notes"
+          else
+            gh release create "$RELEASE_TAG" "$archive" "$archive.sha256" \
+              --repo "$GITHUB_REPOSITORY" --verify-tag \
+              --title "Runwick $RELEASE_TAG" --notes-file "$notes"
+          fi
