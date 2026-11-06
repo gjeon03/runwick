@@ -1,0 +1,59 @@
+[workspace]
+resolver = "3"
+members = ["crates/runwick-core", "crates/runwick-host", "crates/runwick-app", "crates/runwick"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/gjeon03/runwick"
+
+[workspace.dependencies]
+runwick-core = { path = "crates/runwick-core" }
+runwick-host = { path = "crates/runwick-host" }
+runwick-app = { path = "crates/runwick-app" }
+
+anyhow = "1"
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "v7", "serde"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
+tokio = { version = "1", features = ["full"] }
+rusqlite = { version = "0.41", features = ["bundled", "uuid"] }
+alacritty_terminal = "0.26"
+# Same version alacritty_terminal uses: the output guard must agree on character widths.
+unicode-width = "0.2"
+eframe = { version = "0.37", default-features = false, features = ["accesskit", "clipboard", "default_fonts", "links", "glow", "wayland", "x11"] }
+egui = { version = "0.37", features = ["monochrome_emoji_fonts"] }
+egui_extras = { version = "0.37", features = ["syntect"] }
+egui_commonmark = "0.26"
+rfd = "0.17"
+clap = { version = "4", features = ["derive"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+libc = "0.2"
+sha2 = "0.10"
+similar = "3"
+ignore = "0.4"
+memmap2 = "0.9"
+# macOS menu bar presence (`runwick menubar`).
+tray-icon = { version = "0.26", default-features = false }
+winit = { version = "0.30", default-features = false }
+image = { version = "0.25", default-features = false, features = ["png"] }
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSAttributedString", "NSRange", "NSString"] }
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "NSAttributedString", "NSButton", "NSColor", "NSControl", "NSFont", "NSResponder", "NSStatusBarButton", "NSStatusItem", "NSView"] }
+
+[profile.dev]
+# Keep the shared target directory small: line tables are enough for backtraces.
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+opt-level = 1
+
+[profile.release]
+lto = "thin"
+codegen-units = 4
+strip = true

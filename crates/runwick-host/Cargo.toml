@@ -1,0 +1,30 @@
+[package]
+name = "runwick-host"
+description = "Runwick host: keeps CLI runs alive and owns records on one computer"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+# Verification hooks (test window clients, transcript folder override) in a release build.
+verify-hooks = []
+
+[dependencies]
+runwick-core.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+tokio.workspace = true
+rusqlite.workspace = true
+alacritty_terminal.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+libc.workspace = true
+sha2.workspace = true
+ignore.workspace = true
+similar.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

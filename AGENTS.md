@@ -16,4 +16,7 @@
 - Pinloom source is research material; compatibility means deliberate data import or interoperability, not shared writable storage.
 - Keep confirmed observations, user decisions, and proposed designs distinguishable. Cite source revisions for implementation claims.
 - Do not put credentials, local databases, provider transcripts, or personal wiki content in this repository.
-- This repository currently contains documentation only. Do not add a JavaScript package setup or Rust scaffold merely to satisfy a documentation check.
+- The repository contains the Rust workspace (`crates/runwick-core`, `runwick-host`, `runwick-app`, `runwick`) and its documentation. Build and test with cargo (`cargo test --workspace`); if the Xcode license is not accepted, use `DEVELOPER_DIR=/Library/Developer/CommandLineTools`. Do not add a JavaScript package setup.
+- Never show the name "Pinloom" in the app (UI text, code, identifiers, assets, the built binary). Moving work between computers is done with GitHub backup/sync, not an import of another app's data.
+- Use a temporary `RUNWICK_HOME` for manual runs and tests; never write to the real `~/.runwick` while developing. Verification hooks (`RUNWICK_SNAPSHOT`, `RUNWICK_UI_STATE`, `RUNWICK_VERIFY_INPUT`) are documented in `crates/runwick-app/src/snapshot.rs` and `terminal/verify.rs`.
+- Host methods that change settings, sync or backup are only for Runwick windows (window token); agent CLIs may call only the collaboration methods allowed in `router.rs`. Keep that boundary when adding methods.

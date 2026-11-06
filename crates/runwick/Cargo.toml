@@ -1,0 +1,32 @@
+[package]
+name = "runwick"
+description = "Runwick: keep working with your AI CLIs across projects, sessions and computers"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "runwick"
+path = "src/main.rs"
+
+[features]
+# See runwick-app: verification hooks in a release build (never for shipped builds).
+verify-hooks = ["runwick-app/verify-hooks", "runwick-host/verify-hooks"]
+
+[dependencies]
+runwick-core.workspace = true
+runwick-host.workspace = true
+runwick-app.workspace = true
+anyhow.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+tray-icon.workspace = true
+winit.workspace = true
+image.workspace = true
+objc2.workspace = true
+objc2-foundation.workspace = true
+objc2-app-kit.workspace = true

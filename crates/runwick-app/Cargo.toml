@@ -1,0 +1,35 @@
+[package]
+name = "runwick-app"
+description = "Runwick desktop app (egui)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[features]
+# Verification hooks (scripted input, snapshots, UI state from the environment) in a release
+# build. Debug builds always have them; shipped builds must not (see `hook_env!` in lib.rs).
+verify-hooks = []
+
+[dependencies]
+runwick-core.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+eframe.workspace = true
+egui.workspace = true
+egui_extras.workspace = true
+egui_commonmark.workspace = true
+rfd.workspace = true
+alacritty_terminal.workspace = true
+similar.workspace = true
+tracing.workspace = true
+memmap2 = "0.9"
+image = { version = "0.25", default-features = false, features = ["png"] }
+
+# ⌘Q reaches the window instead of the default application menu (views/lifecycle.rs).
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2.workspace = true
+objc2-foundation.workspace = true
+objc2-app-kit = { workspace = true, features = ["NSApplication", "NSMenu", "NSMenuItem"] }

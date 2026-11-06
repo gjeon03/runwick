@@ -9,3 +9,4 @@
 *.sqlite-*
 *.db
 *.db-*
+/dist/
