@@ -37,8 +37,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: refs/tags/${{ env.RELEASE_TAG }}
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@b725eda525362e7cf34af9a7243cac1e3f01a7ec # stable
       - name: Build and verify app bundle
         env:
           RUNWICK_HOME: ${{ runner.temp }}/runwick-release
