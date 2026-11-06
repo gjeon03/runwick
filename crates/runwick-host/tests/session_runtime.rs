@@ -266,6 +266,10 @@ fn shell_session_end_to_end() {
     assert_eq!(live.input_owner_client, Some(c.client_id), "first interactive attach owns input");
     assert!(c.output[&id].starts_with(b"\x1bc"), "snapshot starts with a full reset");
     wait_prompt(&mut c, id);
+    // A short prompt keeps readline's resize redraw from overwriting earlier rows
+    // when the default prompt (host name, folder) is wider than the terminal.
+    c.input(id, "PS1='rw$ '\r");
+    c.wait_output(id, "rw$ ", 2); // the echoed command, then the new prompt
 
     c.input(id, "echo RW_$((40+2))\r");
     c.wait_output(id, "RW_42", 1);

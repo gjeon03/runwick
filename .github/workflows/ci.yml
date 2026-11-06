@@ -35,4 +35,4 @@ jobs:
           RUNWICK_HOME: ${{ runner.temp }}/runwick-ci
           SHELL: /bin/sh
           HISTFILE: /dev/null
-        run: cargo test --workspace -- --test-threads=2
+        run: cargo test --workspace --no-fail-fast -- --test-threads=2
