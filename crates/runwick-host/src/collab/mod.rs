@@ -26,7 +26,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 
-pub const MIGRATIONS: &[Migration] = &[("collab_1", db::MIGRATION)];
+pub const MIGRATIONS: &[Migration] = &[("collab_1", db::MIGRATION), ("collab_2_start_tree", db::TREE_MIGRATION)];
 
 /// Longest instruction accepted (a task description, not a file transfer).
 const MAX_PROMPT: usize = 100 * 1024;
@@ -156,10 +156,25 @@ fn changed(host: &Arc<Host>) {
     rt(host).poke();
 }
 
+/// Run a store call a few times while the database stays busy, logging the last error.
+async fn retry_db<T>(what: &str, mut f: impl FnMut() -> Result<T, RpcError>) -> Option<T> {
+    const ATTEMPTS: u32 = 5;
+    for attempt in 1..=ATTEMPTS {
+        match f() {
+            Ok(v) => return Some(v),
+            Err(e) if attempt == ATTEMPTS => tracing::error!("collab: cannot {what} after a restart: {}", e.message),
+            Err(_) => tokio::time::sleep(std::time::Duration::from_millis(200 * u64::from(attempt))).await,
+        }
+    }
+    None
+}
+
 /// A new host has no runs: delivered work cannot be followed any more, and queued work must
 /// not be delivered before the person says so (its parents are held).
 async fn recover_after_restart(host: &Arc<Host>) {
-    let Ok(open) = db::open(&host.store) else {
+    // The delivery loop starts only after this, so a busy database must not make it skip the
+    // review: the loop would then report a lost run as one that ended on its own.
+    let Some(open) = retry_db("read open requests", || db::open(&host.store)).await else {
         return;
     };
     let mut touched = false;
@@ -170,7 +185,7 @@ async fn recover_after_restart(host: &Arc<Host>) {
             r.updated_at = runwick_core::now();
             r.finished_at = Some(r.updated_at);
             engine::finalize(host, &mut r).await;
-            let _ = db::save(&host.store, &r);
+            let _ = retry_db("save a lost run", || db::save(&host.store, &r)).await;
             touched = true;
         } else if r.status == ReqStatus::Queued
             && let Some(p) = r.parent_id
@@ -594,7 +609,7 @@ pub async fn report(host: &Arc<Host>, caller: Caller, p: Report) -> Result<Reque
     res.not_done = p.not_done.iter().map(|s| item(s)).filter(|s| !s.is_empty()).take(MAX_ITEMS).collect();
     if r.status == ReqStatus::Done {
         // Reported after the turn ended: refresh what changed too.
-        res.files = changes::files(&cwd, r.start_rev.as_deref()).await;
+        res.files = changes::files_since(&cwd, r.start_rev.as_deref(), db::start_tree(&host.store, r.id)?).await;
         res.head_rev = revision.clone();
         res.fingerprint = fingerprint;
     }

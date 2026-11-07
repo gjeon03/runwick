@@ -1,5 +1,5 @@
 //! What a worker changed, read from git in the worker's folder: files against the request's
-//! start revision (committed or not, plus untracked files), a fingerprint of the working tree
+//! delivery state (committed or not, plus untracked files), a fingerprint of the working tree
 //! (to tell whether files changed after a reported check) and one file's diff. Paths a worker
 //! names (check logs) are never opened here.
 //!
@@ -8,13 +8,17 @@
 //! and git gets a time limit. Non-git folders give no files and no fingerprint: unknown stays
 //! unknown.
 
-use crate::git::git;
+use crate::git::safe_git;
 use runwick_core::api::collab::{ChangedFile, FileDiff};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs::File;
 use std::io::Read;
 use std::path::{Component, Path};
+use std::process::Stdio;
 use std::time::Duration;
+use tokio::io::AsyncReadExt;
 
 /// Diffs larger than this are cut (the result view is not an editor).
 const DIFF_LIMIT: usize = 200 * 1024;
@@ -24,6 +28,8 @@ const COUNT_LIMIT: u64 = 1024 * 1024;
 const MAX_UNTRACKED: usize = 2000;
 /// Paths looked at for the fingerprint at most.
 const MAX_FINGERPRINT_PATHS: usize = 20_000;
+/// Bound git output too; a truncated delivery baseline must never look like a clean tree.
+const GIT_OUTPUT_LIMIT: u64 = 4 * 1024 * 1024;
 /// A git call that takes longer gives up (a lock, a huge repository): unknown, not wrong.
 #[cfg(not(test))]
 const GIT_TIMEOUT: Duration = Duration::from_secs(20);
@@ -32,7 +38,28 @@ const GIT_TIMEOUT: Duration = Duration::from_secs(20);
 const GIT_TIMEOUT: Duration = Duration::from_secs(120);
 
 async fn run_git(cwd: &Path, args: &[&str]) -> Result<String, String> {
-    match tokio::time::timeout(GIT_TIMEOUT, git(cwd, args)).await {
+    let read = async {
+        let mut cmd = safe_git(cwd, args).await?;
+        let mut child =
+            cmd.stdout(Stdio::piped()).stderr(Stdio::null()).kill_on_drop(true).spawn().map_err(|e| e.to_string())?;
+        let mut bytes = Vec::new();
+        child
+            .stdout
+            .take()
+            .ok_or("git 출력이 없어요")?
+            .take(GIT_OUTPUT_LIMIT + 1)
+            .read_to_end(&mut bytes)
+            .await
+            .map_err(|e| e.to_string())?;
+        if bytes.len() as u64 > GIT_OUTPUT_LIMIT {
+            return Err("git 출력이 너무 커서 변경 상태를 확인하지 못했어요".into());
+        }
+        if !child.wait().await.map_err(|e| e.to_string())?.success() {
+            return Err("git에서 변경 상태를 읽지 못했어요".into());
+        }
+        String::from_utf8(bytes).map(|s| s.trim_end().to_string()).map_err(|e| e.to_string())
+    };
+    match tokio::time::timeout(GIT_TIMEOUT, read).await {
         Ok(r) => r,
         Err(_) => Err("git이 응답하지 않았어요".into()),
     }
@@ -40,6 +67,118 @@ async fn run_git(cwd: &Path, args: &[&str]) -> Result<String, String> {
 
 pub async fn head(cwd: &Path) -> Option<String> {
     run_git(cwd, &["rev-parse", "HEAD"]).await.ok().filter(|s| !s.is_empty())
+}
+
+/// Host-only delivery baseline. None for a path means it could not be safely inspected.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TreeState {
+    paths: BTreeMap<String, Option<PathState>>,
+}
+
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+enum PathState {
+    Missing,
+    Present(String),
+}
+
+/// A bounded alternative to hashing file contents. ctime catches same-size rewrites even if
+/// mtime is restored; device/inode catch replacements. Ignore atime so reads do not count.
+/// Never follow links or read special files, including in intermediate path components.
+fn path_state(root: &Path, rel: &str) -> Option<PathState> {
+    use std::os::unix::fs::MetadataExt;
+    let mut full = root.to_path_buf();
+    let mut parts = Path::new(rel).components().peekable();
+    while let Some(part) = parts.next() {
+        let Component::Normal(name) = part else { return None };
+        full.push(name);
+        let m = match std::fs::symlink_metadata(&full) {
+            Ok(m) => m,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Some(PathState::Missing),
+            Err(_) => return None,
+        };
+        if parts.peek().is_some() {
+            if !m.is_dir() {
+                return None;
+            }
+            continue;
+        }
+        // A directory's timestamps do not describe changes inside a submodule.
+        if m.is_dir() {
+            return None;
+        }
+        let mut h = Sha256::new();
+        for n in [m.dev(), m.ino(), m.size(), u64::from(m.mode())] {
+            h.update(n.to_le_bytes());
+        }
+        for n in [m.mtime(), m.mtime_nsec(), m.ctime(), m.ctime_nsec()] {
+            h.update(n.to_le_bytes());
+        }
+        return Some(PathState::Present(format!("{:x}", h.finalize())));
+    }
+    None
+}
+
+/// Capture all dirty paths, including both sides of renames, immediately before delivery.
+/// Missing/oversized git output is unknown, never a partial baseline used for attribution.
+pub async fn tree_state(cwd: &Path, base: Option<&str>) -> Option<TreeState> {
+    let base = base?;
+    let tracked = run_git(cwd, &["diff", "--name-only", "--no-renames", "--relative", "-z", base, "--"]).await.ok()?;
+    let others = run_git(cwd, &["ls-files", "--others", "--exclude-standard", "-z"]).await.ok()?;
+    let mut names = BTreeSet::new();
+    for path in tracked.split('\0').chain(others.split('\0')).filter(|p| !p.is_empty()) {
+        names.insert(path.to_string());
+        if names.len() > MAX_FINGERPRINT_PATHS {
+            return None;
+        }
+    }
+    let root = cwd.to_path_buf();
+    let paths =
+        tokio::task::spawn_blocking(move || names.into_iter().map(|p| (p.clone(), path_state(&root, &p))).collect())
+            .await
+            .ok()?;
+    (head(cwd).await.as_deref() == Some(base)).then_some(TreeState { paths })
+}
+
+/// Filter HEAD-relative candidates against delivery, also noticing a dirty file restored to
+/// HEAD or a pre-existing untracked file deleted (neither appears in the current git diff).
+pub async fn files_since(cwd: &Path, base: Option<&str>, start: Option<TreeState>) -> Vec<ChangedFile> {
+    let Some(start) = start else { return Vec::new() };
+    let candidates = files(cwd, base).await;
+    if candidates.len() > MAX_FINGERPRINT_PATHS {
+        return Vec::new();
+    }
+    let root = cwd.to_path_buf();
+    tokio::task::spawn_blocking(move || {
+        let mut out = BTreeMap::new();
+        for f in candidates {
+            let Some(now) = path_state(&root, &f.path) else { continue };
+            let changed = match start.paths.get(&f.path) {
+                Some(Some(before)) => before != &now,
+                Some(None) => false,
+                None => true,
+            };
+            if changed {
+                out.insert(f.path.clone(), f);
+            }
+        }
+        for (path, before) in start.paths {
+            if out.contains_key(&path) {
+                continue;
+            }
+            let (Some(before), Some(now)) = (before, path_state(&root, &path)) else { continue };
+            if before != now {
+                let status = match (&before, &now) {
+                    (_, PathState::Missing) => "D",
+                    (PathState::Missing, _) => "A",
+                    _ => "M",
+                };
+                out.insert(path.clone(), ChangedFile { path, status: status.into(), added: None, removed: None });
+            }
+        }
+        out.into_values().collect()
+    })
+    .await
+    .unwrap_or_default()
 }
 
 async fn untracked(cwd: &Path) -> Vec<String> {
@@ -102,7 +241,7 @@ fn line_count(root: &Path, rel: &str) -> Option<u32> {
 pub async fn files(cwd: &Path, base: Option<&str>) -> Vec<ChangedFile> {
     let Some(base) = base else { return Vec::new() };
     let mut out: Vec<ChangedFile> = Vec::new();
-    if let Ok(status) = run_git(cwd, &["diff", "--name-status", "-M", "-z", base]).await {
+    if let Ok(status) = run_git(cwd, &["diff", "--name-status", "--relative", "-M", "-z", base]).await {
         let mut parts = status.split('\0').filter(|p| !p.is_empty());
         while let Some(code) = parts.next() {
             let letter: String = code.chars().take(1).collect();
@@ -117,7 +256,7 @@ pub async fn files(cwd: &Path, base: Option<&str>) -> Vec<ChangedFile> {
             }
         }
     }
-    if let Ok(numstat) = run_git(cwd, &["diff", "--numstat", "-M", base]).await {
+    if let Ok(numstat) = run_git(cwd, &["diff", "--numstat", "--relative", "-M", base]).await {
         for line in numstat.lines() {
             let mut cols = line.splitn(3, '\t');
             let (Some(a), Some(d), Some(p)) = (cols.next(), cols.next(), cols.next()) else {
@@ -256,6 +395,78 @@ mod tests {
         assert_eq!(rename_target("src/{a.rs => b.rs}"), "src/b.rs");
         assert_eq!(rename_target("a.txt => b.txt"), "b.txt");
         assert_eq!(rename_target("plain.rs"), "plain.rs");
+    }
+
+    #[test]
+    fn path_states_detect_rewrites_without_reading_file_contents_or_following_links() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path();
+        std::fs::write(p.join("same.txt"), "old").unwrap();
+        let old_time = std::fs::metadata(p.join("same.txt")).unwrap().modified().unwrap();
+        let before = path_state(p, "same.txt").unwrap();
+        std::thread::sleep(Duration::from_millis(2));
+        std::fs::write(p.join("same.txt"), "new").unwrap();
+        File::options()
+            .write(true)
+            .open(p.join("same.txt"))
+            .unwrap()
+            .set_times(std::fs::FileTimes::new().set_modified(old_time))
+            .unwrap();
+        assert_ne!(Some(before), path_state(p, "same.txt"), "ctime detects a same-size edit with restored mtime");
+        let stable = path_state(p, "same.txt");
+        std::fs::read(p.join("same.txt")).unwrap();
+        assert_eq!(stable, path_state(p, "same.txt"), "reading does not count as an edit");
+
+        File::create(p.join("huge")).unwrap().set_len(8 * 1024 * 1024 * 1024).unwrap();
+        assert!(matches!(path_state(p, "huge"), Some(PathState::Present(_))));
+        std::os::unix::fs::symlink("/dev/zero", p.join("zero")).unwrap();
+        assert!(matches!(path_state(p, "zero"), Some(PathState::Present(_))));
+        let outside = tempfile::tempdir().unwrap();
+        std::fs::write(outside.path().join("secret"), "not inspected").unwrap();
+        std::os::unix::fs::symlink(outside.path(), p.join("linked")).unwrap();
+        assert_eq!(path_state(p, "linked/secret"), None);
+        assert_eq!(path_state(p, "../secret"), None);
+        assert_eq!(path_state(p, "/dev/zero"), None);
+        assert_eq!(path_state(p, "missing/child"), Some(PathState::Missing));
+    }
+
+    #[tokio::test]
+    async fn delivery_state_handles_deletions_restores_renames_and_commits() {
+        let d = tempfile::tempdir().unwrap();
+        let p = d.path();
+        sh(p, &["init", "-q", "-b", "main"]);
+        sh(p, &["config", "user.email", "t@example.com"]);
+        sh(p, &["config", "user.name", "t"]);
+        for name in ["restore.txt", "deleted.txt", "rename.txt", "leave.txt"] {
+            std::fs::write(p.join(name), "original\n").unwrap();
+        }
+        sh(p, &["add", "."]);
+        sh(p, &["commit", "-qm", "init"]);
+        let base = head(p).await.unwrap();
+        std::fs::write(p.join("restore.txt"), "earlier edit\n").unwrap();
+        std::fs::write(p.join("leave.txt"), "earlier edit to commit\n").unwrap();
+        std::fs::remove_file(p.join("deleted.txt")).unwrap();
+        sh(p, &["mv", "rename.txt", "renamed.txt"]);
+        for name in ["remove.txt", "keep.txt"] {
+            std::fs::write(p.join(name), "untracked\n").unwrap();
+        }
+        let start = tree_state(p, Some(&base)).await.unwrap();
+        // The baseline survives serialization without storing any file contents.
+        let persisted = serde_json::to_string(&start).unwrap();
+        assert!(!persisted.contains("earlier edit"));
+        assert!(files_since(p, Some(&base), Some(start)).await.is_empty());
+        std::fs::remove_file(p.join("remove.txt")).unwrap();
+        std::fs::write(p.join("restore.txt"), "original\n").unwrap();
+        std::fs::write(p.join("deleted.txt"), "original\n").unwrap();
+        std::fs::write(p.join("new.txt"), "worker\n").unwrap();
+        sh(p, &["add", "."]);
+        sh(p, &["commit", "-qm", "worker"]);
+        let files = files_since(p, Some(&base), Some(serde_json::from_str(&persisted).unwrap())).await;
+        assert_eq!(
+            files.iter().map(|f| (f.path.as_str(), f.status.as_str())).collect::<Vec<_>>(),
+            [("deleted.txt", "A"), ("new.txt", "A"), ("remove.txt", "D"), ("restore.txt", "M")]
+        );
+        assert!(files_since(p, Some(&base), None).await.is_empty(), "legacy records have no known baseline");
     }
 
     #[tokio::test]

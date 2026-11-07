@@ -371,8 +371,16 @@ pub fn delivery_text(r: &Request, guidance_on: bool) -> String {
 }
 
 async fn deliver(host: &Arc<Host>, rt: &Runtime, r: &mut Request) {
-    if let Some(cwd) = worker_cwd(host, r.worker_id) {
+    let tree = if let Some(cwd) = worker_cwd(host, r.worker_id) {
         r.start_rev = changes::head(&cwd).await;
+        changes::tree_state(&cwd, r.start_rev.as_deref()).await
+    } else {
+        r.start_rev = None;
+        None
+    };
+    if let Err(e) = db::save_start(&host.store, r, tree.as_ref()) {
+        r.reason = Some(format!("전달 전 변경 상태를 저장하지 못했어요: {}", e.message));
+        return;
     }
     let text = delivery_text(r, guidance::load(&host.store).guidance);
     if !host.sessions.paste(r.worker_id, &text) {
@@ -470,7 +478,11 @@ pub fn recheck(host: &Arc<Host>, rt: &Runtime, r: &mut Request) {
 pub async fn finalize(host: &Arc<Host>, r: &mut Request) {
     let mut res = r.result.take().unwrap_or_default();
     if let Some(cwd) = worker_cwd(host, r.worker_id).filter(|c| c.is_dir()) {
-        res.files = changes::files(&cwd, r.start_rev.as_deref()).await;
+        let start = db::start_tree(&host.store, r.id).unwrap_or_else(|e| {
+            tracing::warn!("collab: cannot read delivery state: {}", e.message);
+            None
+        });
+        res.files = changes::files_since(&cwd, r.start_rev.as_deref(), start).await;
         res.head_rev = changes::head(&cwd).await;
         res.fingerprint = changes::fingerprint(&cwd).await;
     }

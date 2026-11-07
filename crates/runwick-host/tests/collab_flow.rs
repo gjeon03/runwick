@@ -27,6 +27,9 @@ n=0
 work() {
   n=$((n+1)); i=0
   while [ $i -lt 4 ]; do printf 'working on %s (%s)\r\n' "$1" "$i"; sleep 0.5; i=$((i+1)); done
+  case "$1" in
+    *edit-existing*) printf 'worker edit\n' > a.txt; printf 'worker edit\n' > codex-hello.txt;;
+  esac
   printf '%s\n' "$1" > "got-$n.txt"
   printf 'ANSWER: %s\r\n' "$1"
 }
@@ -581,13 +584,16 @@ async fn a_new_host_holds_queued_work_and_fails_runs_it_lost() {
     let dir = tempfile::tempdir().unwrap().keep();
     let db = dir.join("runwick.db");
     let t1 = T::with_store(Store::open(&db).unwrap());
-    let (ws, _repo) = t1.repo();
+    let (ws, repo) = t1.repo();
+    std::fs::write(repo.join("codex-hello.txt"), "earlier task\n").unwrap();
+    std::fs::write(repo.join("a.txt"), "earlier tracked edit\n").unwrap();
     let p1 = t1.parent(ws).await;
     let p2 = t1.parent(ws).await;
     t1.call::<CollabSettingsSet>(CollabSettings { auto_limit: 1, ..Default::default() }).await.unwrap();
     // A worker that never answers keeps the only slot; another parent's work queues behind it.
     let lost = t1.call_as::<CollabDelegate>(Some(p1), delegate(p1, Tool::Codex, "never answered")).await.unwrap();
     t1.until(lost.request.id, "delivered", |r| r.status.holds_slot()).await;
+    std::fs::write(repo.join("after-delivery.txt"), "worker change\n").unwrap();
     let queued = t1.call_as::<CollabDelegate>(Some(p2), delegate(p2, Tool::Claude, "waits")).await.unwrap();
     let q = t1
         .until(queued.request.id, "held back", |r| r.reason.as_deref().unwrap_or("").contains("자동 배정 한도"))
@@ -598,6 +604,11 @@ async fn a_new_host_holds_queued_work_and_fails_runs_it_lost() {
     let t2 = T::with_store(Store::open(&db).unwrap());
     let failed = t2.until(lost.request.id, "lost run failed", |r| r.status == ReqStatus::Failed).await;
     assert!(failed.reason.as_deref().unwrap_or("").contains("다시 시작"), "{:?}", failed.reason);
+    assert_eq!(
+        failed.result.as_ref().unwrap().files.iter().map(|f| f.path.as_str()).collect::<Vec<_>>(),
+        ["after-delivery.txt"],
+        "recovery must use the delivery baseline stored before the restart"
+    );
     let ov = t2.call::<CollabOverview>(()).await.unwrap();
     assert!(ov.held_parents.contains(&p2), "queued work waits for the person after a restart");
     let still = t2.call::<CollabGet>(ById { id: queued.request.id }).await.unwrap().request;
@@ -641,6 +652,58 @@ async fn retries_are_new_attempts_that_keep_the_previous_one() {
     let first = t.call::<CollabGet>(ById { id: d.request.id }).await.unwrap().request;
     assert_eq!(first.status, ReqStatus::Done, "the previous attempt is kept as it was");
     assert!(first.result.is_some());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn pre_existing_changes_left_alone_are_not_attributed_even_after_restart() {
+    let db_dir = tempfile::tempdir().unwrap();
+    let db = db_dir.path().join("runwick.db");
+    let t = T::with_store(Store::open(&db).unwrap());
+    let (ws, dir) = t.repo();
+    let parent = t.parent(ws).await;
+    t.call::<CollabHold>(Hold { parent_id: parent, held: true }).await.unwrap();
+    let d = t.call::<CollabDelegate>(delegate(parent, Tool::Claude, "write only the new file")).await.unwrap();
+    // These changes happen after queuing but before delivery.
+    std::fs::write(dir.join("codex-hello.txt"), "earlier task\n").unwrap();
+    std::fs::write(dir.join("a.txt"), "earlier tracked edit\n").unwrap();
+    t.call::<CollabHold>(Hold { parent_id: parent, held: false }).await.unwrap();
+    let done = t.until(d.request.id, "done", |r| r.status == ReqStatus::Done).await;
+    let assert_files = |r: &Request| {
+        let files = &r.result.as_ref().unwrap().files;
+        assert_eq!(files.iter().map(|f| f.path.as_str()).collect::<Vec<_>>(), ["got-1.txt"], "{files:?}");
+    };
+    assert_files(&done);
+
+    // A late report after reopening the database recollects using the persisted delivery state.
+    runwick_host::sessions::stop_all(&t.host).await;
+    let reopened = T::with_store(Store::open(&db).unwrap());
+    let refreshed = reopened
+        .call::<CollabReport>(Report {
+            worker_id: d.worker.session.id,
+            summary: "done".into(),
+            files: vec![],
+            checks: vec![],
+            not_done: vec![],
+        })
+        .await
+        .unwrap();
+    assert_files(&refreshed);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn pre_existing_changes_edited_again_are_attributed() {
+    let t = T::new();
+    let (ws, dir) = t.repo();
+    std::fs::write(dir.join("codex-hello.txt"), "earlier task\n").unwrap();
+    std::fs::write(dir.join("a.txt"), "earlier tracked edit\n").unwrap();
+    let parent = t.parent(ws).await;
+    let d = t.call::<CollabDelegate>(delegate(parent, Tool::Claude, "edit-existing files")).await.unwrap();
+    let done = t.until(d.request.id, "done", |r| r.status == ReqStatus::Done).await;
+    let files = &done.result.as_ref().unwrap().files;
+    assert_eq!(files.len(), 3, "{files:?}");
+    for (path, status) in [("a.txt", "M"), ("codex-hello.txt", "?"), ("got-1.txt", "?")] {
+        assert!(files.iter().any(|f| f.path == path && f.status == status), "{files:?}");
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]

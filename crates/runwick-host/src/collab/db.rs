@@ -8,6 +8,30 @@ use runwick_core::rpc::RpcError;
 use rusqlite::{OptionalExtension, Row, params};
 use uuid::Uuid;
 
+pub const TREE_MIGRATION: &str = "ALTER TABLE collab_requests ADD COLUMN start_tree TEXT;";
+
+/// Persist revision and working-tree state together before the task can reach the worker.
+pub fn save_start(store: &Store, r: &Request, tree: Option<&super::changes::TreeState>) -> Result<(), RpcError> {
+    let tree = tree.map(serde_json::to_string).transpose().map_err(RpcError::internal)?;
+    store
+        .with(|c| {
+            c.execute(
+                "UPDATE collab_requests SET start_rev = ?2, start_tree = ?3 WHERE id = ?1",
+                params![r.id, r.start_rev, tree],
+            )
+        })
+        .map_err(db_err)?;
+    Ok(())
+}
+
+/// Legacy requests have no baseline; do not guess that their worktree was clean.
+pub fn start_tree(store: &Store, id: RequestId) -> Result<Option<super::changes::TreeState>, RpcError> {
+    let json: Option<String> = store
+        .with(|c| c.query_row("SELECT start_tree FROM collab_requests WHERE id = ?1", [id], |r| r.get(0)))
+        .map_err(db_err)?;
+    json.map(|j| serde_json::from_str(&j)).transpose().map_err(RpcError::internal)
+}
+
 pub const MIGRATION: &str = "CREATE TABLE collab_requests (
         id BLOB PRIMARY KEY,
         parent_id BLOB,
