@@ -23,7 +23,10 @@ pub struct Candidate {
     pub modified: SystemTime,
 }
 
-/// Rollout files modified since `since` whose session started in `cwd`, oldest first.
+/// Rollout files created since `since` whose session started in `cwd`, oldest first.
+/// Both the standalone CLI (`--no-daemon`) and older app-server runs can write these records.
+/// Do not require an app-server `originator` or source: originator is not a thread identity.
+/// Continue excluding non-interactive `exec` records.
 pub fn candidates(root: &Path, cwd: &Path, since: SystemTime) -> Vec<Candidate> {
     let mut found = Vec::new();
     let today = Local::now();
@@ -119,5 +122,29 @@ mod tests {
         // Files from before the run are not considered.
         let later = SystemTime::now() + Duration::from_secs(60);
         assert!(candidates(root.path(), work.path(), later).is_empty());
+    }
+
+    #[test]
+    fn links_cli_and_app_server_rollouts_without_an_originator_filter() {
+        let root = tempfile::tempdir().unwrap();
+        let work = tempfile::tempdir().unwrap();
+        let since = SystemTime::now() - Duration::from_secs(1);
+        let now = Local::now();
+        let dir = root.path().join(format!("{:04}/{:02}/{:02}", now.year(), now.month(), now.day()));
+        std::fs::create_dir_all(&dir).unwrap();
+        for (id, source, originator) in [
+            ("standalone", Some("cli"), Some("codex_cli_rs")),
+            ("server", Some("vscode"), Some("codex_app_server_daemon")),
+            ("older", None, None),
+            ("exec", Some("exec"), Some("codex_exec")),
+        ] {
+            let meta = serde_json::json!({"type": "session_meta", "payload": {
+                "id": id, "cwd": work.path(), "source": source, "originator": originator
+            }});
+            std::fs::write(dir.join(format!("rollout-{id}.jsonl")), format!("{meta}\n")).unwrap();
+        }
+        let mut ids: Vec<_> = candidates(root.path(), work.path(), since).into_iter().map(|c| c.id).collect();
+        ids.sort();
+        assert_eq!(ids, ["older", "server", "standalone"]);
     }
 }

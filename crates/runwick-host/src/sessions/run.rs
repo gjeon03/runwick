@@ -51,7 +51,7 @@ pub fn start(host: &Arc<Host>, rt: &Arc<Rt>, launch: Launch<'_>, overlay: &EnvOv
     let vars = env::session_env(&login, s.id, &s.cwd, overlay);
     let path = vars.iter().find(|(k, _)| k == "PATH").map(|(_, v)| v.as_str()).unwrap_or("");
     let guidance = host.sessions.guidance(host, s);
-    let (program, args) = command(s, &launch, &login.shell(), path, guidance.as_deref())?;
+    let (program, args) = command(s, &launch, &login.shell(), path, guidance.as_deref(), &vars)?;
     let mut spec = pty::Spec { program, args, env: vars, cwd: cwd.clone() };
 
     let mut st = rt.lock();
@@ -116,16 +116,17 @@ fn spawn_thread(name: &str, f: impl FnOnce() + Send + 'static) {
 }
 
 /// Program and arguments for a tool; CLIs are resolved on the run's `PATH`. `guidance` is
-/// given to Claude Code as `--append-system-prompt` (checked with 2.1.319). Codex gets no flag:
-/// any `-c` override makes codex-cli 0.164.0 run without its shared background server, so a
-/// delegated Codex worker receives the guidance in front of its first instruction instead
-/// (collab engine) and Codex sessions a person starts get none.
+/// given to Claude Code as `--append-system-prompt` (2.1.319) and Codex as
+/// `developer_instructions` (0.167.0). Codex runs without the shared daemon so its tools keep
+/// this run's process ancestry and lifetime. Only public Runwick variables enter its config;
+/// the session token must stay out of argv, and known peers are identified by ancestry.
 fn command(
     s: &Session,
     launch: &Launch<'_>,
     shell: &str,
     path: &str,
     guidance: Option<&str>,
+    vars: &[(String, String)],
 ) -> Result<(PathBuf, Vec<OsString>), StartError> {
     let mut args: Vec<OsString> = Vec::new();
     let program = match s.tool {
@@ -142,6 +143,18 @@ fn command(
                 ));
             };
             let guidance = guidance.filter(|g| !g.trim().is_empty());
+            if s.tool == Tool::Codex {
+                // Global options precede `resume <id>` as well as a fresh prompt.
+                args.push("--no-daemon".into());
+                for (key, value) in vars {
+                    if matches!(key.as_str(), "RUNWICK_HOME" | "RUNWICK_SOCKET" | "RUNWICK_SESSION_ID") {
+                        codex_config(&mut args, &format!("shell_environment_policy.set.{key}"), value);
+                    }
+                }
+                if let Some(g) = guidance {
+                    codex_config(&mut args, "developer_instructions", g);
+                }
+            }
             let conv = s.provider_conv_id.as_deref();
             match (s.tool, launch.resume, conv) {
                 (_, true, None) => {
@@ -177,6 +190,13 @@ fn command(
         return Err((StartErrorKind::NotInstalled, format!("셸을 찾지 못했어요: {}", program.display())));
     }
     Ok((program, args))
+}
+
+fn codex_config(args: &mut Vec<OsString>, key: &str, value: &str) {
+    // JSON escaping plus DEL escaping produces a TOML basic string. Pass one argv entry,
+    // never shell text, so quotes and newlines cannot add options or config keys.
+    let value = serde_json::to_string(value).expect("a string serializes").replace('\u{7f}', "\\u007f");
+    args.extend(["-c".into(), format!("{key}={value}").into()]);
 }
 
 fn read_loop(host: &Arc<Host>, rt: &Arc<Rt>, seq: u64, mut reader: File, done: mpsc::Sender<()>) {
@@ -354,7 +374,7 @@ mod tests {
     fn missing_cli_is_reported_as_not_installed() {
         let s = session(Tool::Claude, Some("abc"));
         let launch = Launch { session: &s, resume: false, initial_prompt: None };
-        let err = command(&s, &launch, "/bin/sh", "/nonexistent", None).unwrap_err();
+        let err = command(&s, &launch, "/bin/sh", "/nonexistent", None, &[]).unwrap_err();
         assert_eq!(err.0, StartErrorKind::NotInstalled);
         assert!(err.1.contains("claude"), "{}", err.1);
     }
@@ -367,28 +387,31 @@ mod tests {
         let path = d.path().to_string_lossy().into_owned();
         let c = session(Tool::Claude, Some("uuid-1"));
         let new = Launch { session: &c, resume: false, initial_prompt: Some("고쳐줘") };
-        assert_eq!(args(command(&c, &new, "/bin/sh", &path, None)), ["--session-id", "uuid-1", "--", "고쳐줘"]);
+        assert_eq!(args(command(&c, &new, "/bin/sh", &path, None, &[])), ["--session-id", "uuid-1", "--", "고쳐줘"]);
         // A flag-shaped prompt stays a positional argument after the end-of-options marker.
         let flaggy = Launch { session: &c, resume: false, initial_prompt: Some("--dangerous-flag do it") };
         assert_eq!(
-            args(command(&c, &flaggy, "/bin/sh", &path, None)),
+            args(command(&c, &flaggy, "/bin/sh", &path, None, &[])),
             ["--session-id", "uuid-1", "--", "--dangerous-flag do it"]
         );
         let resume = Launch { session: &c, resume: true, initial_prompt: Some("ignored") };
-        assert_eq!(args(command(&c, &resume, "/bin/sh", &path, None)), ["--resume", "uuid-1"]);
+        assert_eq!(args(command(&c, &resume, "/bin/sh", &path, None, &[])), ["--resume", "uuid-1"]);
         let x = session(Tool::Codex, None);
         let new = Launch { session: &x, resume: false, initial_prompt: None };
-        assert!(args(command(&x, &new, "/bin/sh", &path, None)).is_empty());
+        assert_eq!(args(command(&x, &new, "/bin/sh", &path, None, &[])), ["--no-daemon"]);
         let flaggy = Launch { session: &x, resume: false, initial_prompt: Some("-c sandbox=none 정리") };
-        assert_eq!(args(command(&x, &flaggy, "/bin/sh", &path, None)), ["--", "-c sandbox=none 정리"]);
+        assert_eq!(
+            args(command(&x, &flaggy, "/bin/sh", &path, None, &[])),
+            ["--no-daemon", "--", "-c sandbox=none 정리"]
+        );
         let resume = Launch { session: &x, resume: true, initial_prompt: None };
-        assert_eq!(command(&x, &resume, "/bin/sh", &path, None).unwrap_err().0, StartErrorKind::NotResumable);
+        assert_eq!(command(&x, &resume, "/bin/sh", &path, None, &[]).unwrap_err().0, StartErrorKind::NotResumable);
         let x = session(Tool::Codex, Some("thread-9"));
         let resume = Launch { session: &x, resume: true, initial_prompt: None };
-        assert_eq!(args(command(&x, &resume, "/bin/sh", &path, None)), ["resume", "thread-9"]);
+        assert_eq!(args(command(&x, &resume, "/bin/sh", &path, None, &[])), ["--no-daemon", "resume", "thread-9"]);
         let sh = session(Tool::Shell, None);
         let new = Launch { session: &sh, resume: false, initial_prompt: None };
-        assert_eq!(args(command(&sh, &new, "/bin/sh", "", None)), ["-l"]);
+        assert_eq!(args(command(&sh, &new, "/bin/sh", "", None, &[])), ["-l"]);
     }
 
     #[test]
@@ -401,23 +424,72 @@ mod tests {
         let c = session(Tool::Claude, Some("uuid-1"));
         let new = Launch { session: &c, resume: false, initial_prompt: Some("고쳐줘") };
         assert_eq!(
-            args(command(&c, &new, "/bin/sh", &path, g)),
+            args(command(&c, &new, "/bin/sh", &path, g, &[])),
             ["--session-id", "uuid-1", "--append-system-prompt", "Use \"runwick\".\nLine 2", "--", "고쳐줘"]
         );
         let resume = Launch { session: &c, resume: true, initial_prompt: None };
         assert_eq!(
-            args(command(&c, &resume, "/bin/sh", &path, g)),
+            args(command(&c, &resume, "/bin/sh", &path, g, &[])),
             ["--resume", "uuid-1", "--append-system-prompt", "Use \"runwick\".\nLine 2"]
         );
         let x = session(Tool::Codex, Some("thread-9"));
         let resume = Launch { session: &x, resume: true, initial_prompt: None };
-        // Codex never gets a flag: `-c` would turn off its shared background server.
-        assert_eq!(args(command(&x, &resume, "/bin/sh", &path, g)), ["resume", "thread-9"]);
+        assert_eq!(
+            args(command(&x, &resume, "/bin/sh", &path, g, &[])),
+            ["--no-daemon", "-c", "developer_instructions=\"Use \\\"runwick\\\".\\nLine 2\"", "resume", "thread-9"]
+        );
         let x = session(Tool::Codex, None);
         let new = Launch { session: &x, resume: false, initial_prompt: Some("검토") };
-        assert_eq!(args(command(&x, &new, "/bin/sh", &path, g)), ["--", "검토"]);
+        assert_eq!(
+            args(command(&x, &new, "/bin/sh", &path, g, &[])),
+            ["--no-daemon", "-c", "developer_instructions=\"Use \\\"runwick\\\".\\nLine 2\"", "--", "검토"]
+        );
         let sh = session(Tool::Shell, None);
         let new = Launch { session: &sh, resume: false, initial_prompt: None };
-        assert_eq!(args(command(&sh, &new, "/bin/sh", "", g)), ["-l"]);
+        assert_eq!(args(command(&sh, &new, "/bin/sh", "", g, &[])), ["-l"]);
+    }
+
+    #[test]
+    fn codex_sets_only_public_routing_variables_even_without_guidance() {
+        let d = tempfile::tempdir().unwrap();
+        fake_bin(d.path(), "codex");
+        let path = d.path().to_string_lossy().into_owned();
+        let home = "/tmp/한글 \"home\"\\path\nnext\u{7f}";
+        let vars: Vec<(String, String)> = [
+            ("RUNWICK_HOME", home),
+            ("RUNWICK_SOCKET", "/tmp/runwick.sock"),
+            ("RUNWICK_SESSION_ID", "session-id"),
+            ("RUNWICK_SESSION_TOKEN", "must-not-appear"),
+            ("UNRELATED_KEY", "also-private"),
+            ("PATH", "/preserve/the/users/path"),
+        ]
+        .into_iter()
+        .map(|(k, v)| (k.into(), v.into()))
+        .collect();
+        for resume in [false, true] {
+            let s = session(Tool::Codex, resume.then_some("thread-9"));
+            let launch = Launch { session: &s, resume, initial_prompt: Some("--flag-shaped task") };
+            for guidance in [None, Some(""), Some(" \n"), Some("Delegate when useful")] {
+                let actual = args(command(&s, &launch, "/bin/sh", &path, guidance, &vars));
+                assert_eq!(actual[0], "--no-daemon");
+                let configs: Vec<_> = actual.windows(2).filter(|a| a[0] == "-c").map(|a| a[1].as_str()).collect();
+                let enabled = guidance.is_some_and(|g| !g.trim().is_empty());
+                assert_eq!(configs.len(), if enabled { 4 } else { 3 });
+                for (key, expected) in vars.iter().take(3) {
+                    let prefix = format!("shell_environment_policy.set.{key}=");
+                    let value = configs.iter().find_map(|c| c.strip_prefix(&prefix)).unwrap();
+                    assert!(!value.contains('\u{7f}'), "TOML requires DEL to be escaped");
+                    assert_eq!(serde_json::from_str::<String>(value).unwrap(), *expected);
+                }
+                assert_eq!(configs.iter().any(|c| c.starts_with("developer_instructions=")), enabled);
+                for forbidden in
+                    ["TOKEN", "must-not-appear", "UNRELATED_KEY", "also-private", "PATH", "sandbox", "approval_policy"]
+                {
+                    assert!(!actual.iter().any(|a| a.contains(forbidden)), "{forbidden}: {actual:?}");
+                }
+                let tail = if resume { ["resume", "thread-9"] } else { ["--", "--flag-shaped task"] };
+                assert_eq!(&actual[actual.len() - 2..], tail);
+            }
+        }
     }
 }

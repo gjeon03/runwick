@@ -348,16 +348,24 @@ pub fn limit_reason(limit: usize) -> String {
     format!("자동 배정 한도 {limit}개가 모두 쓰이고 있어요 · 진행 중인 일이 끝나면 전달해요")
 }
 
-/// Text typed into the worker: the task, plus where to report for work another session gave a
-/// Claude worker while guidance is on. Codex gets the task only: its default sandbox cannot reach
-/// the host's socket, so `runwick report` would fail there; its answer is read from its record.
+/// Text typed into the worker: the task and, while guidance is on, how to hand back delegated
+/// work. Claude reports with `runwick report`. Codex answers in its final message, which is read
+/// from its record: reaching the host's socket from its sandbox needs the person's approval, and
+/// asking for it at the end of every task would stop each delegation at an approval screen.
 pub fn delivery_text(r: &Request, guidance_on: bool) -> String {
     let mut text = r.prompt.trim().to_string();
-    if guidance_on && r.parent_id.is_some() && r.tool == Tool::Claude {
-        text.push_str(&format!(
-            "\n\n(Runwick {} · 다른 세션이 맡긴 일이에요. 끝나면 `runwick report --summary \"...\"`로 결과를 남겨 주세요.)",
-            r.receipt()
-        ));
+    if guidance_on && r.parent_id.is_some() {
+        match r.tool {
+            Tool::Claude => text.push_str(&format!(
+                "\n\n(Runwick {} · 다른 세션이 맡긴 일이에요. 끝나면 `runwick report --summary \"...\"`로 결과를 남겨 주세요.)",
+                r.receipt()
+            )),
+            Tool::Codex => text.push_str(&format!(
+                "\n\n(Runwick {} · 다른 세션이 맡긴 일이에요. 끝나면 한 일, 바꾼 파일, 확인한 것, 남은 일을 최종 답변에 정리해 주세요. Runwick이 대화 기록에서 읽어 가요.)",
+                r.receipt()
+            )),
+            Tool::Shell => {}
+        }
     }
     text
 }
@@ -530,7 +538,12 @@ mod tests {
             notes: vec![],
         };
         let t = delivery_text(&r, true);
-        assert_eq!(t, "변경을 검토해 줘", "Codex gets the task only (its sandbox cannot reach runwick)");
+        assert!(t.starts_with("변경을 검토해 줘\n\n(Runwick r-") && !t.contains("report"), "{t}");
+        assert!(t.contains("최종 답변") && t.contains("대화 기록"), "{t}");
+        assert_eq!(delivery_text(&r, false), "변경을 검토해 줘");
+        let parent = r.parent_id.take();
+        assert_eq!(delivery_text(&r, true), "변경을 검토해 줘");
+        r.parent_id = parent;
         r.tool = Tool::Claude;
         let t = delivery_text(&r, true);
         assert!(t.starts_with("변경을 검토해 줘\n\n(Runwick r-") && t.contains("runwick report"), "{t}");

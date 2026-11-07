@@ -151,7 +151,7 @@ Herdr처럼 각 기기가 실행을 유지하는 기반과, 기기 등록을 간
 | UI·터미널 라이브러리 | 구현에서 결정: egui 0.37 + alacritty_terminal 0.26 | 장시간 사용 시 메모리·CPU 측정 |
 | 기록 수집 방식 | 구현: Claude Code·Codex 대화 파일을 증분으로 읽고 SQLite FTS5(trigram)로 검색 | CLI 기록 형식이 바뀔 때 대응 |
 | 파일·문서 편집 | 구현: 저장 직전 디스크 확인, 3열 비교, 저장 안 한 편집 보존 | — |
-| 협업 모델 | 구현: `runwick delegate/wait/result/send/report`. 호출자는 세션 토큰으로 확인하고, 작업자는 자기 작업자에게만 지시한다. 사람 확인이 필요한 화면에서는 전달을 보류한다 | 실사용 검토 |
+| 협업 모델 | 구현: `runwick delegate/wait/send/workers/result/status/report`. 알려진 호출 프로세스는 실행 계보로 판별하며, 프로세스를 알 수 없을 때만 세션 토큰을 사용한다. Codex는 새 실행·재개 모두 `--no-daemon`으로 시작하고, 실행 시 안내와 공개 환경값을 전달한다. Codex 부모의 로컬 소켓 접근은 Codex 권한 승격을 사람이 승인한다. Codex 작업자는 최종 답변으로 결과를 남기고 기록에서 읽는다. 사람 확인 화면에서는 전달을 보류한다 | 2026-11-07 실제 Claude Code 2.1.319·codex-cli 0.167.0으로 Claude→Codex, Codex→Claude, Codex→Codex 위임과 종료 시 하위 프로세스 정리를 확인. 재개 후 위임은 미검증 |
 | 자동 배정 한도 | 구현 기본값 3개, 설정에서 1–16 | 실사용 검토 |
 | 실행 지속성 | 구현: 별도 호스트 프로세스, 창 닫기 후 메뉴 막대 | — |
 | SQLite와 Markdown | 구현: SQLite(WAL) + 위키 Markdown 파일 | — |

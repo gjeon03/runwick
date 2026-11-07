@@ -95,6 +95,32 @@ worktree는 Git 작업 디렉터리의 분리다. 의존성·환경변수·개�
 4. 실제 한글 입력과 색상·복사·붙여넣기가 기존 CLI 경험을 유지하는가.
 5. 개인화와 업데이트가 충돌하지 않으며 백그라운드 비용을 확인할 수 있는가.
 
+## 2026-11-07 Codex 실행과 협업 연결 재조사
+
+로컬 소스와 설치된 `codex-cli 0.167.0`만 조사했다. 실제 모델 세션은 실행하지 않았고, 설정·프롬프트 검증은 임시 `CODEX_HOME`에서 수행했다.
+
+| 대상·revision | 확인한 내용과 소스 위치 |
+| --- | --- |
+| App `adf94cb2c9b6f1cadbb31c51f84114b1aa332f0a` | `defaults/programs.json:6`은 `codex --no-daemon`. `defaults/AGENTS.md:774`는 공유 daemon 때문에 후속 세션이 첫 터미널의 신원·수명에 묶일 수 있다고 설명한다 |
+| Core `9ce385d9c8abb041dd4437476d770365b3fb5282` | `crates/herdr-core/src/SKILL.md:270`도 Codex에 `--no-daemon`을 요구한다. `api/run.rs:218`은 `HC_TERMINAL_ID`·`HC_TERMINAL_SOCKET`을 넣고, `client.rs:265`는 연결할 Core의 소켓과 환경의 주소를 비교한다. `paths.rs:28`의 소켓 선택은 `HC_SOCKET` → 설정 → 기본 경로 순서다(세 파일 모두 `crates/herdr-core/src/` 아래) |
+| Core 같은 revision | `crates/herdr-core/src/SKILL.md:16`은 `hc run/send/wait`로 위임하고 환경의 터미널 주소로 보고하도록 안내한다. CLI 설치 경로는 같은 파일 `:235`의 `~/.local/bin`. `docs/security.md:3,20`은 Core 자체가 sandbox가 아니며, 소켓에 연결한 같은 사용자 프로그램에 별도 클라이언트 권한 검사를 하지 않는다고 명시한다. Runwick의 호출자 보안 모델과 동일하지 않다 |
+| TUI `ee5bfb5041bb3e4a49d591c72308aae3c81ecdde` | `src/detect/mod.rs:153`은 실행 파일 `codex`, `src/agent_resume.rs:212`는 `codex resume <id>`를 만든다. `src/pane.rs:202`와 `src/integration/env.rs:29`는 pane ID·소켓·실행 파일 경로를 환경으로 전달한다. `skills/herdr/SKILL.md:13,74,145`는 환경 확인·현재 pane 선택·승인 화면에서 사용자 개입을 안내한다 |
+| TUI 같은 revision | `src/integration/targets.rs:196`은 SessionStart hook을 설치하고, `src/integration/config_edit.rs:801`은 hooks 기능을 켠다. `src/integration/assets/codex/herdr-agent-state.sh:20,62,86`은 환경·스레드 ID를 확인하고 Python AF_UNIX로 세션 정보를 보낸다. 이 hook은 sandbox 안의 임의 도구 명령에 소켓 접근을 허용한다는 근거가 아니다 |
+
+조사한 실행·환경·hook 경로에서는 Codex의 환경 필터나 도구 sandbox를 위한 추가 예외 설정을 찾지 못했다. App/Core의 `--no-daemon` 결정과 TUI의 별도 hook 방식을 구분해야 한다.
+
+설치 바이너리: `/opt/homebrew/Caskroom/codex/0.167.0/bin/codex`, SHA-256 `030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc`.
+
+| 확인 명령·출력 | Runwick 적용 |
+| --- | --- |
+| `codex --help`, `codex resume --help`: `--no-daemon` 설명은 “Run without the shared background server”. `codex --no-daemon -c 'developer_instructions="probe"' resume <UUID> --help` 종료 코드 0 | 전역 옵션을 `resume <id>` 앞에 둔다 |
+| 임시 폴더의 `codex -c 'developer_instructions="RUNWICK_DEVELOPER_PROBE"' debug prompt-input probe`: 해당 문자열이 `role: developer`에 나타남 | 협업 안내를 켠 새 세션·재개에 주입한다. 이는 해당 키의 기존 값을 실행 동안 덮어쓰는 override다 |
+| `codex app-server --strict-config --print-startup-config`에 `shell_environment_policy.inherit="core"` 및 `set.RUNWICK_HOME`, `set.RUNWICK_SOCKET`, `set.RUNWICK_SESSION_ID` 문자열을 전달: 종료 코드 0. 정수 값은 `expected a string`으로 거절 | 공개 값만 전달하고 토큰·PATH는 override하지 않는다. CLI 절대 경로를 안내한다. 실제 도구 셸에서 필터 이후 값 전달은 후속 검증 대상이다 |
+| `codex sandbox --help`: `--allow-unix-socket <path>` 지원. 일반 `codex --allow-unix-socket ... --help`는 거절. strict config에서 `network.allow_unix_sockets`와 `sandbox_workspace_write.allow_unix_sockets`도 거절 | 일반 세션에 이 옵션을 그대로 붙일 수 없다 |
+| strict config에서 `permissions.<name>.network.unix_sockets={"/tmp/runwick-probe.sock"="allow"}`와 `default_permissions=<name>`은 통과. 기본 프로필 선택이 없으면 거절; `extends="workspace-write"`는 undefined profile로 거절. 바이너리 `strings`에도 Unix 소켓용 Seatbelt bind/outbound 규칙이 있음 | 단일 소켓 기능은 있으나 사용자의 기존 권한 프로필을 보존하는 일반 적용 방법은 미확인이다. 프로필을 교체하지 않고 Codex의 권한 승격·화면 승인을 안내한다. 중첩 Seatbelt 실행은 이 개발 sandbox에서 `Operation not permitted`로 차단됐다 |
+
+Runwick 기준 revision `d188712395f0c5d67a5046ff7b89d90c9b3b431b`의 `crates/runwick-host/src/collab/identity.rs:37,68`은 알려진 peer의 프로세스 계보를 우선한다. 이 규칙과 window 전용 경계는 변경하지 않는다. `crates/runwick/src/agent.rs:219`가 세션 ID도 요구하므로 공개 환경값에 포함했다. `crates/runwick-host/src/sessions/codex.rs:47`은 `originator`를 검사하지 않고 `source="exec"`만 제외하므로 CLI·app-server 변형을 합성 테스트로 확인했다. 실제 `--no-daemon` rollout 연결·재개, 부모/작업자 왕복, MCP 자식 종료는 coordinator가 확인해야 한다.
+
 ## 소스 근거
 
 - [H1] [App AGENTS 문서](https://github.com/herdrdev/herdr-app/blob/e77f112ac2ea136b84fe510efa42d41163bfd776/defaults/AGENTS.md)

@@ -11,9 +11,10 @@
 //! 3. after the grace period, SIGKILL the run's session and its family;
 //! 4. look again: whatever is still alive is reported by name, never as stopped.
 //!
-//! Only the run's own family is touched. A process that was already handed to launchd before
-//! the stop (a daemon that forked twice, or a shared server such as Codex's `app-server`) is
-//! no longer a descendant and is never killed; when it still carries the run's
+//! Codex is launched with `--no-daemon`, keeping its tool commands and MCP servers in this
+//! family. Only the run's own family is touched. A process already handed to launchd before
+//! the stop (a daemon that forked twice, or an older run's shared server) is no longer a
+//! descendant and is never killed; when it still carries the run's
 //! `RUNWICK_SESSION_ID` it is reported as detached, so a stop never claims everything ended.
 
 use super::pty::{self, Member, Proc};
