@@ -43,8 +43,17 @@ fn shell_command(path: &Path) -> String {
     format!("'{}'", text.replace('\'', "'\\''"))
 }
 
-fn approval_prefix(path: &Path) -> String {
-    serde_json::json!([path.to_string_lossy()]).to_string()
+/// Subcommands a standing approval may cover: they only read or wait. `delegate` and `send`
+/// start or instruct workers, so each one keeps its own approval, and the bare executable is
+/// never proposed (it would cover every current and future subcommand outside the sandbox).
+const STANDING_SUBCOMMANDS: [&str; 4] = ["wait", "result", "workers", "status"];
+
+fn approval_prefix(path: &Path, subcommand: &str) -> String {
+    serde_json::json!([path.to_string_lossy(), subcommand]).to_string()
+}
+
+fn standing_prefixes(path: &Path) -> String {
+    STANDING_SUBCOMMANDS.iter().map(|sub| approval_prefix(path, sub)).collect::<Vec<_>>().join(", ")
 }
 
 fn launch_guidance(tool: Tool, enabled: bool) -> Option<String> {
@@ -58,13 +67,15 @@ fn launch_guidance(tool: Tool, enabled: bool) -> Option<String> {
         Tool::Codex => Some(format!(
             "{}\nRunwick commands connect to a local Unix socket. For these commands, request escalated \
 permissions through Codex's normal approval flow (sandbox_permissions=\"require_escalated\") and explain \
-that the command contacts the local Runwick host. In the same shell tool call, propose prefix_rule={} \
-so the person can choose to allow future Runwick commands once. This is an argv array containing only \
-the executable's absolute path, without shell quoting, subcommands or arguments. Invoke the Runwick \
+that the command contacts the local Runwick host. For a command that only reads or waits, propose in \
+the same shell tool call the matching prefix_rule, one of: {}, so the person can choose to stop being \
+asked for that subcommand. Each is an argv array of the executable's absolute path and the subcommand, \
+without shell quoting or further arguments. For delegate and send, propose no prefix_rule: they start or \
+instruct workers and the person approves each one. Never propose the executable alone. Invoke the Runwick \
 command directly so the prefix matches. Let the person approve on screen; never auto-approve. Do not \
 change the sandbox or approval policy. If escalation is unavailable or denied, explain the block.",
             GUIDANCE.replace(REPORT_LINE, CODEX_REPORT_LINE).replace("runwick ", &format!("{} ", codex_command())),
-            approval_prefix(&runwick_core::paths::bin_dir().join("runwick"))
+            standing_prefixes(&runwick_core::paths::bin_dir().join("runwick"))
         )),
         Tool::Shell => None,
     }
@@ -119,8 +130,16 @@ mod tests {
             assert!(text.contains(&format!("{} {command}", codex_command())), "{command}");
         }
         assert!(text.contains("require_escalated") && text.contains("unavailable or denied"));
-        let prefix = approval_prefix(&runwick_core::paths::bin_dir().join("runwick"));
-        assert!(text.contains(&format!("prefix_rule={prefix}")));
+        let bin = runwick_core::paths::bin_dir().join("runwick");
+        for sub in STANDING_SUBCOMMANDS {
+            assert!(text.contains(&approval_prefix(&bin, sub)), "{sub}");
+        }
+        for sub in ["delegate", "send"] {
+            assert!(!text.contains(&approval_prefix(&bin, sub)), "{sub} keeps a per-call approval");
+        }
+        let bare = serde_json::json!([bin.to_string_lossy()]).to_string();
+        assert!(!text.contains(&bare), "the executable alone is never proposed");
+        assert!(text.contains("Never propose the executable alone"));
         assert!(text.contains("Let the person approve on screen; never auto-approve"));
         assert!(text.contains("Do not change the sandbox or approval policy"));
         assert!(text.contains("conversation record") && !text.contains(&format!("{} report", codex_command())));
@@ -131,8 +150,8 @@ mod tests {
         assert_eq!(shell_command(Path::new("/tmp/space ' 한글/$bin/runwick")), "'/tmp/space '\\'' 한글/$bin/runwick'");
         assert_eq!(shell_command(Path::new("/Users/me/.runwick/bin/runwick")), "/Users/me/.runwick/bin/runwick");
         let path = "/tmp/space ' \" 한글/$bin/runwick";
-        let prefix: Vec<String> = serde_json::from_str(&approval_prefix(Path::new(path))).unwrap();
-        assert_eq!(prefix, [path], "approval matches argv, not shell-quoted text or the whole command");
+        let prefix: Vec<String> = serde_json::from_str(&approval_prefix(Path::new(path), "wait")).unwrap();
+        assert_eq!(prefix, [path, "wait"], "approval matches argv, not shell-quoted text or the whole command");
     }
 
     #[test]
