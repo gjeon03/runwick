@@ -334,6 +334,9 @@ pub struct RequestQuery {
     /// Only queued and running ones.
     #[serde(default)]
     pub open_only: bool,
+    /// Include every open request and unread person-started result, plus bounded recent history.
+    #[serde(default)]
+    pub activity: bool,
     /// Newest first; 0 means the default (200).
     #[serde(default)]
     pub limit: u32,
@@ -468,6 +471,8 @@ method!(CollabCancel, "collab.cancel", ById => Request);
 method!(CollabHold, "collab.hold", Hold => ());
 method!(CollabDirect, "collab.direct", Direct => ());
 method!(CollabAck, "collab.ack", Ack => Request);
+// Called by the window after displaying a result. Read state is separate from verification.
+method!(CollabRead, "collab.read", ById => Request);
 method!(CollabRetry, "collab.retry", Retry => Delegated);
 // Look at an uncertain request again (never re-sends).
 method!(CollabCheck, "collab.check", ById => Request);

@@ -42,7 +42,7 @@ fn exchange(mut s: UnixStream) -> Result<Option<model::Snapshot>, String> {
     let requests = [
         request::<KvGet>(&KvKey { key: MENUBAR_ENABLED_KEY.into() }),
         request::<SessionsList>(&SessionQuery { include_hidden: true, ..Default::default() }),
-        request::<CollabList>(&RequestQuery { limit: 400, ..Default::default() }),
+        request::<CollabList>(&RequestQuery { activity: true, limit: 100, ..Default::default() }),
         request::<JobsList>(&JobQuery { active_only: true, ..Default::default() }),
         request::<ProjectsList>(&()),
         request::<WorkspacesList>(&WorkspaceQuery { include_archived: true, ..Default::default() }),

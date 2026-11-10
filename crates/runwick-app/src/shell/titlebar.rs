@@ -212,7 +212,7 @@ fn activity_pill(app: &mut App, ui: &mut egui::Ui, right: f32, cy: f32) -> f32 {
     let r = Rect::from_min_size(Pos2::new(right - w, cy - 14.0), Vec2::new(w, 28.0));
     let resp = ui.interact(r, ui.scope_id().with("activity"), Sense::click());
     let label = match counts {
-        Some(_) => format!("전체 활동: 확인할 일 {needs}개, 실행 중 {running}개"),
+        Some(_) => format!("전체 활동: 지금 확인 {needs}개, 실행 중 {running}개"),
         None => "전체 활동: 실행 상태를 아직 확인하지 못했어요".to_string(),
     };
     let l2 = label.clone();

@@ -122,13 +122,28 @@ fn sessions(
         Some(TabKind::Terminal { session, .. }) => Some(session),
         _ => None,
     };
+    let requests = app
+        .hub
+        .query::<runwick_core::api::collab::CollabList>(
+            ws.host,
+            &runwick_core::api::collab::RequestQuery { activity: true, limit: 100, ..Default::default() },
+        )
+        .data;
+    let index =
+        runwick_core::api::activity::RequestIndex::new(requests.as_deref().map(Vec::as_slice).unwrap_or_default());
     for s in parents {
         let kids: Vec<&SessionInfo> =
             list.iter().filter(|k| k.session.parent_id == Some(s.session.id) && !k.session.archived).collect();
         let open = app.shell.sidebar.expanded_parents.contains(&s.session.id);
         let live = data::live_of(app, ws.host, s);
-        let asking =
-            kids.iter().filter(|k| data::live_of(app, ws.host, k).is_some_and(|l| l.attention.is_some())).count();
+        let asking = kids
+            .iter()
+            .filter(|k| {
+                index
+                    .group(&k.session, data::live_of(app, ws.host, k).as_ref())
+                    .is_some_and(runwick_core::api::activity::Group::needs_person)
+            })
+            .count();
         let workers = Workers { count: kids.len(), asking };
         session_row(ui, ws, project, s, live.as_ref(), active == Some(s.session.id), workers, open, acts);
         if open {
@@ -172,6 +187,9 @@ fn session_row(
     let r = resp.rect;
     let badge = Rect::from_min_size(Pos2::new(r.left() + 8.0, r.top() + 7.0), Vec2::splat(20.0));
     theme::paint_tool_badge(ui.painter(), badge, data::tool_mark(s.session.tool), c::CONTROL);
+    if live.is_some_and(runwick_core::api::activity::has_new_response) {
+        widgets::dot(ui, badge.right_top(), Tone::Info.fg(), false, 3.0);
+    }
     let right = if workers.count > 0 { r.right() - 30.0 } else { r.right() - 8.0 };
     let text_x = badge.right() + 8.0;
     let title_rect = Rect::from_min_max(Pos2::new(text_x, r.top() + 5.0), Pos2::new(right, r.top() + 24.0));
@@ -248,6 +266,9 @@ fn worker_row(
         icon_font(13.0),
         meta_color(&st),
     );
+    if live.is_some_and(runwick_core::api::activity::has_new_response) {
+        widgets::dot(ui, Pos2::new(r.right() - 26.0, cy), Tone::Info.fg(), false, 3.0);
+    }
     let mark = data::tool_mark(s.session.tool);
     ui.painter().text(Pos2::new(r.right() - 8.0, cy), Align2::RIGHT_CENTER, mark, mono(10.5), c::TEXT_3);
     let text_rect = Rect::from_min_max(Pos2::new(r.left() + 28.0, r.top()), Pos2::new(r.right() - 26.0, r.bottom()));

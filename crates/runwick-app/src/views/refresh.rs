@@ -701,7 +701,7 @@ fn state_words(s: RunState, tool: Tool) -> &'static str {
         RunState::Starting => "시작 중",
         RunState::Busy if tool == Tool::Shell => "명령 실행 중",
         RunState::Busy => "응답 생성 중",
-        RunState::Idle => "입력 대기",
+        RunState::Idle => "대기 중",
         RunState::NeedsAnswer => "답을 기다리는 중",
         RunState::Ended => "실행 종료",
     }

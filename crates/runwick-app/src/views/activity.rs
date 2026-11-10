@@ -1,5 +1,5 @@
 //! S06 전체 활동 (Activity.dc.html, RemoteActivity.dc.html): everything that needs the person or
-//! runs, grouped 내 답변·승인 필요 → 복구 필요 → 새 결과 → 실행 중 → 대기, with automatic jobs
+//! runs, grouped by action needed, new responses, running work and recent results, with automatic jobs
 //! as their own kind. Grouping is `runwick_core::api::activity`, shared with the collaboration
 //! panel and `runwick status`, so a run is never counted differently in two places. Devices that
 //! cannot be reached are "상태 확인 불가", never zero.
@@ -8,16 +8,17 @@ use crate::App;
 use crate::client::HostKey;
 use crate::icons;
 use crate::shell::{actions, data, widgets};
-use crate::state::{Modal, RightPanel, SettingsSection};
+use crate::state::{Modal, RightPanel, SettingsSection, WsKey};
 use crate::theme::{self, Tone, c, font, icon, medium};
 use crate::views::collab::{self, look, place};
 use egui::{CornerRadius, Margin, RichText, Sense};
 use runwick_core::Ts;
-use runwick_core::api::activity::{Group, headline_counts, row_group, session_group};
-use runwick_core::api::collab::{CollabList, ReqStatus, Request, RequestQuery};
+use runwick_core::api::activity::{Group, RequestIndex, headline_counts, request_group, session_group};
+use runwick_core::api::collab::{Ack, CollabAck, CollabList, ReqStatus, Request, RequestQuery};
 use runwick_core::api::jobs::{JobQuery, JobStatus, JobsList};
 use runwick_core::api::projects::ProjectId;
-use runwick_core::api::sessions::{Attention, Phase, SessionId, SessionInfo};
+use runwick_core::api::sessions::{Attention, Phase, SessionId, SessionInfo, SessionUpdate, SessionsUpdate};
+use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
 pub struct State {
@@ -25,6 +26,7 @@ pub struct State {
     kind: Option<Kind>,
     group: Option<Group>,
     by_device: bool,
+    order: EntryOrder,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -56,6 +58,10 @@ enum Go {
 }
 
 struct Item {
+    key: (HostKey, uuid::Uuid),
+    workspace: Option<WsKey>,
+    read_session: Option<SessionId>,
+    read_requests: Vec<uuid::Uuid>,
     group: Group,
     /// Its process is alive (counts as 실행 in the title bar, whatever its group).
     alive: bool,
@@ -70,6 +76,34 @@ struct Item {
     project: Option<ProjectId>,
     device: String,
     at: Ts,
+}
+
+/// Remember when each item entered its current section. Output timestamps may keep changing.
+#[derive(Default)]
+struct EntryOrder {
+    next: u64,
+    entries: HashMap<(HostKey, uuid::Uuid), (Group, u64)>,
+}
+
+impl EntryOrder {
+    fn update(&mut self, items: &mut [Item]) {
+        let present: HashSet<_> = items.iter().map(|i| i.key).collect();
+        self.entries.retain(|key, _| present.contains(key));
+        items.sort_by_key(|i| (i.at, i.key));
+        for item in items.iter() {
+            self.observe(item.key, item.group.section());
+        }
+        items.sort_by_key(|i| (i.group.section(), self.entries[&i.key].1));
+    }
+
+    fn observe(&mut self, key: (HostKey, uuid::Uuid), group: Group) -> u64 {
+        let entry = self.entries.entry(key).or_insert((group, self.next));
+        if entry.0 != group || entry.1 == self.next {
+            *entry = (group, self.next);
+            self.next += 1;
+        }
+        entry.1
+    }
 }
 
 struct Unreachable {
@@ -115,15 +149,28 @@ fn gather(app: &mut App) -> Gathered {
         }
         g.loading |= collect(app, *host, &device, &mut g.items);
     }
+    app.feat.activity.order.update(&mut g.items);
     g
 }
 
-/// Title bar counts, from the same list as the panel: things that need the person (답변·승인,
-/// 복구, 새 결과) and things observed running. `None` until this computer's sessions are known.
+/// Title bar counts, from the same list as the panel: action needed and live runs. `None` until this computer's sessions are known.
 pub fn counts(app: &mut App) -> Option<(usize, usize)> {
     data::all_sessions(app, HostKey::Local).data.as_ref()?;
     let g = gather(app);
     Some(headline_counts(g.items.iter().map(|i| (Some(i.group), i.alive))))
+}
+
+/// Project badges use the same rows, including connected remote workspaces.
+pub fn workspace_counts(app: &mut App) -> HashMap<WsKey, usize> {
+    let mut counts = HashMap::new();
+    for item in gather(app).items {
+        if item.group.needs_person()
+            && let Some(ws) = item.workspace
+        {
+            *counts.entry(ws).or_default() += 1;
+        }
+    }
+    counts
 }
 
 pub fn show_panel(app: &mut App, ui: &mut egui::Ui) {
@@ -131,11 +178,13 @@ pub fn show_panel(app: &mut App, ui: &mut egui::Ui) {
     let st = &app.feat.activity;
     let (fp, fk, fg, by_device) = (st.project, st.kind, st.group, st.by_device && multi);
     items.retain(|i| {
-        fp.is_none_or(|p| i.project == Some(p)) && fk.is_none_or(|k| i.kind == k) && fg.is_none_or(|g| i.group == g)
+        fp.is_none_or(|p| i.project == Some(p))
+            && fk.is_none_or(|k| i.kind == k)
+            && fg.is_none_or(|g| i.group.section() == g)
     });
-    items.sort_by(|a, b| a.group.cmp(&b.group).then(b.at.cmp(&a.at)));
 
     let mut go: Option<Go> = None;
+    let mut mark_read = false;
     let mut filters = FilterChange::default();
     egui::Frame::new().inner_margin(Margin { left: 12, right: 10, top: 10, bottom: 10 }).show(ui, |ui| {
         ui.set_width(ui.available_width());
@@ -160,7 +209,11 @@ pub fn show_panel(app: &mut App, ui: &mut egui::Ui) {
                 }
                 if by_device {
                     let mut devices: Vec<String> = items.iter().map(|i| i.device.clone()).collect();
+                    devices.sort();
                     devices.dedup();
+                    if items.iter().any(|i| i.group == Group::Fresh) {
+                        mark_read |= ui.small_button("모두 읽음").clicked();
+                    }
                     for d in devices {
                         section(ui, &d, c::TEXT_2, None);
                         for it in items.iter().filter(|i| i.device == d) {
@@ -174,14 +227,19 @@ pub fn show_panel(app: &mut App, ui: &mut egui::Ui) {
                     return;
                 }
                 for g in Group::ORDER {
-                    let rows: Vec<&Item> = items.iter().filter(|i| i.group == g).collect();
-                    if g == Group::Recover {
+                    let rows: Vec<&Item> = items.iter().filter(|i| i.group.section() == g).collect();
+                    if g == Group::Attention {
                         unreachable_rows(ui, &unreachable, &mut go);
                     }
                     if rows.is_empty() {
                         continue;
                     }
-                    section(ui, g.label(), group_tone(g).fg(), Some(rows.len()));
+                    ui.horizontal(|ui| {
+                        section(ui, g.label(), group_tone(g).fg(), Some(rows.len()));
+                        if g == Group::Fresh {
+                            mark_read |= ui.small_button("모두 읽음").clicked();
+                        }
+                    });
                     for it in rows {
                         if let Some(x) = row(ui, it, multi) {
                             go = Some(x);
@@ -193,6 +251,16 @@ pub fn show_panel(app: &mut App, ui: &mut egui::Ui) {
         });
     footer(app, ui, &mut go);
     filters.apply(app);
+    if mark_read {
+        for item in items.iter().filter(|i| i.group == Group::Fresh) {
+            if let Some(id) = item.read_session {
+                app.hub.send::<SessionsUpdate>(item.key.0, SessionUpdate { id, mark_read: true, ..Default::default() });
+            }
+            for &id in &item.read_requests {
+                app.hub.send::<CollabAck>(item.key.0, Ack { id, acknowledged: true });
+            }
+        }
+    }
     if let Some(g) = go {
         follow(app, g);
     }
@@ -204,7 +272,7 @@ fn group_tone(g: Group) -> Tone {
         Group::Recover => Tone::Recover,
         Group::Fresh => Tone::Info,
         Group::Running => Tone::Running,
-        Group::Waiting => Tone::Waiting,
+        Group::Waiting | Group::Recent => Tone::Waiting,
     }
 }
 
@@ -214,96 +282,108 @@ fn collect(app: &mut App, host: HostKey, device: &str, out: &mut Vec<Item>) -> b
     let Some(sessions) = sq.data else {
         return sq.error.is_none();
     };
-    let reqs = app.hub.query::<CollabList>(host, &RequestQuery { limit: 400, ..Default::default() }).data;
-    let reqs: Vec<Request> = reqs.map(|v| v.as_ref().clone()).unwrap_or_default();
+    let reqs =
+        app.hub.query::<CollabList>(host, &RequestQuery { activity: true, limit: 100, ..Default::default() }).data;
+    let reqs = reqs.as_deref().map(Vec::as_slice).unwrap_or_default();
     let direct = collab::overview(app, host).data.map(|o| o.direct_workers.clone()).unwrap_or_default();
     let now = runwick_core::now();
+    let index = RequestIndex::new(reqs);
+    let titles: HashMap<_, _> = sessions.iter().map(|s| (s.session.id, s.session.title.as_str())).collect();
     for s in sessions.iter().filter(|s| !s.session.archived) {
         let live = data::live_of(app, host, s);
         let alive = live.as_ref().is_some_and(|l| matches!(l.phase, Phase::Running | Phase::Starting));
-        let latest = reqs.iter().find(|r| r.worker_id == s.session.id);
+        let request = index.request(s.session.id);
+        let Some(group) = index.group(&s.session, live.as_ref()).or(alive.then_some(Group::Running)) else {
+            continue;
+        };
         let pl = place(app, host, &s.session);
-        let where_ = format!("{} / {}", pl.project, pl.workspace);
-        let sg = session_group(&s.session, live.as_ref());
+        let own = session_group(&s.session, live.as_ref());
         let attention = live.as_ref().and_then(|l| l.attention.clone());
-        let parent_title = |id: Option<SessionId>| {
-            id.and_then(|p| sessions.iter().find(|x| x.session.id == p)).map(|p| p.session.title.clone())
+        let worker_results = index.worker_results(s.session.id);
+        let request = request.filter(|r| request_group(r).is_some());
+        let own_wins = own.is_some_and(|(g, _)| g == group);
+        let (kind, title, mut state, why, when, act, go) = if let Some(r) = request {
+            let state = if own_wins && group.needs_person() {
+                own.unwrap().1.to_string()
+            } else if matches!(r.status, ReqStatus::Done | ReqStatus::Failed) && !r.acknowledged {
+                format!("새 결과 · {}", r.status.label())
+            } else if own_wins {
+                own.unwrap().1.to_string()
+            } else {
+                look(r, direct.contains(&s.session.id)).label
+            };
+            let parent = r.parent_id.and_then(|id| titles.get(&id));
+            let why = parent.map_or_else(
+                || format!("내가 맡긴 일 · {}", r.tool.label()),
+                |p| format!("{p}에서 위임 · {}", r.tool.label()),
+            );
+            let (act, go) = if own_wins && group == Group::Recover {
+                ("열기", Go::Open(host, s.session.id))
+            } else if group == Group::Attention {
+                ("보기", Go::Peek(host, s.session.id, attention.clone()))
+            } else if r.status == ReqStatus::Uncertain {
+                ("확인", r.parent_id.map_or(Go::Peek(host, s.session.id, None), |p| Go::Collab(host, p)))
+            } else if matches!(r.status, ReqStatus::Done | ReqStatus::Failed) {
+                ("결과 보기", Go::Result(host, r.id))
+            } else {
+                ("보기", Go::Peek(host, s.session.id, None))
+            };
+            (
+                Kind::Collab,
+                r.title.clone(),
+                state,
+                why,
+                when_request(r, attention.as_ref(), live.as_ref().and_then(|l| l.last_output_at), now),
+                act,
+                go,
+            )
+        } else {
+            let state =
+                if own_wins { own.unwrap().1.to_string() } else { data::status(&s.session, live.as_ref()).label };
+            let (act, go) = if s.session.interrupted && !alive {
+                ("재개 선택", Go::Resume)
+            } else if worker_results > 0 && group == Group::Recent {
+                ("결과 보기", Go::Collab(host, s.session.id))
+            } else {
+                ("열기", Go::Open(host, s.session.id))
+            };
+            (
+                Kind::Session,
+                s.session.title.clone(),
+                state,
+                format!("CLI 세션 · {}", s.session.tool.label()),
+                when_session(s, attention.as_ref(), live.as_ref().and_then(|l| l.last_output_at), now),
+                act,
+                go,
+            )
         };
-        // A request that needs nothing any more (answered and seen) leaves the session's own state.
-        let latest = latest.filter(|r| row_group(&s.session, live.as_ref(), Some(r)).is_some());
-        let item = match latest {
-            Some(r) => {
-                let Some(group) = row_group(&s.session, live.as_ref(), Some(r)) else {
-                    continue;
-                };
-                let lk = look(r, direct.contains(&s.session.id));
-                let state = sg.filter(|g| g.0 == Group::Attention).map(|g| g.1.to_string()).unwrap_or(lk.label);
-                let why = match parent_title(r.parent_id) {
-                    Some(p) => format!("{p}에서 위임 · {}", r.tool.label()),
-                    None => format!("내가 맡긴 일 · {}", r.tool.label()),
-                };
-                let (act, go) = match (group, r.status) {
-                    (Group::Attention, _) => ("보기", Go::Peek(host, s.session.id, attention.clone())),
-                    (_, ReqStatus::Uncertain) => match r.parent_id {
-                        Some(p) => ("확인", Go::Collab(host, p)),
-                        None => ("확인", Go::Peek(host, s.session.id, None)),
-                    },
-                    (Group::Recover | Group::Fresh, _) => ("결과 보기", Go::Result(host, r.id)),
-                    (Group::Running, _) => ("보기", Go::Peek(host, s.session.id, None)),
-                    (Group::Waiting, _) => match r.parent_id {
-                        Some(p) => ("보기", Go::Collab(host, p)),
-                        None => ("보기", Go::Peek(host, s.session.id, None)),
-                    },
-                };
-                Item {
-                    group,
-                    alive,
-                    kind: Kind::Collab,
-                    title: r.title.clone(),
-                    state,
-                    when: when_request(r, attention.as_ref(), live.as_ref().and_then(|l| l.last_output_at), now),
-                    where_,
-                    why,
-                    act,
-                    go,
-                    project: pl.project_id,
-                    device: device.to_string(),
-                    at: r.created_at,
-                }
-            }
-            None => {
-                // A live CLI waiting for input is still a run: listed under 실행 중 with its state.
-                let idle = alive.then(|| (Group::Running, data::status(&s.session, live.as_ref()).label));
-                let Some((group, state)) = sg.map(|(g, t)| (g, t.to_string())).or(idle) else {
-                    continue;
-                };
-                let why = match parent_title(s.session.parent_id) {
-                    Some(p) => format!("{p}에서 위임 · {}", s.session.tool.label()),
-                    None => format!("내가 시작한 세션 · {}", s.session.tool.label()),
-                };
-                let (act, go) = if s.session.interrupted && live.is_none() {
-                    ("재개 선택", Go::Resume)
-                } else {
-                    (if group == Group::Attention { "보기" } else { "열기" }, Go::Open(host, s.session.id))
-                };
-                Item {
-                    group,
-                    alive,
-                    kind: Kind::Session,
-                    title: s.session.title.clone(),
-                    state,
-                    when: when_session(s, attention.as_ref(), live.as_ref().and_then(|l| l.last_output_at), now),
-                    where_,
-                    why,
-                    act,
-                    go,
-                    project: pl.project_id,
-                    device: device.to_string(),
-                    at: s.session.created_at,
-                }
-            }
-        };
-        out.push(item);
+        if worker_results > 0 {
+            state = format!("작업자 결과 {worker_results} · {state}");
+        }
+        out.push(Item {
+            key: (host, s.session.id),
+            workspace: Some(WsKey { host, id: s.session.workspace_id }),
+            read_session: Some(s.session.id),
+            read_requests: index.unread_results(s.session.id).to_vec(),
+            group,
+            alive,
+            kind,
+            title,
+            state,
+            why,
+            when,
+            act,
+            go,
+            where_: format!("{} / {}", pl.project, pl.workspace),
+            project: pl.project_id,
+            device: device.to_string(),
+            at: attention
+                .as_ref()
+                .map(|a| a.since)
+                .or_else(|| request.map(|r| r.finished_at.unwrap_or(r.updated_at)))
+                .or(s.session.last_active_at)
+                .unwrap_or(s.session.created_at),
+        });
     }
     if host == HostKey::Local {
         let jobs = app.hub.query::<JobsList>(host, &JobQuery { active_only: true, ..Default::default() }).data;
@@ -322,6 +402,10 @@ fn collect(app: &mut App, host: HostKey, device: &str, out: &mut Vec<Item>) -> b
                 None => format!("{} 접수", data::ago(j.created_at)),
             };
             out.push(Item {
+                key: (host, j.id),
+                workspace: None,
+                read_session: None,
+                read_requests: Vec::new(),
                 group,
                 alive: j.status == JobStatus::Running,
                 kind: Kind::Auto,
@@ -385,6 +469,7 @@ fn row(ui: &mut egui::Ui, it: &Item, show_device: bool) -> Option<Go> {
         Group::Fresh => icons::CIRCLE_CHECK,
         Group::Running => icons::CIRCLE_DOT,
         Group::Waiting => icons::CIRCLE_PAUSE,
+        Group::Recent => icons::CIRCLE_CHECK,
     };
     let mut out = None;
     let frame = egui::Frame::new()
@@ -418,11 +503,7 @@ fn row(ui: &mut egui::Ui, it: &Item, show_device: bool) -> Option<Go> {
                 });
             });
         });
-    let click = ui.interact(
-        frame.response.rect,
-        ui.scope_id().with(("activity-row", &it.title, it.at.timestamp_millis())),
-        Sense::click(),
-    );
+    let click = ui.interact(frame.response.rect, ui.scope_id().with(("activity-row", it.key)), Sense::click());
     if out.is_none() && click.clicked() {
         out = Some(it.go.clone());
     }
@@ -622,5 +703,24 @@ fn follow(app: &mut App, g: Go) {
         Go::Automation => actions::open_settings(app, Some(SettingsSection::Automation)),
         Go::Resume => app.ui.modal = Some(Modal::Resume),
         Go::Devices => actions::open_settings(app, Some(SettingsSection::Devices)),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn section_entry_order_survives_updates_and_filters() {
+        let mut order = EntryOrder::default();
+        let a = (HostKey::Local, uuid::Uuid::new_v4());
+        let b = (HostKey::Local, uuid::Uuid::new_v4());
+        let first = order.observe(a, Group::Fresh);
+        let second = order.observe(b, Group::Fresh);
+        assert!(first < second);
+        assert_eq!(order.observe(a, Group::Fresh), first);
+        assert_eq!(order.observe(b, Group::Fresh), second);
+        order.observe(a, Group::Running);
+        assert!(order.observe(a, Group::Fresh) > second);
     }
 }

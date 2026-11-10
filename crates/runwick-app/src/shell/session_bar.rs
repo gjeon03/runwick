@@ -33,8 +33,23 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
         .filter(|s| s.session.parent_id == Some(session) && !s.session.archived)
         .cloned()
         .collect();
-    let worker_attention =
-        workers.iter().filter(|w| data::live_of(app, host, w).is_some_and(|l| l.attention.is_some())).count();
+    let requests = app
+        .hub
+        .query::<runwick_core::api::collab::CollabList>(
+            host,
+            &runwick_core::api::collab::RequestQuery { activity: true, limit: 100, ..Default::default() },
+        )
+        .data;
+    let index =
+        runwick_core::api::activity::RequestIndex::new(requests.as_deref().map(Vec::as_slice).unwrap_or_default());
+    let worker_attention = workers
+        .iter()
+        .filter(|w| {
+            index
+                .group(&w.session, data::live_of(app, host, w).as_ref())
+                .is_some_and(runwick_core::api::activity::Group::needs_person)
+        })
+        .count();
     let ws_branch = data::workspaces(app).data.and_then(|l| data::find_ws(&l, &ws).and_then(|w| w.branch.clone()));
     let cy = bar.center().y;
 
@@ -134,7 +149,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
         x = r.left() - 10.0;
     }
     // Attention chip.
-    if let Some(a) = live.as_ref().and_then(|l| l.attention.clone()) {
+    if let Some(a) = live.as_ref().and_then(|l| l.attention.clone())
+        && a.kind != runwick_core::api::sessions::AttentionKind::Notify
+    {
         let label = data::attention_label(a.kind);
         let w = widgets::text_width(ui, label, medium(12.0)) + 30.0;
         let r = Rect::from_min_size(Pos2::new(x - w, cy - 11.0), Vec2::new(w, 22.0));

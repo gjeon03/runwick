@@ -1050,3 +1050,65 @@ async fn agents_delegate_only_within_their_own_project() {
     let d = t.call_as::<CollabDelegate>(Some(parent), into_wt).await.unwrap();
     assert_eq!(d.worker.session.workspace_id, wt.id);
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn send_now_refuses_an_occupied_slot_without_queueing_or_changing_the_attempt() {
+    let t = T::new();
+    let (ws, _dir) = t.repo();
+    let parent = t.parent(ws).await;
+    let d = t.call::<CollabDelegate>(delegate(parent, Tool::Codex, "keep this attempt")).await.unwrap();
+    t.until(d.request.id, "delivered", |r| r.status == ReqStatus::Delivered).await;
+    let before = t
+        .call::<CollabList>(RequestQuery { worker_id: Some(d.worker.session.id), ..Default::default() })
+        .await
+        .unwrap();
+    let send = SendTo {
+        worker_id: d.worker.session.id,
+        parent_id: Some(parent),
+        prompt: "replace it".into(),
+        now: true,
+        key: None,
+        source: Source::Agent,
+    };
+    let err = t.call::<CollabSend>(send.clone()).await.unwrap_err();
+    assert_eq!(err.message, engine::INTERRUPT_SLOT_BUSY);
+    let after = t
+        .call::<CollabList>(RequestQuery { worker_id: Some(d.worker.session.id), ..Default::default() })
+        .await
+        .unwrap();
+    assert_eq!(before.iter().map(|r| r.id).collect::<Vec<_>>(), after.iter().map(|r| r.id).collect::<Vec<_>>());
+    assert!(after[0].status.holds_slot());
+    let queued = t.call::<CollabSend>(SendTo { now: false, ..send }).await.unwrap();
+    assert_eq!(queued.status, ReqStatus::Queued);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn displaying_a_result_marks_it_read_only_for_the_window() {
+    let t = T::new();
+    let (ws, _dir) = t.repo();
+    let parent = t.parent(ws).await;
+    let mut work = delegate(parent, Tool::Claude, "answer this");
+    work.parent_id = None;
+    work.workspace_id = Some(ws);
+    let d = t.call::<CollabDelegate>(work).await.unwrap();
+    let id = d.request.id;
+    assert!(
+        !t.call::<CollabRead>(ById { id }).await.unwrap().acknowledged,
+        "reading an open request does not pre-read its future result"
+    );
+    let done = t.until(id, "done", |r| r.status == ReqStatus::Done).await;
+    assert!(!done.acknowledged);
+    assert!(
+        !t.call::<CollabGet>(ById { id }).await.unwrap().request.acknowledged,
+        "background fetches do not mark it read"
+    );
+    assert!(t.call_as::<CollabRead>(Some(parent), ById { id }).await.is_err());
+    assert!(t.call_as::<CollabRead>(None, ById { id }).await.is_err());
+    let read = t.call::<CollabRead>(ById { id }).await.unwrap();
+    assert!(read.acknowledged);
+    assert_eq!(read.status, done.status);
+    assert_eq!(read.result, done.result);
+    assert_eq!(read.updated_at, done.updated_at);
+    assert_eq!(t.call::<CollabRead>(ById { id }).await.unwrap(), read);
+    assert!(!t.call::<CollabAck>(Ack { id, acknowledged: false }).await.unwrap().acknowledged);
+}

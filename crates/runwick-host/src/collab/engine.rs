@@ -268,6 +268,8 @@ fn shares_folder(host: &Host, r: &Request, working: &[(SessionId, PathBuf)]) -> 
     })
 }
 
+pub const INTERRUPT_SLOT_BUSY: &str = "이미 맡긴 일이 진행 중이라 안전하게 중단하고 전송할 수 없어요. 대기열에 추가하거나 현재 응답을 직접 멈춘 뒤 다시 보내 주세요";
+
 /// Why a queued request cannot be delivered now (`None`: deliver it).
 fn wait_reason(
     host: &Arc<Host>,
@@ -279,6 +281,9 @@ fn wait_reason(
     ctx: &Ctx,
 ) -> Option<String> {
     let t = &rt.timing;
+    if r.interrupt && slots.contains(&r.worker_id) {
+        return Some(INTERRUPT_SLOT_BUSY.into());
+    }
     if !first || slots.contains(&r.worker_id) {
         return Some("앞서 맡긴 일이 끝나면 전달해요".into());
     }

@@ -1,13 +1,11 @@
 //! What the menu bar shows and when it steps aside. Pure functions over observed host state.
 //!
-//! The two numbers are the window's title bar numbers (`runwick_core::api::activity`, the same
-//! grouping as 전체 활동): 확인할 일 = 답변·승인, 복구, 새 결과; 실행 중 = observed responding.
-//! Sessions whose process is alive but quiet (입력 대기) are listed and counted separately,
-//! and they keep the menu bar up: the work continues while their process lives.
+//! Action-needed counts share the window's classification. Quiet output and worker results
+//! remain visible without increasing that count; idle live sessions still keep runs alive.
 
 use runwick_core::Ts;
-use runwick_core::api::activity::{Group, headline_counts, row_group, session_group};
-use runwick_core::api::collab::Request;
+use runwick_core::api::activity::{Group, RequestIndex, headline_counts, request_group, session_group};
+use runwick_core::api::collab::{ReqStatus, Request};
 use runwick_core::api::jobs::{Job, JobStatus};
 use runwick_core::api::projects::{Project, ProjectId, Workspace, WorkspaceId};
 use runwick_core::api::sessions::{Phase, SessionId, SessionInfo};
@@ -40,13 +38,13 @@ pub enum Target {
 pub struct Row {
     pub target: Target,
     pub title: String,
-    /// The same words the window uses for this item ("승인 필요", "응답 생성 중", "입력 대기", …).
+    /// The same words the window uses for this item ("승인 필요", "응답 생성 중", "대기 중", …).
     pub state: String,
     /// Where it runs, as the window writes it: "payments-api / 기본 공간".
     pub place: String,
     /// With what: the CLI ("Claude Code", "Codex", "셸") or "자동 작업".
     pub tool: &'static str,
-    /// `None`: alive but quiet (입력 대기).
+    /// `None`: alive but quiet (대기 중).
     pub group: Option<Group>,
     pub at: Option<Ts>,
 }
@@ -56,7 +54,7 @@ pub struct Snapshot {
     pub counts: Counts,
     /// Live processes the host keeps: alive sessions and running automatic jobs.
     pub alive: usize,
-    /// What needs the person first, then what runs, then quiet sessions; newest first within.
+    /// Action needed, new responses, running work, then recent results; stable timestamps within.
     pub rows: Vec<Row>,
 }
 
@@ -114,18 +112,20 @@ pub fn snapshot(sessions: &[SessionInfo], requests: &[Request], jobs: &[Job], na
     let mut snap = Snapshot::default();
     // (group, alive) of everything counted, for the shared headline numbers.
     let mut heads: Vec<(Option<Group>, bool)> = Vec::new();
+    let index = RequestIndex::new(requests);
     for s in sessions.iter().filter(|s| !s.session.archived) {
         let live = s.live.as_ref();
         let alive = live.is_some_and(|l| matches!(l.phase, Phase::Running | Phase::Starting));
         snap.alive += usize::from(alive);
-        let latest = requests.iter().find(|r| r.worker_id == s.session.id);
-        let group = row_group(&s.session, live, latest);
+        let latest = index.request(s.session.id);
+        let group = index.group(&s.session, live);
+        let latest = latest.filter(|r| request_group(r).is_some());
         if group.is_none() && !alive {
             continue;
         }
         heads.push((group, alive));
         let own = session_group(&s.session, live);
-        let (title, state) = match (group, latest) {
+        let (title, mut state) = match (group, latest) {
             (None, _) => {
                 snap.counts.idle += 1;
                 let state = runwick_app::shell::data::status(&s.session, live).label;
@@ -133,14 +133,27 @@ pub fn snapshot(sessions: &[SessionInfo], requests: &[Request], jobs: &[Job], na
             }
             // A delegated run reads as its request, unless the run itself asks the person.
             (Some(_), Some(r)) => {
-                let state = match own {
-                    Some((Group::Attention, words)) => words,
-                    _ => r.status.label(),
+                let state = if own.is_some_and(|(g, _)| Some(g) == group && g.needs_person()) {
+                    own.unwrap().1.to_string()
+                } else if matches!(r.status, ReqStatus::Done | ReqStatus::Failed) && !r.acknowledged {
+                    format!("새 결과 · {}", r.status.label())
+                } else if own.is_some_and(|(g, _)| Some(g) == group) {
+                    own.unwrap().1.to_string()
+                } else {
+                    r.status.label().to_string()
                 };
-                (r.title.clone(), state.to_string())
+                (r.title.clone(), state)
             }
             (Some(_), None) => (s.session.title.clone(), own.map_or("", |g| g.1).to_string()),
         };
+        let results = index.worker_results(s.session.id);
+        if results > 0 {
+            state = if state.is_empty() {
+                format!("작업자 결과 {results}")
+            } else {
+                format!("작업자 결과 {results} · {state}")
+            };
+        }
         let place = names.place(s.session.project_id, s.session.workspace_id);
         snap.rows.push(Row {
             target: Target::Session(s.session.id),
@@ -149,7 +162,10 @@ pub fn snapshot(sessions: &[SessionInfo], requests: &[Request], jobs: &[Job], na
             place,
             tool: s.session.tool.label(),
             group,
-            at: live.and_then(|l| l.last_output_at).or(s.session.last_active_at),
+            at: live
+                .and_then(|l| l.attention.as_ref().map(|a| a.since))
+                .or_else(|| latest.map(|r| r.finished_at.unwrap_or(r.created_at)))
+                .or(Some(s.session.created_at)),
         });
     }
     for j in jobs {
@@ -181,8 +197,8 @@ pub fn snapshot(sessions: &[SessionInfo], requests: &[Request], jobs: &[Job], na
     (snap.counts.needs, snap.counts.running) = headline_counts(heads);
     // `None` (quiet) sorts after every group.
     snap.rows.sort_by(|a, b| {
-        let rank = |r: &Row| r.group.map_or(Group::ORDER.len(), |g| g as usize);
-        rank(a).cmp(&rank(b)).then(b.at.cmp(&a.at)).then(a.title.cmp(&b.title))
+        let rank = |r: &Row| r.group.map_or(Group::Running, Group::section);
+        rank(a).cmp(&rank(b)).then(a.at.cmp(&b.at)).then(a.title.cmp(&b.title))
     });
     snap
 }
@@ -197,14 +213,24 @@ fn one_line(s: &str) -> String {
 /// wake the menu bar on every look.
 pub fn looks_same(a: &View, b: &View) -> bool {
     let shown = |v: &View| {
-        v.as_ref().map(|s| (s.counts, s.rows.iter().map(|r| (r.target, row_text(r), r.group)).collect::<Vec<_>>()))
+        v.as_ref().map(|s| {
+            (
+                s.counts,
+                s.rows.len(),
+                s.rows
+                    .iter()
+                    .take(MAX_ROWS)
+                    .map(|r| (r.target, row_text(r), needs_person(r.group)))
+                    .collect::<Vec<_>>(),
+            )
+        })
     };
     shown(a) == shown(b)
 }
 
 /// Whether a row's group needs the person (shown in the ember-equivalent color).
 pub fn needs_person(group: Option<Group>) -> bool {
-    matches!(group, Some(Group::Attention | Group::Recover | Group::Fresh))
+    group.is_some_and(Group::needs_person)
 }
 
 /// Text next to the menu bar icon. The leading count (확인할 일) is tinted by the tray.
@@ -229,7 +255,7 @@ pub fn tooltip(view: &View) -> String {
     match view {
         Some(s) => {
             let c = s.counts;
-            let idle = if c.idle > 0 { format!(" (입력 대기 {}개)", c.idle) } else { String::new() };
+            let idle = if c.idle > 0 { format!(" (대기 중 {}개)", c.idle) } else { String::new() };
             format!("Runwick: 확인할 일 {}개, 실행 중 {}개{idle}", c.needs, c.running)
         }
         None => "Runwick: 실행 상태를 확인하지 못했어요".into(),
@@ -244,7 +270,7 @@ pub fn status_line(view: &View) -> String {
     if c == Counts::default() {
         return "실행 중인 작업 없음".into();
     }
-    let idle = if c.idle > 0 { format!(" (입력 대기 {})", c.idle) } else { String::new() };
+    let idle = if c.idle > 0 { format!(" (대기 중 {})", c.idle) } else { String::new() };
     format!("확인할 일 {} · 실행 중 {}{idle}", c.needs, c.running)
 }
 
@@ -431,7 +457,7 @@ mod tests {
         );
         assert_eq!(s.alive, 3);
         let labels: Vec<String> = s.rows.iter().map(row_label).collect();
-        assert_eq!(labels, ["회귀 검토 — 승인 필요", "로그인 오류 수정 — 응답 생성 중", "대기 중인 셸 — 입력 대기"]);
+        assert_eq!(labels, ["회귀 검토 — 승인 필요", "로그인 오류 수정 — 응답 생성 중", "대기 중인 셸 — 대기 중"]);
         assert!(needs_person(s.rows[0].group) && !needs_person(s.rows[1].group) && s.rows[2].group.is_none());
     }
 
@@ -445,8 +471,8 @@ mod tests {
         let v = Some(snap(0, 2, 1, 3));
         assert_eq!(title(&v).as_deref(), Some("2"));
         assert_eq!(needs_span(&v), 0);
-        assert_eq!(status_line(&v), "확인할 일 0 · 실행 중 2 (입력 대기 1)");
-        assert_eq!(tooltip(&v), "Runwick: 확인할 일 0개, 실행 중 2개 (입력 대기 1개)");
+        assert_eq!(status_line(&v), "확인할 일 0 · 실행 중 2 (대기 중 1)");
+        assert_eq!(tooltip(&v), "Runwick: 확인할 일 0개, 실행 중 2개 (대기 중 1개)");
         let v = Some(snap(12, 30, 0, 30));
         assert_eq!((title(&v).as_deref(), needs_span(&v)), (Some("12 · 30"), 2));
         assert_eq!(title(&Some(snap(0, 2, 2, 2))).as_deref(), Some("2"), "idle live runs are runs");
@@ -510,9 +536,61 @@ mod tests {
         let mut b = a.clone();
         b.as_mut().unwrap().rows[0].at = Some(runwick_core::now());
         assert!(looks_same(&a, &b));
-        b.as_mut().unwrap().rows[0].state = "새 출력".into();
+        b.as_mut().unwrap().rows[0].state = "새 응답".into();
         assert!(!looks_same(&a, &b));
         assert!(!looks_same(&a, &None));
+    }
+
+    #[test]
+    fn worker_results_roll_up_but_worker_prompts_remain_visible() {
+        let parent = info("parent", Phase::Running, false, true);
+        let mut child = info("worker", Phase::Running, false, false);
+        child.session.parent_id = Some(parent.session.id);
+        child.live.as_mut().unwrap().unread = true;
+        let request: Request = serde_json::from_value(serde_json::json!({
+            "id": uuid::Uuid::new_v4(), "parent_id": parent.session.id, "worker_id": child.session.id,
+            "attempt": 1, "title": "result", "tool": "claude", "prompt": "work", "source": "agent",
+            "via": "typed", "interrupt": false, "status": "done", "created_at": runwick_core::now(),
+            "updated_at": runwick_core::now(), "acknowledged": false, "notes": []
+        }))
+        .unwrap();
+        let requests = [request];
+        let s = snapshot(&[parent.clone(), child.clone()], &requests, &[], &Names::default());
+        assert_eq!((s.counts.needs, s.counts.running), (0, 2));
+        assert!(s.rows.iter().any(|r| r.title == "parent" && r.state.contains("작업자 결과 1")));
+        assert!(!s.rows.iter().any(|r| r.group == Some(Group::Fresh)));
+        child.live.as_mut().unwrap().attention =
+            Some(Attention { kind: AttentionKind::Approval, text: "allow".into(), since: runwick_core::now() });
+        let s = snapshot(&[parent, child], &requests, &[], &Names::default());
+        assert_eq!(s.counts.needs, 1);
+        assert_eq!(s.rows[0].state, "승인 필요");
+    }
+
+    #[test]
+    fn hidden_rows_do_not_rebuild_the_menu_but_overflow_and_counts_do() {
+        let list: Vec<_> = (0..8).map(|n| info(&format!("session {n}"), Phase::Running, false, false)).collect();
+        let a = Some(snapshot(&list, &[], &[], &Names::default()));
+        let mut b = a.clone();
+        b.as_mut().unwrap().rows[7].title = "changed offscreen".into();
+        assert!(looks_same(&a, &b));
+        b.as_mut().unwrap().rows.pop();
+        assert!(!looks_same(&a, &b));
+        let mut b = a.clone();
+        b.as_mut().unwrap().counts.needs += 1;
+        assert!(!looks_same(&a, &b));
+    }
+
+    #[test]
+    fn bells_and_unread_output_are_quiet_and_precede_running_rows() {
+        let mut fresh = info("new", Phase::Running, false, true);
+        fresh.live.as_mut().unwrap().attention =
+            Some(Attention { kind: AttentionKind::Notify, text: "bell".into(), since: runwick_core::now() });
+        let list = [info("busy", Phase::Running, false, true), fresh, info("approval", Phase::Running, true, false)];
+        let s = snapshot(&list, &[], &[], &Names::default());
+        assert_eq!(s.counts.needs, 1);
+        assert_eq!(s.rows.iter().map(|r| r.title.as_str()).collect::<Vec<_>>(), ["approval", "new", "busy"]);
+        assert!(!needs_person(s.rows[1].group));
+        assert_eq!(s.rows[1].state, "새 응답");
     }
 
     #[test]

@@ -26,7 +26,11 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 
-pub const MIGRATIONS: &[Migration] = &[("collab_1", db::MIGRATION), ("collab_2_start_tree", db::TREE_MIGRATION)];
+pub const MIGRATIONS: &[Migration] = &[
+    ("collab_1", db::MIGRATION),
+    ("collab_2_start_tree", db::TREE_MIGRATION),
+    ("collab_3_activity", db::ACTIVITY_MIGRATION),
+];
 
 /// Longest instruction accepted (a task description, not a file transfer).
 const MAX_PROMPT: usize = 100 * 1024;
@@ -82,6 +86,16 @@ pub fn register(r: &mut Router) {
         r.acknowledged = p.acknowledged;
         db::save(&ctx.host.store, &r)?;
         changed(&ctx.host);
+        Ok(r)
+    });
+    r.add::<CollabRead, _, _>(|ctx: Ctx, p: ById| async move {
+        person_only(identity::caller(&ctx.host, &ctx.client))?;
+        let mut r = db::get(&ctx.host.store, p.id)?;
+        if matches!(r.status, ReqStatus::Done | ReqStatus::Failed) && !r.acknowledged {
+            r.acknowledged = true;
+            db::save(&ctx.host.store, &r)?;
+            changed(&ctx.host);
+        }
         Ok(r)
     });
     r.add::<CollabRetry, _, _>(|ctx: Ctx, p: Retry| async move {
@@ -449,6 +463,11 @@ pub fn send(host: &Arc<Host>, caller: Caller, mut p: SendTo) -> Result<Request, 
         && let Some(existing) = db::by_key(&host.store, parent, k)?
     {
         return Ok(existing);
+    }
+    // Interrupting a tracked attempt cannot safely assign its output to a new request.
+    // Refuse before enqueueing; the caller can explicitly queue or stop the current attempt.
+    if p.now && db::open(&host.store)?.iter().any(|r| r.worker_id == target.id && r.status.holds_slot()) {
+        return Err(RpcError::invalid(engine::INTERRUPT_SLOT_BUSY));
     }
     let mut req = new_request(parent, target.id, target.tool, &p.prompt);
     req.role = target.role.clone();

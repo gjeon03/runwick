@@ -8,6 +8,10 @@ use runwick_core::rpc::RpcError;
 use rusqlite::{OptionalExtension, Row, params};
 use uuid::Uuid;
 
+pub const ACTIVITY_MIGRATION: &str = "CREATE INDEX collab_requests_recent ON collab_requests(created_at DESC, id DESC);
+    CREATE INDEX collab_requests_unread_person ON collab_requests(created_at DESC, id DESC)
+    WHERE parent_id IS NULL AND acknowledged = 0 AND status IN ('done', 'failed');";
+
 pub const TREE_MIGRATION: &str = "ALTER TABLE collab_requests ADD COLUMN start_tree TEXT;";
 
 /// Persist revision and working-tree state together before the task can reach the worker.
@@ -230,11 +234,21 @@ pub fn by_key(store: &Store, parent: Option<SessionId>, key: &str) -> Result<Opt
 
 pub fn list(store: &Store, q: &RequestQuery) -> Result<Vec<Request>, RpcError> {
     let limit = if q.limit == 0 { 200 } else { q.limit.min(1000) } as i64;
-    let sql = format!(
-        "SELECT * FROM collab_requests
-         WHERE (?1 IS NULL OR parent_id = ?1) AND (?2 IS NULL OR worker_id = ?2) AND (NOT ?3 OR status IN {OPEN})
-         ORDER BY created_at DESC, id DESC LIMIT ?4"
-    );
+    let filter =
+        format!("(?1 IS NULL OR parent_id = ?1) AND (?2 IS NULL OR worker_id = ?2) AND (NOT ?3 OR status IN {OPEN})");
+    let sql = if q.activity {
+        format!(
+            "SELECT * FROM collab_requests WHERE {filter} AND id IN (
+                SELECT id FROM collab_requests WHERE status IN {OPEN}
+                UNION SELECT id FROM collab_requests
+                    WHERE parent_id IS NULL AND acknowledged = 0 AND status IN ('done', 'failed')
+                UNION SELECT id FROM (SELECT id FROM collab_requests WHERE {filter}
+                    ORDER BY created_at DESC, id DESC LIMIT ?4)
+             ) ORDER BY created_at DESC, id DESC"
+        )
+    } else {
+        format!("SELECT * FROM collab_requests WHERE {filter} ORDER BY created_at DESC, id DESC LIMIT ?4")
+    };
     store
         .with(|c| {
             let mut st = c.prepare(&sql)?;
@@ -319,6 +333,90 @@ pub fn direct_workers(store: &Store) -> Result<Vec<SessionId>, RpcError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn activity_keeps_old_open_and_unread_person_requests_with_bounded_history() {
+        let store = Store::open_in_memory().unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        let opened = crate::projects::open_folder(&store, dir.path().to_str().unwrap()).unwrap();
+        let worker = Uuid::new_v4();
+        store
+            .with(|c| {
+                c.execute(
+                    "INSERT INTO sessions (id, project_id, workspace_id, title, tool, cwd, created_at)
+             VALUES (?1, ?2, ?3, 'worker', 'claude', ?4, ?5)",
+                    params![
+                        worker,
+                        opened.project.id,
+                        opened.workspace.id,
+                        dir.path().to_str(),
+                        ts_to_sql(&runwick_core::now())
+                    ],
+                )
+            })
+            .unwrap();
+        let parent = Uuid::new_v4();
+        let mut required = Vec::new();
+        let mut optional = Vec::new();
+        for (n, status) in [
+            ReqStatus::Queued,
+            ReqStatus::Delivered,
+            ReqStatus::Running,
+            ReqStatus::NeedsInput,
+            ReqStatus::Uncertain,
+            ReqStatus::Done,
+            ReqStatus::Failed,
+            ReqStatus::Done,
+            ReqStatus::Failed,
+            ReqStatus::Done,
+            ReqStatus::Cancelled,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let mut r = super::super::new_request(Some(parent), worker, Tool::Claude, "task");
+            r.status = status;
+            r.created_at -= chrono::Duration::days(180);
+            if (5..=6).contains(&n) || n == 9 {
+                r.parent_id = None;
+            }
+            if n == 9 {
+                r.acknowledged = true;
+            }
+            insert(&store, &r, None).unwrap();
+            if n < 7 {
+                required.push(r.id);
+            } else {
+                optional.push(r.id);
+            }
+        }
+        for _ in 0..450 {
+            let mut r = super::super::new_request(Some(parent), worker, Tool::Claude, "recent");
+            r.status = ReqStatus::Done;
+            insert(&store, &r, None).unwrap();
+        }
+        let recent = list(&store, &RequestQuery { limit: 400, ..Default::default() }).unwrap();
+        assert_eq!(recent.len(), 400);
+        assert!(recent.iter().all(|r| !required.contains(&r.id)));
+        let activity = list(&store, &RequestQuery { activity: true, limit: 25, ..Default::default() }).unwrap();
+        assert_eq!(activity.len(), 25 + required.len());
+        for id in required {
+            assert!(activity.iter().any(|r| r.id == id));
+        }
+        assert!(activity.iter().all(|r| !optional.contains(&r.id)));
+        assert!(activity.windows(2).all(|w| (w[0].created_at, w[0].id) > (w[1].created_at, w[1].id)));
+        let filtered =
+            list(&store, &RequestQuery { activity: true, worker_id: Some(Uuid::new_v4()), ..Default::default() })
+                .unwrap();
+        assert!(filtered.is_empty());
+        let open =
+            list(&store, &RequestQuery { activity: true, open_only: true, limit: 1, ..Default::default() }).unwrap();
+        assert_eq!(open.len(), 5);
+        assert!(open.iter().all(|r| r.status.is_open()));
+        // Named migrations can be reapplied without changing existing records.
+        store.migrate(super::super::MIGRATIONS).unwrap();
+        assert_eq!(list(&store, &RequestQuery { activity: true, limit: 25, ..Default::default() }).unwrap(), activity);
+    }
 
     #[test]
     fn statuses_round_trip() {

@@ -91,7 +91,7 @@ pub fn attention_label(kind: AttentionKind) -> &'static str {
     match kind {
         AttentionKind::Approval => "승인 필요",
         AttentionKind::Auth => "인증·신뢰 확인",
-        AttentionKind::Notify => "확인 필요",
+        AttentionKind::Notify => "새 응답",
         AttentionKind::Choice => runwick_core::api::activity::CHOICE_NEEDED,
     }
 }
@@ -119,12 +119,16 @@ fn status_at(s: &Session, live: Option<&SessionLive>, now: Ts) -> Status {
             // Waiting for input only when that is observed: the shell has the terminal back,
             // or the agent's input prompt is on screen. A silent command is still running.
             let waiting = if s.tool.is_agent() { l.input_prompt } else { !l.foreground_job };
-            if let Some(a) = &l.attention {
+            if let Some(a) = &l.attention
+                && a.kind != AttentionKind::Notify
+            {
                 Status::new(Tone::Attention, attention_label(a.kind), false, true)
+            } else if runwick_core::api::activity::has_new_response(l) {
+                Status::new(Tone::Info, "새 응답", false, true)
             } else if l.busy {
                 Status::new(Tone::Running, "실행 중", true, true)
             } else if waiting {
-                Status::new(Tone::Neutral, "입력 대기", false, true)
+                Status::new(Tone::Neutral, "대기 중", false, true)
             } else {
                 let quiet = l.last_output_at.map_or(0, |t| (now - t).num_minutes());
                 let label = if quiet >= 1 {
@@ -218,8 +222,8 @@ impl WsState {
             WsState::Attention => (Tone::Attention, "확인 필요"),
             WsState::Recover => (Tone::Recover, "복구 필요"),
             WsState::Running => (Tone::Running, "실행 중"),
-            WsState::Fresh => (Tone::Info, "새 출력"),
-            WsState::Idle => (Tone::Neutral, "입력 대기"),
+            WsState::Fresh => (Tone::Info, "새 응답"),
+            WsState::Idle => (Tone::Neutral, "대기 중"),
             WsState::None => (Tone::Waiting, "실행 없음"),
             WsState::Unknown => (Tone::Waiting, "상태 확인 불가"),
         }
@@ -238,10 +242,14 @@ pub fn ws_state<'a>(lives: impl Iterator<Item = Option<&'a SessionLive>>) -> WsS
     };
     for l in lives.flatten() {
         let s = match l.phase {
-            Phase::Running | Phase::Starting if l.attention.is_some() => WsState::Attention,
+            Phase::Running | Phase::Starting
+                if l.attention.as_ref().is_some_and(|a| a.kind != AttentionKind::Notify) =>
+            {
+                WsState::Attention
+            }
+            _ if runwick_core::api::activity::has_new_response(l) => WsState::Fresh,
             Phase::Starting => WsState::Running,
             Phase::Running if l.busy => WsState::Running,
-            Phase::Running if l.unread => WsState::Fresh,
             Phase::Running => WsState::Idle,
             Phase::Exited if l.error.is_some() => WsState::Recover,
             _ => WsState::None,
@@ -403,7 +411,7 @@ mod tests {
         let now = runwick_core::now();
         let sh = session("shell", false);
         let mut quiet = live(Phase::Running, false);
-        assert_eq!(status_at(&sh, Some(&quiet), now).label, "입력 대기");
+        assert_eq!(status_at(&sh, Some(&quiet), now).label, "대기 중");
         // A job holds the terminal without printing: still a run, not a prompt.
         quiet.foreground_job = true;
         quiet.last_output_at = Some(now - Duration::minutes(3));
@@ -414,7 +422,7 @@ mod tests {
         let mut agent = live(Phase::Running, false);
         assert_eq!(status_at(&claude, Some(&agent), now).label, "실행 중 · 출력 없음");
         agent.input_prompt = true;
-        assert_eq!(status_at(&claude, Some(&agent), now).label, "입력 대기");
+        assert_eq!(status_at(&claude, Some(&agent), now).label, "대기 중");
         // Ended by a host restart or crash, and a stop that left processes behind.
         let st = status_at(&session("claude", true), None, now);
         assert_eq!((st.tone, st.label.as_str()), (Tone::Recover, INTERRUPTED));

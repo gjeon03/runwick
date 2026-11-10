@@ -141,7 +141,8 @@ pub fn list(app: &mut App, ui: &mut egui::Ui, acts: &mut Vec<Act>) {
         }
         return;
     }
-    // Attention count and live state per workspace (this computer's sessions).
+    let attention_counts = crate::views::activity::workspace_counts(app);
+    // Live state for local workspaces; remote workspaces use their connected host.
     let mut lives: HashMap<uuid::Uuid, Vec<SessionInfo>> = HashMap::new();
     if let Some(list) = &sessions {
         for s in list.iter() {
@@ -152,12 +153,8 @@ pub fn list(app: &mut App, ui: &mut egui::Ui, acts: &mut Vec<Act>) {
         let spaces: Vec<&Workspace> =
             workspaces.iter().filter(|w| w.project_id == p.id && device_matches(dev, w)).collect();
         let expanded = app.ui.expanded_projects.contains(&p.id);
-        let badge: usize = spaces
-            .iter()
-            .filter(|w| w.remote.is_none())
-            .flat_map(|w| lives.get(&w.id).into_iter().flatten())
-            .filter(|s| data::live_of(app, HostKey::Local, s).is_some_and(|l| l.attention.is_some()))
-            .count();
+        let badge: usize =
+            spaces.iter().map(|w| attention_counts.get(&data::ws_key(w)).copied().unwrap_or_default()).sum();
         project_row(ui, p, spaces.len(), badge, expanded, acts);
         if expanded {
             for w in spaces {

@@ -36,12 +36,12 @@ pub fn look(app: &App, tab: &Tab, sessions: &HashMap<uuid::Uuid, SessionInfo>) -
             Some(s) => {
                 let live = data::live_of(app, *host, s);
                 let st = data::status(&s.session, live.as_ref());
-                let unread = live.as_ref().is_some_and(|l| l.unread);
+                let unread = live.as_ref().is_some_and(runwick_core::api::activity::has_new_response);
                 let dot = match st.tone {
                     Tone::Attention => Some((Tone::Attention, "확인 필요", false)),
                     Tone::Recover => Some((Tone::Recover, "복구 필요", false)),
+                    _ if unread => Some((Tone::Info, "새 응답", false)),
                     Tone::Running => Some((Tone::Running, "실행 중", st.pulse)),
-                    _ if unread => Some((Tone::Info, "새 출력", false)),
                     _ => None,
                 };
                 TabLook {
