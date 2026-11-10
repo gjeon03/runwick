@@ -105,15 +105,15 @@ pub fn show_detail(app: &mut App, ui: &mut egui::Ui, host: HostKey, id: PinId) {
     });
 }
 
-/// Where a pin came from, and whether that is still reachable (warning color when not).
+/// Where a pin came from, and whether its linked source is missing.
 pub fn source_line(pin: &Pin) -> (String, bool) {
     let kind = match pin.kind {
         PinKind::Message => "메시지 핀",
         PinKind::Excerpt => "발췌 핀",
-        PinKind::Terminal => "터미널 발췌",
+        PinKind::Terminal => "터미널에서 고정",
     };
     if pin.kind == PinKind::Terminal {
-        return (format!("{kind} · 원문 메시지 연결 불가 · {}", pin.session_title), true);
+        return (format!("{kind} · {}", pin.session_title), false);
     }
     if !pin.source_available {
         return (format!("{kind} · 원문 연결 불가 (저장된 사본) · {}", pin.session_title), true);
@@ -137,25 +137,34 @@ fn card(app: &mut App, ui: &mut egui::Ui, host: HostKey, pin: &Pin, highlighted:
 fn card_body(app: &mut App, ui: &mut egui::Ui, host: HostKey, pin: &Pin, detail: bool) {
     ui.set_width(ui.available_width());
     ui.spacing_mut().item_spacing.y = 6.0;
-    title(app, ui, host, pin);
-    if !detail && fmt::quiet_link(ui, "자세히 보기").clicked() {
+    let mut more = title(app, ui, host, pin, detail);
+    let (preview, hidden) = preview_body(&pin.title, &pin.text);
+    more |= hidden;
+    let text = if detail && pin.title.trim() != pin.text.trim() { pin.text.as_str() } else { preview };
+    if !text.is_empty() {
+        let mut job = egui::text::LayoutJob::simple(text.to_owned(), font(12.5), c::TEXT_2, ui.available_width());
+        if !detail {
+            job.wrap.max_rows = 5;
+        }
+        let galley = ui.painter().layout_job(job);
+        more |= galley.elided;
+        ui.add(egui::Label::new(galley));
+    }
+    if !detail && more && fmt::quiet_link(ui, "자세히 보기").clicked() {
         super::open_pin(app, host, pin.id, pin.session_id);
-    }
-    let mut job = egui::text::LayoutJob::simple(pin.text.clone(), font(12.5), c::TEXT_2, ui.available_width());
-    if !detail {
-        job.wrap.max_rows = 5;
-    }
-    let body = ui.add(egui::Label::new(job).wrap());
-    if body.hovered() && pin.text.lines().count() > 5 {
-        body.on_hover_text(pin.text.chars().take(2000).collect::<String>());
     }
     if app.feat.history.edit_pin.as_ref().is_some_and(|d| d.id == pin.id && d.field == PinField::Note) {
         edit_note(app, ui);
     } else if !pin.note.is_empty() {
         ui.add(egui::Label::new(RichText::new(format!("메모: {}", pin.note)).font(font(12.0)).color(c::TEXT)).wrap());
     }
-    let (src, warn) = source_line(pin);
-    theme::truncated(ui, src, font(11.5), if warn { c::YELLOW } else { c::TEXT_3 });
+    let (src, missing) = source_line(pin);
+    let source = theme::truncated(ui, src, font(11.5), c::TEXT_2);
+    if pin.kind == PinKind::Terminal {
+        source.on_hover_text("터미널 화면에서 고정한 내용이에요. 연결된 대화 메시지는 없어요");
+    } else if missing {
+        source.on_hover_text("원문 메시지는 없지만 고정한 사본은 계속 볼 수 있어요");
+    }
     if app.feat.history.confirm_unpin == Some(pin.id) {
         confirm(app, ui, host, pin);
         return;
@@ -174,6 +183,20 @@ fn card_body(app: &mut App, ui: &mut egui::Ui, host: HostKey, pin: &Pin, detail:
             egui::Popup::menu(&more).show(|ui| menu(app, ui, host, pin));
         });
     });
+}
+
+/// Auto titles repeat the first line (possibly ending in an ellipsis). Keep that preview
+/// once; a detail link exposes any text beyond it, including wrapped single-line content.
+fn preview_body<'a>(title: &str, text: &'a str) -> (&'a str, bool) {
+    let (title, body) = (title.trim(), text.trim());
+    if title == body {
+        return ("", false);
+    }
+    let prefix = title.strip_suffix('…').unwrap_or(title).trim_end();
+    if !prefix.is_empty() && body.starts_with(prefix) {
+        return ("", body != prefix);
+    }
+    (text, false)
 }
 
 fn menu(app: &mut App, ui: &mut egui::Ui, host: HostKey, pin: &Pin) {
@@ -268,7 +291,7 @@ fn title_input(ui: &mut egui::Ui, d: &mut PinDraft) -> EditEnd {
     }
 }
 
-fn title(app: &mut App, ui: &mut egui::Ui, host: HostKey, pin: &Pin) {
+fn title(app: &mut App, ui: &mut egui::Ui, host: HostKey, pin: &Pin, detail: bool) -> bool {
     let draft =
         app.feat.history.edit_pin.as_mut().filter(|d| d.host == host && d.id == pin.id && d.field == PinField::Title);
     if let Some(d) = draft {
@@ -277,16 +300,21 @@ fn title(app: &mut App, ui: &mut egui::Ui, host: HostKey, pin: &Pin) {
             EditEnd::Save => save_edit(app),
             EditEnd::Keep => {}
         }
+        false
     } else {
-        let title = ui.add(
-            egui::Label::new(RichText::new(&pin.title).font(medium(13.0)).color(c::TEXT_STRONG))
-                .truncate()
-                .sense(egui::Sense::click()),
-        );
+        let mut job =
+            egui::text::LayoutJob::simple(pin.title.clone(), medium(13.0), c::TEXT_STRONG, ui.available_width());
+        if !detail {
+            job.wrap.max_rows = 1;
+        }
+        let galley = ui.painter().layout_job(job);
+        let elided = galley.elided;
+        let title = ui.add(egui::Label::new(galley).sense(egui::Sense::click()));
         crate::terminal::verify::target("pin:제목", title.rect);
         if title.on_hover_text("제목을 고쳐요").clicked() {
             begin_edit(app, host, pin, PinField::Title);
         }
+        elided
     }
 }
 
@@ -379,6 +407,21 @@ pub(super) fn remove(app: &mut App, host: HostKey, id: PinId, message: Option<Me
 mod tests {
     use super::*;
     use uuid::Uuid;
+
+    #[test]
+    fn previews_do_not_repeat_titles_or_hide_the_need_for_details() {
+        assert_eq!(preview_body("같은 내용", "같은 내용"), ("", false));
+        assert_eq!(preview_body("같은 내용", "\n 같은 내용 \n"), ("", false));
+        assert_eq!(preview_body("첫 줄", "첫 줄\n추가 내용"), ("", true));
+        assert_eq!(preview_body("긴 내용…", "긴 내용이 계속 이어져요"), ("", true));
+        assert_eq!(preview_body("짧은 제목", "서로 다른 본문"), ("서로 다른 본문", false));
+        assert_eq!(preview_body("", "본문"), ("본문", false));
+    }
+
+    #[test]
+    fn terminal_source_is_a_neutral_description() {
+        assert_eq!(source_line(&pin(PinKind::Terminal, false)), ("터미널에서 고정 · Conversation".into(), false));
+    }
 
     fn pin(kind: PinKind, source_available: bool) -> Pin {
         Pin {

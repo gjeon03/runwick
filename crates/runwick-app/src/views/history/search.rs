@@ -58,7 +58,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
     });
     let (kind, scope, label) = effective(app.feat.history.scope, &sc);
     let st = &app.feat.history;
-    let empty = st.sent.is_empty() && !st.pinned_only;
+    let empty = st.sent.is_empty();
     let footer_h = 38.0;
     let body = ui.available_rect_before_wrap();
     let list_rect =
@@ -75,7 +75,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
     ui.scope_builder(egui::UiBuilder::new().max_rect(foot.shrink2(egui::vec2(14.0, 9.0))), |ui| {
         ui.add(
             egui::Label::new(
-                RichText::new("지금 터미널 화면만 찾으려면 ⌘F. 여기서는 지나간 대화까지 찾습니다.")
+                RichText::new("지금 터미널 화면은 ⌘F로 찾아요. 여기서는 지나간 대화까지 찾아요.")
                     .font(font(ty::SMALL))
                     .color(c::TEXT_3),
             )
@@ -167,10 +167,6 @@ fn filters(app: &mut App, ui: &mut egui::Ui) {
                 }
             }
         });
-        if fmt::chip_button(ui, "핀만 보기", st.pinned_only, false).clicked() {
-            st.pinned_only = !st.pinned_only;
-            st.pages = 1;
-        }
     });
 }
 
@@ -210,7 +206,7 @@ fn capture_line(app: &mut App, ui: &mut egui::Ui, host: HostKey, q: StatusQuery)
     let agents: Vec<_> = list.iter().filter(|s| s.state != CaptureState::NotApplicable).collect();
     if q.session_id.is_some() {
         if let Some(s) = list.first() {
-            let mut line = format!("기록 {} · 메시지 {}개", s.state.label(), s.message_count);
+            let mut line = capture_status(s.state, s.message_count);
             if let Some(t) = s.last_collected_at {
                 line.push_str(&format!(" · 마지막 수집 {}", crate::shell::data::ago(t)));
             }
@@ -263,6 +259,13 @@ fn state_tone(s: CaptureState) -> theme::Tone {
         CaptureState::NotApplicable => theme::Tone::Waiting,
         CaptureState::Error => theme::Tone::Recover,
     }
+}
+
+fn capture_status(state: CaptureState, messages: u64) -> String {
+    if messages == 0 && !matches!(state, CaptureState::Error | CaptureState::NoFile) {
+        return "아직 수집된 대화가 없어요".into();
+    }
+    format!("{} · 메시지 {messages}개", state.label())
 }
 
 fn status_chip(ui: &mut egui::Ui, s: CaptureState, text: &str) {
@@ -343,7 +346,7 @@ fn results(app: &mut App, ui: &mut egui::Ui, kind: ScopeKind, scope: Scope, sc: 
         from: from_time(st.date),
         to: None,
         tool: st.tool,
-        pinned_only: st.pinned_only,
+        pinned_only: false,
         limit: PAGE * pages,
     };
     let hosts: Vec<HostKey> = if kind == ScopeKind::All { connected_hosts(app) } else { vec![sc.host] };
@@ -524,4 +527,21 @@ fn host_chips(app: &mut App, ui: &mut egui::Ui, per_host: &[HostResult]) {
             });
         },
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn capture_status_avoids_empty_message_counts_but_keeps_errors() {
+        for state in
+            [CaptureState::NotApplicable, CaptureState::Collecting, CaptureState::UpToDate, CaptureState::WaitingForId]
+        {
+            assert_eq!(capture_status(state, 0), "아직 수집된 대화가 없어요");
+        }
+        assert_eq!(capture_status(CaptureState::UpToDate, 3), "최신 · 메시지 3개");
+        assert_eq!(capture_status(CaptureState::Error, 0), "오류 · 메시지 0개");
+        assert_eq!(capture_status(CaptureState::NoFile, 0), "기록 파일 없음 · 메시지 0개");
+    }
 }

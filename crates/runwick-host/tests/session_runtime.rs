@@ -251,6 +251,39 @@ fn screen_rows<T>(term: &Term<T>) -> Vec<String> {
 }
 
 #[test]
+fn shell_startup_stays_read_until_input_and_resets_on_restart() {
+    let h = host();
+    let mut c = Conn::open(&h.socket, "unread-startup");
+    let dir = new_folder();
+    let id = start_shell(&mut c, dir.path(), 80, 24).session.id;
+    c.call::<SessionsAttach>(Attach { id, cols: 80, rows: 24, interactive: true }).unwrap();
+    wait_prompt(&mut c, id);
+    let live = c.call::<SessionsGet>(ById { id }).unwrap().live.unwrap();
+    assert!(!live.unread, "an unseen first prompt stays read");
+    assert!(!runwick_core::api::activity::has_new_response(&live));
+
+    let prompts = c.text(id).matches("$ ").count();
+    c.input(id, "echo UNREAD_$((40+2))\r");
+    c.wait_output(id, "UNREAD_42", 1);
+    c.wait_output(id, "$ ", prompts + 1);
+    let info = c.call::<SessionsGet>(ById { id }).unwrap();
+    assert!(info.live.as_ref().unwrap().unread);
+    assert_eq!(
+        runwick_core::api::activity::session_group(&info.session, info.live.as_ref()),
+        Some((runwick_core::api::activity::Group::Fresh, "새 출력"))
+    );
+    c.call::<SessionsView>(View { id, viewing: true }).unwrap();
+    assert!(!c.call::<SessionsGet>(ById { id }).unwrap().live.unwrap().unread);
+    c.call::<SessionsView>(View { id, viewing: false }).unwrap();
+
+    c.output.remove(&id);
+    c.call::<SessionsRestart>(Restart { id, resume: false, cols: 80, rows: 24 }).unwrap();
+    wait_prompt(&mut c, id);
+    assert!(!c.call::<SessionsGet>(ById { id }).unwrap().live.unwrap().unread);
+    c.call::<SessionsStop>(Stop { id, force: true }).unwrap();
+}
+
+#[test]
 fn shell_session_end_to_end() {
     let h = host();
     let mut c = Conn::open(&h.socket, "first");

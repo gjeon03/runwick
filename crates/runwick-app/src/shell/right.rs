@@ -153,18 +153,28 @@ fn target_row(app: &mut App, ui: &mut egui::Ui) {
         });
     egui::Frame::new().inner_margin(egui::Margin::symmetric(12, 8)).show(ui, |ui| {
         ui.horizontal(|ui| {
-            let mut pinned = app.ui.panel().is_some_and(|p| p.pinned);
-            let label_width = (ui.available_width() - 58.0).max(40.0);
+            let pinned = app.ui.panel().is_some_and(|p| p.pinned);
+            let toggle = if pinned { "이 세션에 고정됨" } else { "선택 따라가기" };
+            let mut job = egui::text::LayoutJob::default();
+            if pinned {
+                job.append(icons::LOCK, 0.0, egui::TextFormat::simple(crate::theme::icon_font(12.0), c::TEXT_2));
+            }
+            job.append(toggle, if pinned { 5.0 } else { 0.0 }, egui::TextFormat::simple(font(11.5), c::TEXT_2));
+            let toggle_width = widgets::text_width(ui, toggle, font(11.5)) + if pinned { 37.0 } else { 20.0 };
+            let label_width = (ui.available_width() - toggle_width - ui.spacing().item_spacing.x).max(40.0);
             ui.allocate_ui(Vec2::new(label_width, 20.0), |ui| {
                 crate::theme::truncated(ui, &label, font(11.5), c::TEXT_2).on_hover_text(&label);
             });
             if ui
-                .add_enabled(target.is_some(), egui::Button::selectable(pinned, "고정"))
-                .on_hover_text("이 대상을 유지해요. 고정을 풀면 선택한 세션을 따라가요")
+                .add_enabled(target.is_some(), egui::Button::selectable(pinned, job))
+                .on_hover_text(if pinned {
+                    "다른 칸을 선택해도 이 세션을 계속 보여줘요. 다시 누르면 선택한 칸의 세션을 따라가요"
+                } else {
+                    "선택한 칸의 세션을 따라가요. 누르면 지금 세션을 계속 보여줘요"
+                })
                 .clicked()
             {
-                pinned = !pinned;
-                app.ui.pin_panel(pinned);
+                app.ui.pin_panel(!pinned);
             }
         });
     });
@@ -230,7 +240,7 @@ fn panel_head(app: &mut App, ui: &mut egui::Ui, panel: &RightPanel) {
         .scope_builder(UiBuilder::new().max_rect(close_r), |ui| {
             let resp = widgets::icon_btn(ui, icons::X, "패널 닫기 (Esc)", 28.0, 28.0, 13.0);
             resp.widget_info(|| {
-                egui::WidgetInfo::labeled(egui::Role::Button, true, "패널 닫기, 실행과 검색 상태는 유지됩니다")
+                egui::WidgetInfo::labeled(egui::Role::Button, true, "패널 닫기, 실행과 검색 상태는 유지돼요")
             });
             resp.clicked()
         })

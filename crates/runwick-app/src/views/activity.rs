@@ -53,6 +53,7 @@ enum Go {
     Collab(HostKey, SessionId),
     Open(HostKey, SessionId),
     Automation,
+    Resources,
     Resume,
     Devices,
 }
@@ -191,7 +192,9 @@ pub fn show_panel(app: &mut App, ui: &mut egui::Ui) {
         filter_row(app, ui, multi, &mut filters);
     });
     ui.painter().hline(ui.max_rect().x_range(), ui.cursor().top(), egui::Stroke::new(1.0, c::LINE));
-    let footer_h = 40.0;
+    let overview = collab::overview(app, HostKey::Local).data;
+    let footer_text = overview.as_deref().and_then(resource_summary);
+    let footer_h = if footer_text.is_some() { 40.0 } else { 0.0 };
     egui::ScrollArea::vertical()
         .max_height((ui.available_height() - footer_h).max(80.0))
         .auto_shrink([false, false])
@@ -249,7 +252,9 @@ pub fn show_panel(app: &mut App, ui: &mut egui::Ui) {
                 }
             });
         });
-    footer(app, ui, &mut go);
+    if let Some(text) = footer_text {
+        footer(ui, &text, &mut go);
+    }
     filters.apply(app);
     if mark_read {
         mark_fresh_read(app, &items, None);
@@ -692,26 +697,26 @@ fn filter_row(app: &mut App, ui: &mut egui::Ui, multi: bool, ch: &mut FilterChan
     });
 }
 
-fn footer(app: &mut App, ui: &mut egui::Ui, go: &mut Option<Go>) {
-    let ov = collab::overview(app, HostKey::Local).data;
-    let text = match &ov {
-        Some(o) => format!("{} · 내장 subagent는 집계 제외", runwick_core::api::activity::slots_line(o)),
-        None => "실행 수 확인 중…".into(),
-    };
+fn resource_summary(ov: &runwick_core::api::collab::Overview) -> Option<String> {
+    (ov.observed_busy > 0 || ov.assigned > 0)
+        .then(|| format!("응답 중 {}개 · 자동 배정 {}/{}", ov.observed_busy, ov.assigned, ov.settings.auto_limit))
+}
+
+fn footer(ui: &mut egui::Ui, text: &str, go: &mut Option<Go>) {
     ui.painter().hline(ui.max_rect().x_range(), ui.cursor().top(), egui::Stroke::new(1.0, c::LINE));
     egui::Frame::new().inner_margin(Margin::symmetric(14, 10)).show(ui, |ui| {
         ui.set_width(ui.available_width());
         ui.horizontal(|ui| {
             let link_w = widgets::text_width(ui, "자원 상세", font(12.0)) + 10.0;
             ui.allocate_ui(egui::vec2((ui.available_width() - link_w).max(40.0), 18.0), |ui| {
-                theme::truncated(ui, &text, font(12.0), c::TEXT_3);
+                theme::truncated(ui, text, font(12.0), c::TEXT_3);
             });
             let l = ui.add(
                 egui::Label::new(RichText::new("자원 상세").font(font(12.0)).color(c::TEXT_2).underline())
                     .sense(Sense::click()),
-            );
+            ).on_hover_text("직접 입력한 실행도 포함해요. 도구 안의 하위 에이전트는 제외해요. 눌러서 자원과 배정 한도를 확인해요");
             if l.clicked() {
-                *go = Some(Go::Automation);
+                *go = Some(Go::Resources);
             }
         });
     });
@@ -738,6 +743,7 @@ fn follow(app: &mut App, g: Go) {
             }
         }
         Go::Automation => actions::open_settings(app, Some(SettingsSection::Automation)),
+        Go::Resources => actions::open_settings(app, Some(SettingsSection::Collab)),
         Go::Resume => app.ui.modal = Some(Modal::Resume),
         Go::Devices => actions::open_settings(app, Some(SettingsSection::Devices)),
     }
@@ -746,6 +752,24 @@ fn follow(app: &mut App, g: Go) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resource_footer_only_describes_active_work() {
+        let mut ov = runwick_core::api::collab::Overview {
+            settings: Default::default(),
+            assigned: 0,
+            observed_busy: 0,
+            in_use: 0,
+            held_parents: vec![],
+            direct_workers: vec![],
+        };
+        assert_eq!(resource_summary(&ov), None);
+        ov.observed_busy = 2;
+        assert_eq!(resource_summary(&ov), Some(format!("응답 중 2개 · 자동 배정 0/{}", ov.settings.auto_limit)));
+        ov.observed_busy = 0;
+        ov.assigned = 1;
+        assert_eq!(resource_summary(&ov), Some(format!("응답 중 0개 · 자동 배정 1/{}", ov.settings.auto_limit)));
+    }
 
     #[test]
     fn project_read_only_marks_its_fresh_responses_including_mapped_remote_workspaces() {

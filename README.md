@@ -55,6 +55,8 @@ sh scripts/bundle-macos.sh
 
 첫 명령은 임시 데이터 폴더로 개발용 앱을 실행하며, 호스트는 자동으로 시작합니다. 두 번째 명령은 release 빌드와 ad-hoc 서명을 거쳐 `dist/Runwick.app`을 만듭니다. 평소 사용에는 이 번들을 사용하세요. 개발 중 번들을 시험할 때도 임시 `RUNWICK_HOME`을 사용합니다.
 
+명시한 `RUNWICK_HOME`이 소켓 경로로 쓰기에 길면, macOS의 `confstr(_CS_DARWIN_USER_TEMP_DIR)`로 얻은 사용자 전용 임시 폴더에 `runwick-<hash>.sock`을 둡니다. 현재 사용자 소유이고 그룹·다른 사용자가 쓸 수 없는 폴더인지, 소켓 경로가 104바이트 미만인지 확인합니다. 이 검증에 실패할 때만 기존 `~/.runwick/run/<hash>.sock`을 사용합니다. 기본 홈의 경로와 명시한 `RUNWICK_SOCKET`은 그대로 유지됩니다. 개발 환경에서 전용 임시 폴더를 사용할 수 없다면 짧은 임시 `RUNWICK_HOME`을 지정하세요.
+
 Xcode 사용권에 아직 동의하지 않았다면 링크 단계가 실패할 수 있습니다. `sudo xcodebuild -license accept`로 동의하거나, 명령 앞에 다음처럼 `DEVELOPER_DIR`를 지정해 Command Line Tools로 빌드합니다.
 
 ```sh

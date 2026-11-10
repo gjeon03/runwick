@@ -3,7 +3,7 @@
 //! counted differently in two places. Pure functions over observed state; nothing is guessed.
 
 use crate::api::collab::{Overview, ReqStatus, Request};
-use crate::api::sessions::{AttentionKind, Phase, Session, SessionId, SessionLive};
+use crate::api::sessions::{AttentionKind, Phase, Session, SessionId, SessionLive, Tool};
 use std::collections::HashMap;
 
 /// Activity groups in the order they are shown (what needs the person first).
@@ -64,6 +64,10 @@ impl Group {
 /// tabs, session bar, collaboration panel and Activity.
 pub const CHOICE_NEEDED: &str = "선택 필요 · CLI 화면에서 골라 주세요";
 
+pub fn fresh_label(tool: Tool) -> &'static str {
+    if tool == Tool::Shell { "새 출력" } else { "새 응답" }
+}
+
 /// A session's group and the state shown for it. `None`: nothing to show (idle or ended).
 pub fn session_group(s: &Session, live: Option<&SessionLive>) -> Option<(Group, &'static str)> {
     let Some(l) = live else {
@@ -76,7 +80,7 @@ pub fn session_group(s: &Session, live: Option<&SessionLive>) -> Option<(Group, 
         let text = match a.kind {
             AttentionKind::Approval => "승인 필요",
             AttentionKind::Auth => "인증·신뢰 확인",
-            AttentionKind::Notify => "새 응답",
+            AttentionKind::Notify => fresh_label(s.tool),
             AttentionKind::Choice => CHOICE_NEEDED,
         };
         return Some((Group::Attention, text));
@@ -84,7 +88,7 @@ pub fn session_group(s: &Session, live: Option<&SessionLive>) -> Option<(Group, 
     match l.phase {
         Phase::Exited if l.error.is_some() => Some((Group::Recover, "시작 실패")),
         Phase::NotRunning if s.interrupted => Some((Group::Recover, "재시작 전에 실행 중이었음")),
-        _ if has_new_response(l) => Some((Group::Fresh, "새 응답")),
+        _ if has_new_response(l) => Some((Group::Fresh, fresh_label(s.tool))),
         Phase::Starting => Some((Group::Running, "시작 중")),
         Phase::Running if l.busy => Some((Group::Running, "응답 생성 중")),
         _ => None,
@@ -292,6 +296,20 @@ mod tests {
         assert_eq!(session_group(&s, Some(&live(Phase::Running, false))), None);
         s.interrupted = false;
         assert_eq!(session_group(&s, None), None);
+    }
+
+    #[test]
+    fn fresh_shell_rows_are_output_in_the_shared_response_group() {
+        let mut s = session();
+        let mut l = live(Phase::Running, false);
+        l.unread = true;
+        for tool in [Tool::Shell, Tool::Claude, Tool::Codex] {
+            s.tool = tool;
+            assert_eq!(session_group(&s, Some(&l)), Some((Group::Fresh, fresh_label(tool))));
+        }
+        assert_eq!(fresh_label(Tool::Shell), "새 출력");
+        assert_eq!(fresh_label(Tool::Codex), "새 응답");
+        assert_eq!(Group::Fresh.label(), "새 응답");
     }
 
     #[test]

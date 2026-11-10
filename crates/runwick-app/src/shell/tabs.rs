@@ -40,7 +40,7 @@ pub fn look(app: &App, tab: &Tab, sessions: &HashMap<uuid::Uuid, SessionInfo>) -
                 let dot = match st.tone {
                     Tone::Attention => Some((Tone::Attention, "확인 필요", false)),
                     Tone::Recover => Some((Tone::Recover, "복구 필요", false)),
-                    _ if unread => Some((Tone::Info, "새 응답", false)),
+                    _ if unread => Some((Tone::Info, runwick_core::api::activity::fresh_label(s.session.tool), false)),
                     Tone::Running => Some((Tone::Running, "실행 중", st.pulse)),
                     _ => None,
                 };

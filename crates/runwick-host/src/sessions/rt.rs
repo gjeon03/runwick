@@ -60,6 +60,8 @@ pub struct RtState {
     pub last_output: Option<Instant>,
     pub last_output_at: Option<Ts>,
     pub last_input: Option<Instant>,
+    /// This run received input from a person or a delegated request (not terminal replies).
+    pub has_input: bool,
     /// The person typed text that has not been sent with Enter yet (see [`typed_line_after`]).
     pub typed_line: bool,
     pub screen_dirty: bool,
@@ -96,6 +98,7 @@ impl RtState {
             last_output: None,
             last_output_at: None,
             last_input: None,
+            has_input: false,
             typed_line: false,
             screen_dirty: false,
             last_scan: None,
@@ -111,6 +114,15 @@ impl RtState {
 
     pub fn anyone_viewing(&self) -> bool {
         self.attached.iter().any(|a| a.viewing)
+    }
+
+    /// Keep startup output quiet until input has actually reached a running session.
+    pub fn send_input(&mut self, data: Vec<u8>) -> bool {
+        if data.is_empty() || self.run.as_ref().is_none_or(|run| run.input.send(data).is_err()) {
+            return false;
+        }
+        self.has_input = true;
+        true
     }
 
     pub fn attachment(&self, client: ClientId) -> Option<&Attachment> {

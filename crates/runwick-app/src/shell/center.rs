@@ -380,7 +380,10 @@ fn pane_header(app: &mut App, ui: &mut egui::Ui, ws: WsKey, body: &mut Rect, tab
         Pos2::new(header.right() - controls_w - 6.0, header.bottom()),
     );
     widgets::paint_clipped(ui, title, &look.title, font(12.0), if focused { c::TEXT_STRONG } else { c::TEXT_2 }, true);
-    let controls = Rect::from_min_max(Pos2::new(header.right() - controls_w, header.top() + 3.0), header.max);
+    let controls = Rect::from_min_size(
+        Pos2::new(header.right() - controls_w, header.center().y - 12.0),
+        Vec2::new(controls_w, 24.0),
+    );
     ui.scope_builder(
         UiBuilder::new()
             .max_rect(controls)

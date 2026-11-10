@@ -24,16 +24,18 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, host: HostKey, session: SessionId)
     egui::Frame::new().inner_margin(Margin::same(12)).show(ui, |ui| {
         ui.horizontal(|ui| {
             ui.label(RichText::new(format!("작업자 {}", workers.len())).font(medium(13.0)).color(c::TEXT));
-            let more = widgets::icon_btn(ui, icons::ELLIPSIS, "작업자 더 보기", 28.0, 28.0, 14.0);
-            egui::Popup::menu(&more).show(|ui| {
-                let text = if held { "배정 재개" } else { "새 배정 보류" };
-                if widgets::menu_item(ui, if held { icons::PLAY } else { icons::PAUSE }, text).clicked() {
-                    app.hub.send::<CollabHold>(host, Hold { parent_id: session, held: !held });
-                }
-                if widgets::menu_item_danger(ui, icons::CIRCLE_STOP, "작업자 모두 멈추기…").clicked() {
-                    app.feat.collab.stop_all = Some((host, session));
-                }
-            });
+            if !workers.is_empty() {
+                let more = widgets::icon_btn(ui, icons::ELLIPSIS, "작업자 더 보기", 28.0, 28.0, 14.0);
+                egui::Popup::menu(&more).show(|ui| {
+                    let text = if held { "배정 재개" } else { "새 배정 보류" };
+                    if widgets::menu_item(ui, if held { icons::PLAY } else { icons::PAUSE }, text).clicked() {
+                        app.hub.send::<CollabHold>(host, Hold { parent_id: session, held: !held });
+                    }
+                    if widgets::menu_item_danger(ui, icons::CIRCLE_STOP, "작업자 모두 멈추기…").clicked() {
+                        app.feat.collab.stop_all = Some((host, session));
+                    }
+                });
+            }
         });
         if held {
             ui.label(RichText::new("새 배정을 보류하고 있어요").font(font(12.0)).color(c::TEXT_3));

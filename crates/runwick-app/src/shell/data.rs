@@ -124,7 +124,7 @@ fn status_at(s: &Session, live: Option<&SessionLive>, now: Ts) -> Status {
             {
                 Status::new(Tone::Attention, attention_label(a.kind), false, true)
             } else if runwick_core::api::activity::has_new_response(l) {
-                Status::new(Tone::Info, "새 응답", false, true)
+                Status::new(Tone::Info, runwick_core::api::activity::fresh_label(s.tool), false, true)
             } else if l.busy {
                 Status::new(Tone::Running, "실행 중", true, true)
             } else if waiting {
@@ -430,6 +430,21 @@ mod tests {
         ended.leftovers = vec!["sleep (pid 7)".into()];
         let st = status_at(&sh, Some(&ended), now);
         assert_eq!((st.tone, st.label.as_str()), (Tone::Recover, "남은 프로세스 1개"));
+    }
+
+    #[test]
+    fn unread_shell_state_is_output_and_agent_state_is_response() {
+        let mut l = live(Phase::Running, false);
+        l.unread = true;
+        assert_eq!(status(&session("shell", false), Some(&l)).label, "새 출력");
+        assert_eq!(status(&session("claude", false), Some(&l)).label, "새 응답");
+        l.unread = false;
+        l.attention = Some(runwick_core::api::sessions::Attention {
+            kind: AttentionKind::Notify,
+            text: "bell".into(),
+            since: runwick_core::now(),
+        });
+        assert_eq!(status(&session("shell", false), Some(&l)).label, "새 출력");
     }
 
     #[test]

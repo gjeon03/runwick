@@ -57,7 +57,8 @@ async fn run_async() -> anyhow::Result<()> {
 /// (with `RUNWICK_HOME` pointing at the same `home`, which other paths derive from).
 pub async fn serve_at(home: &std::path::Path, sock: &std::path::Path) -> anyhow::Result<()> {
     if let Some(dir) = sock.parent() {
-        // The fallback socket folder (~/.runwick/run) must be private to this user.
+        // The legacy fallback (~/.runwick/run) needs private permissions. The macOS private
+        // temp fallback is already checked by paths::socket_path; do not change its permissions.
         use std::os::unix::fs::PermissionsExt;
         std::fs::create_dir_all(dir).ok();
         if dir.ends_with("run") {

@@ -276,7 +276,7 @@ mod tests {
         assert!(s.contains("## 메모\ne2e 아직\n"));
         assert!(s.contains("- [ ] 통합\n- [x] 재현\n"));
         assert!(s.contains("> FAIL a\n> expected 1\n메모: 스테이징 확인"));
-        assert!(s.contains("터미널 발췌 · 원문 메시지 연결 불가 · 로그인 오류 수정"));
+        assert!(s.contains("터미널에서 고정 · 로그인 오류 수정"));
         assert!(s.contains("## 관련 파일\n- src/a.ts\n"));
         let bare = compose(None, Some("  "), &[], &[], &[]);
         assert!(!bare.contains("##"));

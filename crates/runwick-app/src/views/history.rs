@@ -111,7 +111,6 @@ pub struct State {
     pub scope: ScopeKind,
     pub date: DateRange,
     pub tool: Option<Tool>,
-    pub pinned_only: bool,
     /// Pages of results asked for ("더 보기").
     pub pages: u32,
     /// Show only results from one computer.

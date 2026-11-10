@@ -186,15 +186,14 @@ impl Manager {
     /// person's input. Returns false when nothing is running.
     pub fn type_into(&self, id: SessionId, data: &[u8]) -> bool {
         let Some(rt) = self.get(id) else { return false };
-        let st = rt.lock();
-        st.run.as_ref().is_some_and(|run| run.input.send(data.to_vec()).is_ok())
+        rt.lock().send_input(data.to_vec())
     }
 
     /// Paste text into a running session like a terminal would: bracketed when the program
     /// asked for it, so a multi-line instruction arrives as one input. Enter is sent separately.
     pub fn paste(&self, id: SessionId, text: &str) -> bool {
         let Some(rt) = self.get(id) else { return false };
-        let st = rt.lock();
+        let mut st = rt.lock();
         let bracketed = st.term.mode().contains(alacritty_terminal::term::TermMode::BRACKETED_PASTE);
         // Control characters (ESC above all) could end the paste early and act as keys.
         let clean: String = text.chars().filter(|c| !c.is_control() || matches!(c, '\n' | '\t')).collect();
@@ -204,7 +203,7 @@ impl Manager {
             // Without bracketed paste every newline would submit a line: send one line.
             clean.split('\n').map(str::trim).filter(|l| !l.is_empty()).collect::<Vec<_>>().join(" ").into_bytes()
         };
-        st.run.as_ref().is_some_and(|run| run.input.send(data).is_ok())
+        st.send_input(data)
     }
 
     /// Plain text of the session's screen (and up to `scrollback` lines above it).
@@ -663,9 +662,8 @@ pub fn on_input(host: &Arc<Host>, client: &Arc<Client>, session: Uuid, data: Vec
     if st.owner.is_none() {
         st.owner = Some(client.id);
     }
-    let Some(run) = &st.run else { return };
     let typed = rt::typed_line_after(st.typed_line, &data);
-    if run.input.send(data).is_ok() {
+    if st.send_input(data) {
         st.last_input = Some(Instant::now());
         st.typed_line = typed;
         st.bell_at = None;

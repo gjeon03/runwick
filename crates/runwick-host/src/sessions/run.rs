@@ -40,6 +40,10 @@ pub struct Launch<'a> {
 
 pub type StartError = (StartErrorKind, String);
 
+fn initial_input(launch: &Launch<'_>) -> bool {
+    launch.session.tool.is_agent() && !launch.resume && launch.initial_prompt.is_some_and(|p| !p.trim().is_empty())
+}
+
 /// Start a run. Blocking (waits for the login environment and spawns a process).
 pub fn start(host: &Arc<Host>, rt: &Arc<Rt>, launch: Launch<'_>, overlay: &EnvOverlay) -> Result<(), StartError> {
     let s = launch.session;
@@ -72,6 +76,7 @@ pub fn start(host: &Arc<Host>, rt: &Arc<Rt>, launch: Launch<'_>, overlay: &EnvOv
     st.error = None;
     st.attention = None;
     st.scanner = Default::default();
+    st.has_input = initial_input(&launch);
     drop(st);
 
     let now = runwick_core::now();
@@ -239,14 +244,14 @@ fn on_output(rt: &Rt, st: &mut RtState, data: &[u8]) {
     {
         st.pending_title = Some((title, Instant::now()));
     }
-    if fx.bell && !st.anyone_viewing() {
+    if fx.bell && st.has_input && !st.anyone_viewing() {
         st.bell_at = Some(runwick_core::now());
     }
     if content {
         st.last_output = Some(Instant::now());
         st.last_output_at = Some(runwick_core::now());
         st.screen_dirty = true;
-        if !st.anyone_viewing() {
+        if st.has_input && !st.anyone_viewing() {
             st.unread = true;
         }
         if st.phase == Phase::Starting {
@@ -323,6 +328,87 @@ fn watch_codex_thread(host: &Arc<Host>, rt: &Arc<Rt>, seq: u64, root: &Path, cwd
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn startup_output_and_bells_are_not_unread() {
+        for tool in [Tool::Shell, Tool::Claude, Tool::Codex] {
+            let rt = Rt::new(uuid::Uuid::new_v4(), tool, super::super::term::Size::clamped(80, 24));
+            let mut st = rt.lock();
+            st.phase = Phase::Starting;
+            on_output(&rt, &mut st, b"Welcome\r\n> \x07");
+            assert!(!st.unread, "{tool:?} startup output is not a response");
+            assert!(st.bell_at.is_none(), "a startup bell is not a response");
+            assert!(st.last_output.is_some(), "startup still updates activity and the screen");
+            assert_eq!(st.phase, Phase::Running);
+        }
+    }
+
+    fn input_channel(st: &mut RtState) -> mpsc::Receiver<Vec<u8>> {
+        let (tx, rx) = mpsc::channel();
+        st.run = Some(Run { seq: 1, pid: 0, input: tx, master: File::open("/dev/null").unwrap().into() });
+        rx
+    }
+
+    #[test]
+    fn output_after_input_is_unread_only_when_not_viewed() {
+        for tool in [Tool::Shell, Tool::Claude, Tool::Codex] {
+            let rt = Rt::new(uuid::Uuid::new_v4(), tool, super::super::term::Size::clamped(80, 24));
+            let mut st = rt.lock();
+            let rx = input_channel(&mut st);
+            assert!(st.send_input(b"task\r".to_vec()));
+            assert_eq!(rx.try_recv().unwrap(), b"task\r");
+            on_output(&rt, &mut st, b"answer\x07");
+            assert!(st.unread);
+            assert!(st.bell_at.is_some());
+
+            let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+            st.attached.push(super::super::rt::Attachment {
+                client: Arc::new(crate::host::Client::new(1, tx)),
+                interactive: true,
+                viewing: true,
+            });
+            st.unread = false;
+            st.bell_at = None;
+            on_output(&rt, &mut st, b"visible answer\x07");
+            assert!(!st.unread);
+            assert!(st.bell_at.is_none());
+        }
+    }
+
+    #[test]
+    fn terminal_replies_and_failed_sends_do_not_count_as_input() {
+        let rt = Rt::new(uuid::Uuid::new_v4(), Tool::Shell, super::super::term::Size::clamped(80, 24));
+        let mut st = rt.lock();
+        assert!(!st.send_input(b"no run".to_vec()));
+        let rx = input_channel(&mut st);
+        assert!(!st.send_input(Vec::new()));
+        on_output(&rt, &mut st, b"\x1b[6n");
+        assert!(!rx.try_recv().unwrap().is_empty(), "the host replies to terminal queries");
+        on_output(&rt, &mut st, b"prompt\x07");
+        assert!(!st.has_input);
+        assert!(!st.unread);
+        assert!(st.bell_at.is_none());
+        drop(rx);
+        assert!(!st.send_input(b"disconnected".to_vec()));
+        assert!(!st.has_input);
+    }
+
+    #[test]
+    fn only_delivered_launch_prompts_enable_unread_output() {
+        for tool in [Tool::Shell, Tool::Claude, Tool::Codex] {
+            let s = session(tool, None);
+            for prompt in [None, Some(""), Some(" \n"), Some("review this")] {
+                for resume in [false, true] {
+                    let launch = Launch { session: &s, resume, initial_prompt: prompt };
+                    let rt = Rt::new(s.id, tool, super::super::term::Size::clamped(80, 24));
+                    let mut st = rt.lock();
+                    st.has_input = initial_input(&launch);
+                    on_output(&rt, &mut st, b"output");
+                    assert_eq!(st.unread, tool.is_agent() && !resume && prompt == Some("review this"));
+                }
+            }
+        }
+    }
 
     fn session(tool: Tool, conv: Option<&str>) -> Session {
         Session {

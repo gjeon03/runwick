@@ -142,7 +142,7 @@ pub fn query_terms(q: &str) -> Vec<String> {
     out
 }
 
-/// Filter chip like `날짜: 전체 ▾` or a toggle (`핀만 보기`). `on` draws it as selected.
+/// Filter chip like `날짜: 전체 ▾`. `on` draws it as selected.
 pub fn chip_button(ui: &mut Ui, text: &str, on: bool, dropdown: bool) -> Response {
     let f = font(ty::SMALL);
     let galley = ui.painter().layout_no_wrap(text.to_string(), f, c::TEXT);
