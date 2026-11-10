@@ -293,6 +293,9 @@ fn project_menu(ui: &mut egui::Ui, p: &Project, acts: &mut Vec<Act>) {
         acts.push(Act::Favorite(p.id, !fav));
     }
     widgets::menu_sep(ui);
+    if widgets::menu_item(ui, icons::CHECK, "이 프로젝트 모두 읽음").clicked() {
+        acts.push(Act::ReadProject(p.id));
+    }
     if widgets::menu_item(ui, icons::FOLDER_OPEN, "Finder에서 열기").clicked() {
         acts.push(Act::Reveal(p.root.clone()));
     }

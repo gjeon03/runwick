@@ -439,6 +439,9 @@ pub struct UiState {
     #[serde(skip)]
     pub project_search: String,
     pub expanded_projects: BTreeSet<ProjectId>,
+    /// Ended sessions are collapsed until explicitly expanded in this workspace.
+    #[serde(default)]
+    pub expanded_ended_sessions: BTreeSet<WsKey>,
     pub tabsets: BTreeMap<String, TabSet>,
     #[serde(default, deserialize_with = "deserialize_right")]
     pub right: Option<RightPanel>,
@@ -477,6 +480,7 @@ impl Default for UiState {
             project_filter: ProjectFilter::All,
             project_search: String::new(),
             expanded_projects: BTreeSet::new(),
+            expanded_ended_sessions: BTreeSet::new(),
             tabsets: BTreeMap::new(),
             right: None,
             panels: BTreeMap::new(),
@@ -716,6 +720,24 @@ pub fn parse_ws_storage_key(k: &str) -> Option<WsKey> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn ended_session_fold_defaults_to_closed_and_persists_per_workspace_and_host() {
+        let mut ui = UiState::default();
+        let first = WsKey { host: HostKey::Local, id: Uuid::new_v4() };
+        let second = WsKey { host: HostKey::Local, id: Uuid::new_v4() };
+        let remote = WsKey { host: HostKey::Device(Uuid::new_v4()), id: first.id };
+        assert!(ui.expanded_ended_sessions.is_empty());
+        ui.expanded_ended_sessions.insert(first);
+        let mut saved = serde_json::to_value(&ui).unwrap();
+        let restored: UiState = serde_json::from_value(saved.clone()).unwrap();
+        assert!(restored.expanded_ended_sessions.contains(&first));
+        assert!(!restored.expanded_ended_sessions.contains(&second));
+        assert!(!restored.expanded_ended_sessions.contains(&remote));
+        saved.as_object_mut().unwrap().remove("expanded_ended_sessions");
+        let legacy: UiState = serde_json::from_value(saved).unwrap();
+        assert!(legacy.expanded_ended_sessions.is_empty());
+    }
 
     fn panel_sessions() -> (UiState, WsKey, PanelTarget, PanelTarget) {
         let ws = WsKey { host: HostKey::Local, id: Uuid::new_v4() };

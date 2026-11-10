@@ -29,11 +29,17 @@ pub struct StopAsk {
     /// Workers chosen to stop together with the target.
     pub with_workers: Vec<(SessionId, bool)>,
     initialized: bool,
+    archive_after: bool,
 }
 
 impl State {
     pub fn ask_stop(&mut self, host: HostKey, session: SessionId) {
-        self.stop = Some(StopAsk { host, session, with_workers: Vec::new(), initialized: false });
+        self.stop = Some(StopAsk { host, session, with_workers: Vec::new(), initialized: false, archive_after: false });
+    }
+
+    pub fn ask_stop_and_archive(&mut self, host: HostKey, session: SessionId) {
+        self.ask_stop(host, session);
+        self.stop.as_mut().expect("just created").archive_after = true;
     }
 }
 
@@ -81,8 +87,9 @@ pub fn show_container(app: &mut App, ctx: &egui::Context) {
             app.ui.modal = None;
         }
     }
+    super::sidebar::show_dialogs(app, ctx);
     if let Some(ask) = app.shell.modal.stop.as_ref() {
-        if crate::views::settings::general::confirm_stop() {
+        if ask.archive_after || crate::views::settings::general::confirm_stop() {
             stop_confirm(app, ctx);
         } else {
             // 일반 › "실행을 멈추기 전에 확인" is off: stop only the chosen session, never its workers.
@@ -389,7 +396,7 @@ fn apply_rename(app: &mut App, target: &RenameTarget, name: String) {
 /// "실행 종료" confirmation: shows the target and its running workers before stopping.
 fn stop_confirm(app: &mut App, ctx: &egui::Context) {
     let Some(ask) = app.shell.modal.stop.as_ref() else { return };
-    let (host, session) = (ask.host, ask.session);
+    let (host, session, archive_after) = (ask.host, ask.session, ask.archive_after);
     let list = data::all_sessions(app, host).data;
     let Some(info) = list.as_ref().and_then(|l| l.iter().find(|s| s.session.id == session)).cloned() else {
         if list.is_some() {
@@ -425,7 +432,7 @@ fn stop_confirm(app: &mut App, ctx: &egui::Context) {
     let ((), close) = dialog(ctx, "stop-session", 460.0, |ui| {
         dialog_title(
             ui,
-            "실행을 종료할까요?",
+            if archive_after { "실행을 종료하고 보관할까요?" } else { "실행을 종료할까요?" },
             Some(
                 "CLI 프로세스를 멈춰요. 화면 출력과 대화 기록은 남고, 지원하는 CLI는 나중에 같은 대화를 재개할 수 있어요.",
             ),
@@ -449,6 +456,13 @@ fn stop_confirm(app: &mut App, ctx: &egui::Context) {
                     });
                 });
             });
+        if archive_after {
+            ui.label(
+                egui::RichText::new("종료가 확인되면 이 세션을 보관해요. 기록은 계속 검색할 수 있어요.")
+                    .font(font(12.0))
+                    .color(c::TEXT_2),
+            );
+        }
         if !choices.is_empty() {
             ui.add_space(4.0);
             ui.label(
@@ -471,7 +485,8 @@ fn stop_confirm(app: &mut App, ctx: &egui::Context) {
         }
         ui.add_space(8.0);
         ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-            if theme::danger_button(ui, "실행 종료").clicked() {
+            if theme::danger_button(ui, if archive_after { "실행 종료 후 보관" } else { "실행 종료" }).clicked()
+            {
                 confirm = true;
             }
             if theme::secondary_button(ui, "취소").clicked() {
@@ -483,7 +498,11 @@ fn stop_confirm(app: &mut App, ctx: &egui::Context) {
         ask.with_workers = choices.clone();
     }
     if confirm {
-        actions::stop_session(app, host, session);
+        if archive_after {
+            stop_and_archive(app, host, session);
+        } else {
+            actions::stop_session(app, host, session);
+        }
         for (id, on) in choices {
             if on {
                 actions::stop_session(app, host, id);
@@ -493,4 +512,20 @@ fn stop_confirm(app: &mut App, ctx: &egui::Context) {
     } else if close || cancel {
         app.shell.modal.stop = None;
     }
+}
+
+fn stop_and_archive(app: &mut App, host: HostKey, session: SessionId) {
+    use runwick_core::api::sessions::{SessionsStop, Stop};
+    app.hub.call::<SessionsStop>(host, Stop { id: session, force: false }, move |app, result| {
+        match result {
+            Ok(()) => {
+                // The stop response follows process cleanup; update rejects survivors or a new run.
+                app.hub.send::<SessionsUpdate>(
+                    host,
+                    SessionUpdate { id: session, archived: Some(true), ..Default::default() },
+                );
+            }
+            Err(e) => app.toast_error(&format!("실행을 종료하지 못해 보관하지 않았어요: {}", e.message)),
+        }
+    });
 }

@@ -674,6 +674,8 @@ fn a_daemon_that_left_the_run_is_reported_not_killed() {
     let l = c.wait_live(id, |l| l.phase == Phase::Exited && !l.leftovers.is_empty());
     assert_eq!(l.leftovers.len(), 1, "{:?}", l.leftovers);
     assert!(l.leftovers[0].starts_with("sleep (pid ") && l.leftovers[0].ends_with("· 세션에서 떨어져 계속 실행 중"));
+    let error = c.call::<SessionsUpdate>(SessionUpdate { id, archived: Some(true), ..Default::default() }).unwrap_err();
+    assert_eq!(error.code, codes::BUSY, "surviving processes must stay visible");
     let daemon = processes(pattern);
     assert_eq!(daemon.len(), 1, "never killed");
     let pid: i32 = daemon[0].split_whitespace().next().unwrap().parse().unwrap();
@@ -684,4 +686,36 @@ fn a_daemon_that_left_the_run_is_reported_not_killed() {
 unsafe extern "C" {
     #[link_name = "kill"]
     fn libc_kill(pid: i32, sig: i32) -> i32;
+}
+
+#[test]
+fn archive_requires_a_completed_stop_and_restore_preserves_the_session() {
+    let h = host();
+    let mut c = Conn::open(&h.socket, "archive-restore");
+    let dir = new_folder();
+    let info = start_shell(&mut c, dir.path(), 80, 24);
+    let id = info.session.id;
+    let archive = || SessionUpdate { id, archived: Some(true), ..Default::default() };
+    assert_eq!(c.call::<SessionsUpdate>(archive()).unwrap_err().code, codes::BUSY);
+    c.call::<SessionsStop>(Stop { id, force: false }).unwrap();
+    // No polling: the stop response is the handoff for the window's archive action.
+    let stopped = c.call::<SessionsGet>(ById { id }).unwrap();
+    assert_eq!(stopped.live.as_ref().unwrap().phase, Phase::Exited);
+    assert!(stopped.live.as_ref().unwrap().leftovers.is_empty());
+    assert!(stopped.session.ended_at.is_some());
+    let archived = c.call::<SessionsUpdate>(archive()).unwrap();
+    assert!(archived.archived);
+    let query =
+        SessionQuery { workspace_id: Some(info.session.workspace_id), include_hidden: true, ..Default::default() };
+    assert!(c.call::<SessionsList>(query.clone()).unwrap().is_empty());
+    let all = c.call::<SessionsList>(SessionQuery { include_archived: true, ..query.clone() }).unwrap();
+    assert_eq!(all.len(), 1);
+    assert_eq!(all[0].session.id, id);
+    let restored = c.call::<SessionsUpdate>(SessionUpdate { id, archived: Some(false), ..Default::default() }).unwrap();
+    assert!(!restored.archived);
+    assert_eq!(restored.ended_at, stopped.session.ended_at);
+    assert_eq!(restored.title, stopped.session.title);
+    assert_eq!(restored.cwd, stopped.session.cwd);
+    assert_eq!(c.call::<SessionsList>(query).unwrap().len(), 1);
+    assert_eq!(c.call::<SessionsGet>(ById { id }).unwrap().live.unwrap().phase, Phase::Exited);
 }

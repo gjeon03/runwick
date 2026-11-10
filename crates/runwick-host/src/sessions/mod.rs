@@ -9,6 +9,8 @@
 //! - `live`: `session.live` events, prompt recognition, titles
 //! - `record`: the `sessions` table
 
+#[cfg(test)]
+mod archive_tests;
 mod attention;
 mod codex;
 pub mod env;
@@ -286,16 +288,14 @@ pub fn register(r: &mut Router) {
     r.add::<SessionsStop, _, _>(|ctx: Ctx, p: Stop| async move {
         let Some(rt) = ctx.host.sessions.get(p.id) else { return Ok(()) };
         let grace = if p.force { Duration::ZERO } else { STOP_GRACE };
-        let host = ctx.host.clone();
-        tokio::spawn(async move {
-            if let Some(out) = stop::stop(&rt, grace).await {
-                if !out.leftovers.is_empty() {
-                    tracing::warn!(session = %rt.id, leftovers = ?out.leftovers, "processes survived the stop");
-                }
-                rt.lock().leftovers = out.leftovers;
-                host.sessions.wake();
+        // A successful response means cleanup finished, so the window can safely archive next.
+        if let Some(out) = stop::stop(&rt, grace).await {
+            if !out.leftovers.is_empty() {
+                tracing::warn!(session = %rt.id, leftovers = ?out.leftovers, "processes survived the stop");
             }
-        });
+            rt.lock().leftovers = out.leftovers;
+            ctx.host.sessions.wake();
+        }
         Ok(())
     });
     r.add::<SessionsRestart, _, _>(restart);
@@ -583,6 +583,14 @@ pub async fn restart_session(host: Arc<Host>, p: Restart) -> Result<SessionInfo,
 async fn update(ctx: Ctx, u: SessionUpdate) -> Result<Session, RpcError> {
     let host = &ctx.host;
     record::get(&host.store, u.id)?;
+    if u.archived == Some(true)
+        && host.sessions.get(u.id).is_some_and(|rt| {
+            let st = rt.lock();
+            st.run.is_some() || matches!(st.phase, Phase::Starting | Phase::Running) || !st.leftovers.is_empty()
+        })
+    {
+        return Err(RpcError::new(codes::BUSY, "실행이 남아 있어 보관하지 않았어요. 종료 상태를 확인해 주세요."));
+    }
     if let Some(title) = &u.title {
         let title = live::visible(title);
         let title = title.trim();

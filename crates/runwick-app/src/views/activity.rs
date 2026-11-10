@@ -252,17 +252,50 @@ pub fn show_panel(app: &mut App, ui: &mut egui::Ui) {
     footer(app, ui, &mut go);
     filters.apply(app);
     if mark_read {
-        for item in items.iter().filter(|i| i.group == Group::Fresh) {
-            if let Some(id) = item.read_session {
-                app.hub.send::<SessionsUpdate>(item.key.0, SessionUpdate { id, mark_read: true, ..Default::default() });
-            }
-            for &id in &item.read_requests {
-                app.hub.send::<CollabAck>(item.key.0, Ack { id, acknowledged: true });
-            }
-        }
+        mark_fresh_read(app, &items, None);
     }
     if let Some(g) = go {
         follow(app, g);
+    }
+}
+
+/// Use the same read targets as Activity, including remote workspaces mapped to this project.
+pub fn mark_project_read(app: &mut App, project: ProjectId) {
+    let g = gather(app);
+    if g.loading {
+        app.toast_info("활동을 불러오는 중이에요. 잠시 후 다시 눌러 주세요.");
+        return;
+    }
+    mark_fresh_read(app, &g.items, Some(project));
+    if !g.unreachable.is_empty() {
+        app.toast_info("연결된 기기의 새 응답을 읽음으로 표시했어요.");
+    }
+}
+
+struct ReadTargets {
+    sessions: Vec<(HostKey, SessionId)>,
+    requests: Vec<(HostKey, uuid::Uuid)>,
+}
+
+fn read_targets(items: &[Item], project: Option<ProjectId>) -> ReadTargets {
+    let mut sessions = Vec::new();
+    let mut requests = Vec::new();
+    for item in items.iter().filter(|i| i.group == Group::Fresh && project.is_none_or(|p| i.project == Some(p))) {
+        if let Some(id) = item.read_session {
+            sessions.push((item.key.0, id));
+        }
+        requests.extend(item.read_requests.iter().map(|&id| (item.key.0, id)));
+    }
+    ReadTargets { sessions, requests }
+}
+
+fn mark_fresh_read(app: &mut App, items: &[Item], project: Option<ProjectId>) {
+    let ReadTargets { sessions, requests } = read_targets(items, project);
+    for (host, id) in sessions {
+        app.hub.send::<SessionsUpdate>(host, SessionUpdate { id, mark_read: true, ..Default::default() });
+    }
+    for (host, id) in requests {
+        app.hub.send::<CollabAck>(host, Ack { id, acknowledged: true });
     }
 }
 
@@ -713,6 +746,44 @@ fn follow(app: &mut App, g: Go) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn project_read_only_marks_its_fresh_responses_including_mapped_remote_workspaces() {
+        let project = uuid::Uuid::new_v4();
+        let other = uuid::Uuid::new_v4();
+        let remote = HostKey::Device(uuid::Uuid::new_v4());
+        let make = |id: u128, host, project, group| Item {
+            key: (host, uuid::Uuid::from_u128(id)),
+            workspace: None,
+            read_session: Some(uuid::Uuid::from_u128(id)),
+            read_requests: vec![uuid::Uuid::from_u128(id + 100)],
+            group,
+            alive: true,
+            kind: Kind::Session,
+            title: String::new(),
+            state: String::new(),
+            when: String::new(),
+            where_: String::new(),
+            why: String::new(),
+            act: "",
+            go: Go::Open(host, uuid::Uuid::from_u128(id)),
+            project: Some(project),
+            device: String::new(),
+            at: runwick_core::now(),
+        };
+        let items = vec![
+            make(1, HostKey::Local, project, Group::Fresh),
+            make(2, remote, project, Group::Fresh),
+            make(3, HostKey::Local, other, Group::Fresh),
+            make(4, HostKey::Local, project, Group::Attention),
+            make(5, remote, project, Group::Recover),
+            make(6, remote, project, Group::Recent),
+        ];
+        let ReadTargets { sessions, requests } = read_targets(&items, Some(project));
+        assert_eq!(sessions, [(HostKey::Local, uuid::Uuid::from_u128(1)), (remote, uuid::Uuid::from_u128(2))]);
+        assert_eq!(requests, [(HostKey::Local, uuid::Uuid::from_u128(101)), (remote, uuid::Uuid::from_u128(102))]);
+        assert_eq!(read_targets(&items, None).sessions.len(), 3);
+    }
 
     #[test]
     fn section_entry_order_survives_updates_and_filters() {

@@ -23,6 +23,7 @@ pub struct State {
     pub expanded_parents: BTreeSet<SessionId>,
     /// Narrow window: the full sidebar shown over the content.
     pub flyout: bool,
+    archive: Option<sessions::ArchiveDialog>,
 }
 
 /// Something the person asked for in the sidebar, applied after drawing.
@@ -50,6 +51,11 @@ pub enum Act {
     StopSession(crate::client::HostKey, SessionId),
     Restart(crate::client::HostKey, SessionId, bool),
     ArchiveSession(crate::client::HostKey, SessionId),
+    StopAndArchive(crate::client::HostKey, SessionId),
+    ToggleEnded(WsKey),
+    ArchiveEnded(WsKey, Vec<SessionId>),
+    ShowArchive(WsKey),
+    ReadProject(ProjectId),
     ToggleWorkers(SessionId),
     SplitWork(WsKey),
     /// `이 공간` panel of a device's workspace.
@@ -144,10 +150,18 @@ fn apply(app: &mut App, ctx: &egui::Context, act: Act) {
         Act::OpenSession { project, ws, session, hidden } => actions::open_session(app, project, ws, session, hidden),
         Act::StopSession(host, id) => app.shell.modal.ask_stop(host, id),
         Act::Restart(host, id, resume) => actions::restart_session(app, host, id, resume),
-        Act::ArchiveSession(host, id) => {
-            let upd = runwick_core::api::sessions::SessionUpdate { id, archived: Some(true), ..Default::default() };
-            app.hub.send::<runwick_core::api::sessions::SessionsUpdate>(host, upd);
+        Act::ArchiveSession(host, id) => sessions::set_archived(app, host, id, true),
+        Act::StopAndArchive(host, id) => app.shell.modal.ask_stop_and_archive(host, id),
+        Act::ToggleEnded(ws) => {
+            if !app.ui.expanded_ended_sessions.remove(&ws) {
+                app.ui.expanded_ended_sessions.insert(ws);
+            }
         }
+        Act::ArchiveEnded(ws, ids) => {
+            app.shell.sidebar.archive = Some(sessions::ArchiveDialog::Confirm { ws, ids });
+        }
+        Act::ShowArchive(ws) => app.shell.sidebar.archive = Some(sessions::ArchiveDialog::List(ws)),
+        Act::ReadProject(id) => crate::views::activity::mark_project_read(app, id),
         Act::ToggleWorkers(id) => {
             if !app.shell.sidebar.expanded_parents.remove(&id) {
                 app.shell.sidebar.expanded_parents.insert(id);
@@ -215,4 +229,9 @@ fn filter_index(f: ProjectFilter) -> usize {
 
 fn filter_segments() -> [Seg<'static>; 2] {
     [Seg::text("전체"), Seg::icon(icons::STAR, "즐겨찾기")]
+}
+
+/// Session management dialogs also remain available when the sidebar is collapsed.
+pub fn show_dialogs(app: &mut App, ctx: &egui::Context) {
+    sessions::show_archive_dialog(app, ctx);
 }

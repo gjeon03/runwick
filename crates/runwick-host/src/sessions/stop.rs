@@ -20,6 +20,7 @@
 use super::pty::{self, Member, Proc};
 use super::rt::Rt;
 use super::run;
+use runwick_core::api::sessions::Phase;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -123,7 +124,12 @@ fn hang_up(rt: &Rt) -> Option<Target> {
 /// The run's process has exited and nothing else of its session or family is alive.
 fn ended(rt: &Rt, target: &mut Target) -> bool {
     target.follow();
-    !run::is_running(rt) && pty::session_members(target.sid).is_empty() && target.living_family().next().is_none()
+    // The exit phase is published only after the screen and ended timestamp have been saved.
+    let recorded = matches!(rt.lock().phase, Phase::Exited | Phase::NotRunning);
+    !run::is_running(rt)
+        && recorded
+        && pty::session_members(target.sid).is_empty()
+        && target.living_family().next().is_none()
 }
 
 pub fn describe(m: &Member) -> String {

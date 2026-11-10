@@ -1,6 +1,9 @@
 //! The selected workspace's header (`세션 / 파일`) and its session list. Delegated workers are
 //! nested under their parent and collapsed by default.
 
+mod archive;
+mod grouping;
+
 use super::Act;
 use crate::App;
 use crate::client::HostKey;
@@ -8,7 +11,9 @@ use crate::icons;
 use crate::shell::{data, widgets};
 use crate::state::{RenameTarget, SidebarMode, TabKind, WsKey};
 use crate::theme::{self, Seg, Tone, c, font, icon_font, mono};
+pub(super) use archive::{ArchiveDialog, set_archived, show_archive_dialog};
 use egui::{Align2, Pos2, Rect, Stroke, Vec2};
+use grouping::SessionGroups;
 use runwick_core::api::projects::ProjectId;
 use runwick_core::api::sessions::{SessionInfo, SessionLive, Tool};
 
@@ -62,11 +67,19 @@ pub fn list(app: &mut App, ui: &mut egui::Ui, acts: &mut Vec<Act>) {
         return;
     };
     let Some(project) = app.ui.selected_project else { return };
-    let q = data::sessions_in(app, ws);
+    let q = archive::query(app, ws);
     match (&q.data, &q.error) {
         (Some(list), _) => {
             let list = list.clone();
             sessions(app, ui, ws, project, &list, acts);
+            let archived = list.iter().filter(|s| s.session.archived).count();
+            if archived > 0 {
+                ui.add_space(6.0);
+                let label = format!("보관된 세션 {archived}개");
+                if widgets::wide_pill(ui, Some(icons::ARCHIVE), &label, ui.available_width(), 28.0).clicked() {
+                    acts.push(Act::ShowArchive(ws));
+                }
+            }
         }
         (None, Some(e)) => {
             let msg = match ws.host {
@@ -108,16 +121,11 @@ fn sessions(
     list: &[SessionInfo],
     acts: &mut Vec<Act>,
 ) {
-    let mut parents: Vec<&SessionInfo> = list
-        .iter()
-        .filter(|s| !s.session.archived)
-        .filter(|s| s.session.parent_id.is_none_or(|pid| !list.iter().any(|o| o.session.id == pid)))
-        .collect();
-    if parents.is_empty() {
+    let groups = SessionGroups::new(list, |s| data::live_of(app, ws.host, s));
+    if groups.live.is_empty() && groups.ended.is_empty() {
         widgets::empty_note(ui, "아직 세션이 없어요. 오른쪽에서 CLI를 고르거나 ⌘T를 누르세요.");
         return;
     }
-    parents.sort_by_key(|s| s.session.created_at);
     let active = match app.ui.active_tab().map(|t| t.kind.clone()) {
         Some(TabKind::Terminal { session, .. }) => Some(session),
         _ => None,
@@ -131,28 +139,79 @@ fn sessions(
         .data;
     let index =
         runwick_core::api::activity::RequestIndex::new(requests.as_deref().map(Vec::as_slice).unwrap_or_default());
-    for s in parents {
-        let kids: Vec<&SessionInfo> =
-            list.iter().filter(|k| k.session.parent_id == Some(s.session.id) && !k.session.archived).collect();
-        let open = app.shell.sidebar.expanded_parents.contains(&s.session.id);
-        let live = data::live_of(app, ws.host, s);
-        let asking = kids
-            .iter()
-            .filter(|k| {
-                index
-                    .group(&k.session, data::live_of(app, ws.host, k).as_ref())
-                    .is_some_and(runwick_core::api::activity::Group::needs_person)
-            })
-            .count();
-        let workers = Workers { count: kids.len(), asking };
-        session_row(ui, ws, project, s, live.as_ref(), active == Some(s.session.id), workers, open, acts);
+    for &s in &groups.live {
+        tree(app, ui, ws, project, s, &groups, &index, active, acts);
+    }
+    if !groups.ended.is_empty() {
+        let open = app.ui.expanded_ended_sessions.contains(&ws);
+        let label = format!("끝난 세션 {}개", groups.ended_ids.len());
+        ui.add_space(6.0);
+        let resp = widgets::row(ui, 30.0, false, &label);
+        let r = resp.rect;
+        let glyph = if open { icons::CHEVRON_DOWN } else { icons::CHEVRON_RIGHT };
+        ui.painter().text(
+            Pos2::new(r.left() + 12.0, r.center().y),
+            Align2::CENTER_CENTER,
+            glyph,
+            icon_font(12.0),
+            c::TEXT_3,
+        );
+        ui.painter().text(Pos2::new(r.left() + 26.0, r.center().y), Align2::LEFT_CENTER, &label, font(12.0), c::TEXT_2);
+        if resp.clicked() {
+            acts.push(Act::ToggleEnded(ws));
+        }
+        resp.context_menu(|ui| {
+            if widgets::menu_item(ui, icons::ARCHIVE, "끝난 세션 모두 보관").clicked() {
+                acts.push(Act::ArchiveEnded(ws, groups.ended_ids.clone()));
+            }
+        });
         if open {
-            for k in kids {
-                let kl = data::live_of(app, ws.host, k);
-                worker_row(ui, ws, k, kl.as_ref(), active == Some(k.session.id), acts);
+            for &s in &groups.ended {
+                tree(app, ui, ws, project, s, &groups, &index, active, acts);
             }
         }
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn tree(
+    app: &App,
+    ui: &mut egui::Ui,
+    ws: WsKey,
+    project: ProjectId,
+    s: &SessionInfo,
+    groups: &SessionGroups<'_>,
+    index: &runwick_core::api::activity::RequestIndex<'_>,
+    active: Option<runwick_core::api::sessions::SessionId>,
+    acts: &mut Vec<Act>,
+) {
+    let kids = groups.children.get(&s.session.id).map(Vec::as_slice).unwrap_or_default();
+    let open = app.shell.sidebar.expanded_parents.contains(&s.session.id);
+    let live = groups.lives.get(&s.session.id).and_then(Option::as_ref);
+    let asking = kids
+        .iter()
+        .filter(|k| {
+            index
+                .group(&k.session, groups.lives.get(&k.session.id).and_then(Option::as_ref))
+                .is_some_and(runwick_core::api::activity::Group::needs_person)
+        })
+        .count();
+    ui.push_id((ws, s.session.id), |ui| {
+        let workers = Workers { count: kids.len(), asking };
+        session_row(ui, ws, project, s, live, active == Some(s.session.id), workers, open, acts);
+        if open {
+            for k in kids {
+                if groups.children.contains_key(&k.session.id) {
+                    tree(app, ui, ws, project, k, groups, index, active, acts);
+                } else {
+                    ui.push_id(k.session.id, |ui| {
+                        let live = groups.lives.get(&k.session.id).and_then(Option::as_ref);
+                        worker_row(ui, ws, k, live, active == Some(k.session.id), acts);
+                    });
+                }
+            }
+        }
+    });
 }
 
 /// Delegated workers under a session: how many, and how many wait for the person.
@@ -291,6 +350,9 @@ fn session_menu(resp: &egui::Response, ws: WsKey, s: &SessionInfo, st: &data::St
         if st.alive {
             if widgets::menu_item_danger(ui, icons::CIRCLE_STOP, "실행 종료…").clicked() {
                 acts.push(Act::StopSession(ws.host, s.session.id));
+            }
+            if widgets::menu_item_danger(ui, icons::ARCHIVE, "실행 종료 후 보관").clicked() {
+                acts.push(Act::StopAndArchive(ws.host, s.session.id));
             }
         } else {
             let resumable = s.session.tool != Tool::Shell && s.session.provider_conv_id.is_some();
