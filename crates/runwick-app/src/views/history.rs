@@ -7,6 +7,7 @@ mod search;
 
 pub use pins::source_line as pins_source_line;
 pub(crate) use pins::toggle_button as pin_toggle_button;
+pub(crate) use pins::{commit_title, finish_title_frame};
 
 use crate::App;
 use crate::client::HostKey;
@@ -116,6 +117,7 @@ pub struct State {
     /// Show only results from one computer.
     pub host_filter: Option<HostKey>,
     pub edit_pin: Option<PinDraft>,
+    pub(crate) title_drawn: bool,
     pending_pins: HashSet<(HostKey, MessageId)>,
     pub confirm_unpin: Option<PinId>,
     pub focus_search: bool,

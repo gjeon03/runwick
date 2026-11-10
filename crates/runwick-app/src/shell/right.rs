@@ -31,6 +31,7 @@ pub fn track_focus(app: &mut App, ctx: &egui::Context) {
 }
 
 pub fn close(app: &mut App, ctx: &egui::Context) {
+    crate::views::history::commit_title(app);
     app.ui.right = None;
     app.shell.right.focused = false;
     app.shell.right.rect = None;
@@ -101,15 +102,15 @@ fn resolve_target(app: &mut App) {
     use runwick_core::api::{
         collab::CollabGet,
         projects::ById,
-        records::{ContextQuery, PinQuery, PinsList, RecordsContext},
+        records::{ContextQuery, PinsGet, RecordsContext},
     };
     let Some(frame) = app.ui.panel().and_then(|p| p.current()).cloned() else { return };
     let target = match &frame.detail {
         PanelDetail::Pin { host, id } => app
             .hub
-            .query::<PinsList>(*host, &PinQuery::default())
+            .query::<PinsGet>(*host, &ById { id: *id })
             .data
-            .and_then(|l| l.iter().find(|p| p.id == *id).and_then(|p| p.session_id))
+            .and_then(|p| p.as_ref().as_ref().and_then(|p| p.session_id))
             .map(|session| crate::state::PanelTarget { host: *host, session }),
         PanelDetail::Message(o) => app
             .hub
@@ -186,6 +187,7 @@ fn navigation(app: &mut App, ui: &mut egui::Ui) {
     egui::Frame::new().inner_margin(egui::Margin::symmetric(12, 6)).show(ui, |ui| {
         ui.horizontal(|ui| {
             if crate::theme::secondary_button(ui, "← 뒤로").clicked() {
+                crate::views::history::commit_title(app);
                 app.ui.back_panel();
             }
             let kind = match &detail {
@@ -246,6 +248,7 @@ fn panel_head(app: &mut App, ui: &mut egui::Ui, panel: &RightPanel) {
         })
         .inner;
     if let Some(p) = switch {
+        crate::views::history::commit_title(app);
         app.ui.show_panel(p, None);
     }
     if closed {

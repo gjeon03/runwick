@@ -11,6 +11,8 @@ mod db;
 pub mod engine;
 mod guidance;
 mod identity;
+#[cfg(test)]
+mod read_tests;
 
 use crate::host::{Ctx, Host};
 use crate::router::Router;
@@ -61,6 +63,11 @@ pub fn register(r: &mut Router) {
     });
     r.add::<CollabWait, _, _>(|ctx: Ctx, p: WaitFor| async move { wait(&ctx.host, p).await });
     r.add::<CollabGet, _, _>(|ctx: Ctx, p: ById| async move { view(&ctx.host, p.id).await });
+    r.add::<CollabPreview, _, _>(|ctx: Ctx, p: ById| async move {
+        person_only(identity::caller(&ctx.host, &ctx.client))?;
+        let request = resolve(&ctx.host, p.id)?;
+        Ok(answer(&ctx.host, &request).0.map(|text| excerpt(&text, 120)))
+    });
     r.add::<CollabList, _, _>(|ctx: Ctx, q: RequestQuery| async move { db::list(&ctx.host.store, &q) });
     r.add::<CollabReport, _, _>(|ctx: Ctx, p: Report| async move {
         report(&ctx.host, identity::caller(&ctx.host, &ctx.client), p).await

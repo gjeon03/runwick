@@ -9,7 +9,7 @@ use crate::theme::{self, c, font, medium};
 use egui::{CornerRadius, Margin, RichText};
 use runwick_core::api::projects::ById;
 use runwick_core::api::records::{
-    MessageId, Pin, PinId, PinKind, PinQuery, PinUpdate, PinsList, PinsRemove, PinsUpdate,
+    MessageId, Pin, PinId, PinKind, PinQuery, PinUpdate, PinsGet, PinsList, PinsRemove, PinsUpdate,
 };
 
 /// The same outlined/filled pin in message actions and the session bar.
@@ -89,12 +89,12 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
 }
 
 pub fn show_detail(app: &mut App, ui: &mut egui::Ui, host: HostKey, id: PinId) {
-    let query = app.hub.query::<PinsList>(host, &PinQuery::default());
-    let Some(list) = query.data else {
+    let query = app.hub.query::<PinsGet>(host, &ById { id });
+    let Some(pin) = query.data else {
         widgets::empty_note(ui, &query.error.map(|e| e.message).unwrap_or_else(|| "핀을 불러오는 중…".into()));
         return;
     };
-    let Some(pin) = list.iter().find(|p| p.id == id) else {
+    let Some(pin) = pin.as_ref() else {
         widgets::empty_note(ui, "해제된 핀이에요. 뒤로 가면 목록을 볼 수 있어요");
         return;
     };
@@ -254,9 +254,7 @@ fn wiki_seed(pin: &Pin) -> crate::views::wiki::Seed {
 }
 
 fn begin_edit(app: &mut App, host: HostKey, pin: &Pin, field: PinField) {
-    if app.feat.history.edit_pin.as_ref().is_some_and(|d| d.field == PinField::Title) {
-        save_edit(app);
-    }
+    commit_title(app);
     let text = match field {
         PinField::Title => pin.title.clone(),
         PinField::Note => pin.note.clone(),
@@ -282,7 +280,10 @@ fn title_input(ui: &mut egui::Ui, d: &mut PinDraft) -> EditEnd {
         title.request_focus();
         d.focus = false;
     }
-    if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+    if (title.has_focus() || title.lost_focus())
+        && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape))
+    {
+        title.surrender_focus();
         EditEnd::Cancel
     } else if title.lost_focus() {
         EditEnd::Save
@@ -295,6 +296,7 @@ fn title(app: &mut App, ui: &mut egui::Ui, host: HostKey, pin: &Pin, detail: boo
     let draft =
         app.feat.history.edit_pin.as_mut().filter(|d| d.host == host && d.id == pin.id && d.field == PinField::Title);
     if let Some(d) = draft {
+        app.feat.history.title_drawn = true;
         match title_input(ui, d) {
             EditEnd::Cancel => app.feat.history.edit_pin = None,
             EditEnd::Save => save_edit(app),
@@ -335,7 +337,10 @@ fn edit_note(app: &mut App, ui: &mut egui::Ui) {
         save = theme::primary_button(ui, "저장").clicked();
         cancel = theme::secondary_button(ui, "취소").clicked();
     });
-    if ui.input(|i| i.key_pressed(egui::Key::Escape)) {
+    if (input.has_focus() || input.lost_focus())
+        && ui.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape))
+    {
+        input.surrender_focus();
         cancel = true;
     }
     if cancel {
@@ -358,8 +363,31 @@ impl PinDraft {
     }
 }
 
+/// Navigation must save the title before removing its editor; notes still use explicit Save.
+pub(crate) fn commit_title(app: &mut App) {
+    if let Some(d) = take_title(&mut app.feat.history.edit_pin) {
+        save_draft(app, d);
+    }
+}
+
+fn take_title(edit: &mut Option<PinDraft>) -> Option<PinDraft> {
+    if edit.as_ref().is_some_and(|d| d.field == PinField::Title) { edit.take() } else { None }
+}
+
+/// Also cover navigation outside the panel (workspace, page or center-tab changes).
+pub(crate) fn finish_title_frame(app: &mut App) {
+    if !app.feat.history.title_drawn && app.feat.history.edit_pin.as_ref().is_some_and(|d| !d.focus) {
+        commit_title(app);
+    }
+}
+
 fn save_edit(app: &mut App) {
-    let Some(d) = app.feat.history.edit_pin.take() else { return };
+    if let Some(d) = app.feat.history.edit_pin.take() {
+        save_draft(app, d);
+    }
+}
+
+fn save_draft(app: &mut App, d: PinDraft) {
     let Some(update) = d.update() else { return };
     app.hub.call::<PinsUpdate>(d.host, update, move |app, res| match res {
         Ok(_) => {}
@@ -493,6 +521,19 @@ mod tests {
         assert!(update.title.is_none());
     }
 
+    #[test]
+    fn navigation_takes_a_title_once_but_keeps_an_unsaved_memo() {
+        let mut edit = Some(draft(PinField::Title, "Renamed before switching tabs"));
+        let saved = take_title(&mut edit).unwrap();
+        assert_eq!(saved.update().unwrap().title.as_deref(), Some("Renamed before switching tabs"));
+        assert!(edit.is_none());
+        assert!(take_title(&mut edit).is_none());
+
+        edit = Some(draft(PinField::Note, "Unfinished memo"));
+        assert!(take_title(&mut edit).is_none());
+        assert_eq!(edit.unwrap().text, "Unfinished memo");
+    }
+
     fn frame(ctx: &egui::Context, d: &mut PinDraft, events: Vec<egui::Event>) -> EditEnd {
         let mut result = EditEnd::Keep;
         let input = egui::RawInput {
@@ -516,6 +557,9 @@ mod tests {
             let mut d = draft(PinField::Title, "Renamed");
             assert_eq!(frame(&ctx, &mut d, vec![]), EditEnd::Keep);
             assert_eq!(frame(&ctx, &mut d, vec![key(key_code)]), expected);
+            if key_code == egui::Key::Escape {
+                assert!(!ctx.input(|i| i.key_pressed(egui::Key::Escape)), "the panel must not also handle Escape");
+            }
         }
     }
 

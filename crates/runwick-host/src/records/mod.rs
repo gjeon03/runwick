@@ -186,6 +186,9 @@ pub fn register(r: &mut Router) {
     r.add::<PinsList, _, _>(|ctx: Ctx, q: PinQuery| async move {
         blocking(&ctx.host, move |s| s.with(|c| pins::list(c, &q, None)).map_err(db_err)).await
     });
+    r.add::<PinsGet, _, _>(|ctx: Ctx, p: ById| async move {
+        blocking(&ctx.host, move |s| s.with(|c| pins::get(c, p.id)).map_err(db_err)).await
+    });
     r.add::<PinsCreate, _, _>(|ctx: Ctx, p: NewPin| async move {
         let (pin, created) = blocking(&ctx.host, move |s| pins::create(s, &p)).await?;
         if created {

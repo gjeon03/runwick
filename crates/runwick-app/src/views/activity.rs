@@ -48,7 +48,6 @@ impl Kind {
 
 #[derive(Clone)]
 enum Go {
-    Peek(HostKey, SessionId, Option<Attention>),
     Result(HostKey, uuid::Uuid),
     Collab(HostKey, SessionId),
     Open(HostKey, SessionId),
@@ -355,17 +354,7 @@ fn collect(app: &mut App, host: HostKey, device: &str, out: &mut Vec<Item>) -> b
                 || format!("내가 맡긴 일 · {}", r.tool.label()),
                 |p| format!("{p}에서 위임 · {}", r.tool.label()),
             );
-            let (act, go) = if own_wins && group == Group::Recover {
-                ("열기", Go::Open(host, s.session.id))
-            } else if group == Group::Attention {
-                ("보기", Go::Peek(host, s.session.id, attention.clone()))
-            } else if r.status == ReqStatus::Uncertain {
-                ("확인", r.parent_id.map_or(Go::Peek(host, s.session.id, None), |p| Go::Collab(host, p)))
-            } else if matches!(r.status, ReqStatus::Done | ReqStatus::Failed) {
-                ("결과 보기", Go::Result(host, r.id))
-            } else {
-                ("보기", Go::Peek(host, s.session.id, None))
-            };
+            let (act, go) = request_action(host, r, group, own_wins);
             (
                 Kind::Collab,
                 r.title.clone(),
@@ -722,9 +711,25 @@ fn footer(ui: &mut egui::Ui, text: &str, go: &mut Option<Go>) {
     });
 }
 
+fn request_action(host: HostKey, r: &Request, group: Group, own_wins: bool) -> (&'static str, Go) {
+    if own_wins && group == Group::Recover {
+        ("열기", Go::Open(host, r.worker_id))
+    } else {
+        let label = if group == Group::Attention {
+            "보기"
+        } else if r.status == ReqStatus::Uncertain {
+            "확인"
+        } else if matches!(r.status, ReqStatus::Done | ReqStatus::Failed) {
+            "결과 보기"
+        } else {
+            "보기"
+        };
+        (label, Go::Result(host, r.id))
+    }
+}
+
 fn follow(app: &mut App, g: Go) {
     match g {
-        Go::Peek(host, worker, _asked) => collab::open_worker(app, host, worker),
         Go::Result(host, request) => collab::open_result(app, host, request),
         Go::Collab(host, session) => collab::open_workers(app, host, session),
         Go::Open(host, session) => {
@@ -752,6 +757,23 @@ fn follow(app: &mut App, g: Go) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn attention_navigation_keeps_the_selected_request_despite_newer_queued_work() {
+        let mut attention = collab::tests::request(ReqStatus::NeedsInput);
+        attention.created_at -= chrono::Duration::days(90);
+        let mut queued = collab::tests::request(ReqStatus::Queued);
+        queued.worker_id = attention.worker_id;
+        let requests = [queued, attention.clone()];
+        let selected = RequestIndex::new(&requests).request(attention.worker_id).unwrap();
+        let (_, go) = request_action(HostKey::Local, selected, Group::Attention, false);
+        assert!(matches!(go, Go::Result(HostKey::Local, id) if id == attention.id));
+        let (_, go) = request_action(HostKey::Local, selected, Group::Attention, true);
+        assert!(matches!(go, Go::Result(HostKey::Local, id) if id == attention.id));
+        attention.status = ReqStatus::Uncertain;
+        let (_, go) = request_action(HostKey::Local, &attention, Group::Recover, false);
+        assert!(matches!(go, Go::Result(HostKey::Local, id) if id == attention.id));
+    }
 
     #[test]
     fn resource_footer_only_describes_active_work() {

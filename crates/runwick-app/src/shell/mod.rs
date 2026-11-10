@@ -72,6 +72,7 @@ pub fn on_connected(app: &mut App, host: HostKey) {
 }
 
 pub fn on_exit(app: &mut App) {
+    crate::views::history::commit_title(app);
     layout::flush(app);
     crate::views::docs::save_drafts(app);
     crate::views::wiki::save_drafts(app);
@@ -98,6 +99,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
     frame.set_traffic_lights_position(&ctx, egui::Rangef::new(0.0, size::TITLEBAR), 14.0);
     right::track_focus(app, &ctx);
     keys::track_ime(app, &ctx);
+    app.feat.history.title_drawn = false;
     keys::handle(app, &ctx);
     crate::views::lifecycle::tick(app, &ctx, app.shell.keys.composing);
     dropped_folders(app, &ctx);
@@ -122,6 +124,8 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
     crate::views::refresh::show_overlay(app, &ctx);
     palette::show(app, &ctx);
     split_picker::show(app, &ctx);
+    keys::handle_unhandled_escape(app, &ctx);
+    crate::views::history::finish_title_frame(app);
     toasts::show(app, &ctx);
     drop_overlay(app, &ctx);
     layout::tick(app, &ctx);

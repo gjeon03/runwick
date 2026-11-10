@@ -591,6 +591,8 @@ fn handle_keys(ctx: &egui::Context, view: &mut View, can_type: bool, sent: &mut 
         select_all(view);
     }
     let events = ctx.input(|i| i.events.clone());
+    // Keep Escape in the focused CLI, even when input is temporarily unavailable.
+    ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape));
     let mode = *view.shared.lock().term.mode();
     let alt_screen = mode.contains(TermMode::ALT_SCREEN);
     let option_as_meta = crate::views::settings::general::option_as_meta();
@@ -799,6 +801,34 @@ fn handle_pointer(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn focused_terminal_owns_escape_before_panel_shortcuts() {
+        for focused in [false, true] {
+            for can_type in [false, true] {
+                let ctx = egui::Context::default();
+                let mut view = View::new(GridSize { cols: 80, rows: 24 });
+                view.has_focus = focused;
+                let mut sent = Vec::new();
+                let input = egui::RawInput {
+                    events: vec![Event::Key {
+                        key: Key::Escape,
+                        physical_key: None,
+                        pressed: true,
+                        repeat: false,
+                        modifiers: Modifiers::NONE,
+                    }],
+                    ..Default::default()
+                };
+                let mut output = ctx.run_ui(input, |_| {
+                    handle_keys(&ctx, &mut view, can_type, &mut sent);
+                    assert_eq!(ctx.input(|i| i.key_pressed(Key::Escape)), !focused);
+                });
+                output.textures_delta.clear();
+                assert_eq!(sent, if focused && can_type { vec![0x1b] } else { vec![] });
+            }
+        }
+    }
 
     #[test]
     fn focus_changes_are_reported_only_when_the_program_asks() {

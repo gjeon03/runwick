@@ -14,6 +14,7 @@ use crate::icons;
 use crate::shell::data;
 use crate::state::{PanelDetail, PanelTarget, RightPanel, TabId, WsKey};
 use crate::theme::Tone;
+use runwick_core::api::activity::RequestIndex;
 use runwick_core::api::collab::{CollabList, CollabOverview, Overview, ReqStatus, Request, RequestQuery};
 use runwick_core::api::projects::{ProjectId, WorkspaceKind};
 use runwick_core::api::sessions::{Attention, Session, SessionId};
@@ -69,9 +70,10 @@ pub fn open_worker(app: &mut App, host: HostKey, session: SessionId) {
 }
 
 pub fn show_worker(app: &mut App, ui: &mut egui::Ui, host: HostKey, session: SessionId) {
-    let q =
-        app.hub.query::<CollabList>(host, &RequestQuery { worker_id: Some(session), limit: 1, ..Default::default() });
-    if let Some(r) = q.data.as_ref().and_then(|l| l.first()) {
+    let q = app
+        .hub
+        .query::<CollabList>(host, &RequestQuery { worker_id: Some(session), activity: true, ..Default::default() });
+    if let Some(r) = q.data.as_ref().and_then(|l| RequestIndex::new(l).request(session)) {
         if let Some(frame) = app.ui.panel_mut().stacks.get_mut(&RightPanel::Workers).and_then(|s| s.last_mut()) {
             frame.detail = PanelDetail::Result { host, request: r.id };
         }
@@ -297,7 +299,10 @@ pub fn place(app: &mut App, host: HostKey, s: &Session) -> Place {
 }
 
 pub fn requests_of(app: &mut App, host: HostKey, parent: SessionId) -> Query<Vec<Request>> {
-    app.hub.query::<CollabList>(host, &RequestQuery { parent_id: Some(parent), limit: 300, ..Default::default() })
+    app.hub.query::<CollabList>(
+        host,
+        &RequestQuery { parent_id: Some(parent), activity: true, limit: 300, ..Default::default() },
+    )
 }
 
 pub fn overview(app: &mut App, host: HostKey) -> Query<Overview> {
@@ -340,12 +345,12 @@ pub fn short(rev: &str) -> String {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use runwick_core::api::collab::{Source, Via};
     use runwick_core::api::sessions::{AttentionKind, Phase, SessionLive, Tool};
 
-    fn request(status: ReqStatus) -> Request {
+    pub(crate) fn request(status: ReqStatus) -> Request {
         let now = runwick_core::now();
         Request {
             id: Uuid::now_v7(),

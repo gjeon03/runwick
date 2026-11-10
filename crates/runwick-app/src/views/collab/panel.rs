@@ -7,6 +7,7 @@ use crate::icons;
 use crate::shell::{data, dialog, dialog_title, widgets};
 use crate::theme::{self, Tone, c, font, medium};
 use egui::{Margin, RichText};
+use runwick_core::api::activity::RequestIndex;
 use runwick_core::api::collab::*;
 use runwick_core::api::projects::ById;
 use runwick_core::api::sessions::{SessionId, SessionInfo, SessionsStop, Stop};
@@ -19,6 +20,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, host: HostKey, session: SessionId)
     };
     let workers: Vec<_> = list.iter().filter(|s| s.session.parent_id == Some(session) && !s.session.archived).collect();
     let reqs = requests_of(app, host, session).data;
+    let index = RequestIndex::new(reqs.as_deref().map(Vec::as_slice).unwrap_or_default());
     let ov = overview(app, host).data;
     let held = ov.as_ref().is_some_and(|o| o.held_parents.contains(&session));
     egui::Frame::new().inner_margin(Margin::same(12)).show(ui, |ui| {
@@ -54,12 +56,19 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, host: HostKey, session: SessionId)
         egui::Frame::new().inner_margin(Margin::same(12)).show(ui, |ui| {
             for worker in workers {
                 let id = worker.session.id;
-                let latest = reqs.as_ref().and_then(|l| l.iter().find(|r| r.worker_id == id));
+                let latest = index.request(id);
                 let live = data::live_of(app, host, worker);
                 let (status, tone) = worker_status(latest.map(|r| r.status), live.as_ref());
                 let answer = latest
-                    .and_then(|r| app.hub.query::<CollabGet>(host, &ById { id: r.id }).data)
-                    .and_then(|v| v.answer.as_deref().map(|s| super::result::first_line(s, 120)));
+                    .and_then(|r| {
+                        reported_summary(r).map(str::to_owned).or_else(|| {
+                            app.hub
+                                .query::<CollabPreview>(host, &ById { id: r.id })
+                                .data
+                                .and_then(|p| p.as_ref().clone())
+                        })
+                    })
+                    .map(|s| super::result::first_line(&s, 120));
                 let title = latest.map(|r| r.title.as_str()).unwrap_or(&worker.session.title);
                 let role = worker.session.role.as_deref().unwrap_or(worker.session.tool.label());
                 let row =
@@ -80,7 +89,11 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, host: HostKey, session: SessionId)
                     .widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, format!("{title} 상세 보기")));
                 theme::focus_ring(ui, &response, 8.into());
                 if response.clicked() {
-                    super::open_worker(app, host, id);
+                    if let Some(request) = latest {
+                        super::open_result(app, host, request.id);
+                    } else {
+                        super::open_worker(app, host, id);
+                    }
                 }
                 if ov.as_ref().is_some_and(|o| o.direct_workers.contains(&id)) {
                     ui.horizontal(|ui| {
@@ -97,6 +110,29 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, host: HostKey, session: SessionId)
             }
         });
     });
+}
+
+fn reported_summary(request: &Request) -> Option<&str> {
+    request.result.as_ref().filter(|r| r.summary_from == Some(SummaryFrom::Report))?.summary.as_deref()
+}
+
+#[cfg(test)]
+mod summary_tests {
+    use super::*;
+
+    #[test]
+    fn reported_summaries_need_no_result_or_preview_fetch() {
+        let mut request = super::super::tests::request(ReqStatus::Done);
+        assert_eq!(reported_summary(&request), None);
+        request.result = Some(WorkResult {
+            summary: Some("Already reported".into()),
+            summary_from: Some(SummaryFrom::Report),
+            ..Default::default()
+        });
+        assert_eq!(reported_summary(&request), Some("Already reported"));
+        request.result.as_mut().unwrap().summary_from = Some(SummaryFrom::Screen);
+        assert_eq!(reported_summary(&request), None);
+    }
 }
 
 fn worker_status(

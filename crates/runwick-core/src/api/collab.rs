@@ -464,6 +464,8 @@ method!(CollabSend, "collab.send", SendTo => Request);
 method!(CollabWait, "collab.wait", WaitFor => Waited);
 // A request id, or a worker session id (its newest request).
 method!(CollabGet, "collab.get", ById => RequestView, [topic::COLLAB, topic::MESSAGES]);
+// Window-only bounded answer preview for worker rows, without inspecting the working tree.
+method!(CollabPreview, "collab.preview", ById => Option<String>, [topic::COLLAB, topic::MESSAGES]);
 method!(CollabList, "collab.list", RequestQuery => Vec<Request>, [topic::COLLAB]);
 method!(CollabReport, "collab.report", Report => Request);
 // Cancel a request that has not been delivered.

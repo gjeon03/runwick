@@ -305,6 +305,7 @@ method!(RecordsTurn, "records.turn", ById => TurnInfo, [topic::MESSAGES]);
 // Read the transcript of a session now (also for ended sessions, e.g. after "기록 파일 없음").
 method!(RecordsCollect, "records.collect", ById => CaptureStatus);
 method!(PinsList, "pins.list", PinQuery => Vec<Pin>, [topic::PINS, topic::MESSAGES]);
+method!(PinsGet, "pins.get", ById => Option<Pin>, [topic::PINS, topic::MESSAGES]);
 method!(PinsCreate, "pins.create", NewPin => Pin);
 method!(PinsUpdate, "pins.update", PinUpdate => Pin);
 // Unpin: removes the pin only; the message stays in the records.

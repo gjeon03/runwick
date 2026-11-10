@@ -294,9 +294,16 @@ fn rename_target(p: &str) -> String {
     }
 }
 
+#[cfg(test)]
+tokio::task_local! {
+    pub(super) static FINGERPRINT_CALLS: std::cell::Cell<usize>;
+}
+
 /// Fingerprint of the working tree: HEAD, what git reports as changed or untracked, and each of
 /// those paths' size and modification time (links not followed, contents not read).
 pub async fn fingerprint(cwd: &Path) -> Option<String> {
+    #[cfg(test)]
+    let _ = FINGERPRINT_CALLS.try_with(|calls| calls.set(calls.get() + 1));
     let head = head(cwd).await?;
     let status = run_git(cwd, &["status", "--porcelain=v1", "-z", "--untracked-files=all"]).await.ok()?;
     let root = cwd.to_path_buf();
