@@ -149,7 +149,7 @@ fn sessions(
         if open {
             for k in kids {
                 let kl = data::live_of(app, ws.host, k);
-                worker_row(ui, ws, project, k, kl.as_ref(), active == Some(k.session.id), acts);
+                worker_row(ui, ws, k, kl.as_ref(), active == Some(k.session.id), acts);
             }
         }
     }
@@ -245,7 +245,6 @@ fn session_row(
 fn worker_row(
     ui: &mut egui::Ui,
     ws: WsKey,
-    project: ProjectId,
     s: &SessionInfo,
     live: Option<&SessionLive>,
     selected: bool,
@@ -275,7 +274,7 @@ fn worker_row(
     widgets::paint_clipped(ui, text_rect, &title, font(12.5), c::TEXT, true);
     let resp = resp.on_hover_text(format!("{title}\n{} · {}", s.session.tool.label(), st.label));
     if resp.clicked() {
-        acts.push(Act::OpenSession { project, ws, session: s.session.id, hidden: s.session.hidden });
+        acts.push(Act::OpenWorker(ws.host, s.session.id));
     }
     session_menu(&resp, ws, s, &st, acts);
 }

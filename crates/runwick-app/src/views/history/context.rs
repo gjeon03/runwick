@@ -26,15 +26,15 @@ const MAX_WIDTH: f32 = 720.0;
 const INLINE_H: f32 = 22.0;
 
 pub fn show(app: &mut App, ui: &mut egui::Ui, in_panel: bool) {
-    let Some(open) = app.feat.history.open.clone() else {
+    let Some(open) = app.feat.history.reader.open.clone() else {
         empty(ui, "검색 결과나 핀의 '원문'을 고르면 여기에서 앞뒤 문맥을 읽어요.");
         return;
     };
     let q = ContextQuery { anchor: open.anchor, before: open.before, after: open.after };
     let res = app.hub.query::<RecordsContext>(open.host, &q);
-    let cx = match (res.data, &app.feat.history.shown) {
+    let cx = match (res.data, &app.feat.history.reader.shown) {
         (Some(cx), _) => {
-            app.feat.history.shown = Some(cx.clone());
+            app.feat.history.reader.shown = Some(cx.clone());
             cx
         }
         // A longer read of the same session is loading: keep showing what is there.
@@ -168,13 +168,14 @@ fn messages(app: &mut App, ui: &mut egui::Ui, open: &Opened, cx: &Arc<Context>, 
     // Focusable rows in order (for ↑/↓) and which one has focus.
     let mut rows: Vec<egui::Id> = Vec::new();
     let mut focused_row = None;
-    let hovered = app.feat.history.hover_msg;
-    let keyboard_before = app.feat.history.keyboard_msg;
-    let focus_actions = app.feat.history.focus_actions.take();
+    let hovered = app.feat.history.reader.hover_msg;
+    let keyboard_before = app.feat.history.reader.keyboard_msg;
+    let focus_actions = app.feat.history.reader.focus_actions.take();
     let anchor = cx.anchor;
     let anchor_msg = anchor.filter(|_| matches!(open.anchor, Anchor::Message { .. }));
-    let selected = app.feat.history.select_msg.filter(|id| cx.messages.iter().any(|m| m.id == *id)).or(anchor_msg);
-    let scroll_to = app.feat.history.scrolled != Some(open.anchor);
+    let selected =
+        app.feat.history.reader.select_msg.filter(|id| cx.messages.iter().any(|m| m.id == *id)).or(anchor_msg);
+    let scroll_to = app.feat.history.reader.scrolled != Some(open.anchor);
     egui::ScrollArea::vertical().id_salt(("ctx-scroll", cx.session_id)).auto_shrink([false, false]).show(ui, |ui| {
         let w = ui.available_width();
         let pad = if in_panel { 12.0 } else { 20.0 };
@@ -241,10 +242,10 @@ fn messages(app: &mut App, ui: &mut egui::Ui, open: &Opened, cx: &Arc<Context>, 
             }
         });
     });
-    app.feat.history.scrolled = Some(open.anchor);
+    app.feat.history.reader.scrolled = Some(open.anchor);
     if hover != hovered || keyboard != keyboard_before {
-        app.feat.history.hover_msg = hover;
-        app.feat.history.keyboard_msg = keyboard;
+        app.feat.history.reader.hover_msg = hover;
+        app.feat.history.reader.keyboard_msg = keyboard;
         ui.ctx().request_repaint();
     }
     // ↑/↓ move between messages; Enter selects one and puts focus on its first button.
@@ -267,15 +268,15 @@ fn messages(app: &mut App, ui: &mut egui::Ui, open: &Opened, cx: &Arc<Context>, 
         }
     }
     if let Some(id) = select {
-        app.feat.history.select_msg = Some(id);
-        app.feat.history.focus_actions = Some(id);
+        app.feat.history.reader.select_msg = Some(id);
+        app.feat.history.reader.focus_actions = Some(id);
         ui.ctx().request_repaint();
     }
     if let Some(m) = wiki {
         to_wiki(app, open.host, cx, &m);
     }
     if load != (0, 0)
-        && let Some(o) = app.feat.history.open.as_mut()
+        && let Some(o) = app.feat.history.reader.open.as_mut()
     {
         o.before += load.0;
         o.after += load.1;
@@ -289,7 +290,7 @@ fn messages(app: &mut App, ui: &mut egui::Ui, open: &Opened, cx: &Arc<Context>, 
         super::toggle_message_pin(app, host, cx.session_id, id);
     }
     if let Some((id, text)) = excerpt_done {
-        app.feat.history.excerpt = None;
+        app.feat.history.reader.excerpt = None;
         let src = PinSource::Excerpt { message_id: id, text };
         super::create_pin(app, host, src);
     }
@@ -464,7 +465,7 @@ fn message(app: &mut App, ui: &mut egui::Ui, cx: &Context, m: &Message, look: Lo
         if m.sidechain {
             meta.push_str(" · 하위 에이전트");
         }
-        let excerpting = app.feat.history.excerpt == Some(m.id);
+        let excerpting = app.feat.history.reader.excerpt == Some(m.id);
         ui.horizontal(|ui| {
             // Same height with or without the buttons, so hovering never moves the text.
             ui.set_min_height(INLINE_H);
@@ -480,7 +481,7 @@ fn message(app: &mut App, ui: &mut egui::Ui, cx: &Context, m: &Message, look: Lo
                 act = Some(MsgAct::Excerpt(text));
             }
             if fmt::quiet_link(ui, "취소").clicked() {
-                app.feat.history.excerpt = None;
+                app.feat.history.reader.excerpt = None;
             }
             return;
         }
@@ -506,7 +507,7 @@ fn message(app: &mut App, ui: &mut egui::Ui, cx: &Context, m: &Message, look: Lo
         }
         match tool {
             Some(Tool::Pin) => act = Some(MsgAct::Pin),
-            Some(Tool::Excerpt) => app.feat.history.excerpt = Some(m.id),
+            Some(Tool::Excerpt) => app.feat.history.reader.excerpt = Some(m.id),
             Some(Tool::Copy) => act = Some(MsgAct::Copy),
             Some(Tool::Wiki) => act = Some(MsgAct::Wiki),
             None => {}

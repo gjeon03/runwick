@@ -18,7 +18,7 @@ pub mod window_refusal;
 
 use crate::App;
 use crate::client::HostKey;
-use crate::state::{Modal, RightPanel, Tab, TabKind, WsKey};
+use crate::state::{Modal, PanelDetail, RightPanel, Tab, TabKind, WsKey};
 use serde_json::Value;
 
 /// Host events for features (after the shell and terminal have seen them).
@@ -38,6 +38,8 @@ pub fn show_tab(app: &mut App, ui: &mut egui::Ui, ws: WsKey, tab: &Tab) {
         TabKind::WikiGraph { project } => wiki::show_graph_tab(app, ui, *project, tab.id),
         TabKind::Timeline { project } => timeline::show_tab(app, ui, *project, tab.id),
         TabKind::History => history::show_tab(app, ui, tab.id),
+        TabKind::Record { host, anchor } => history::show_record_tab(app, ui, *host, *anchor, tab.id),
+        TabKind::Pin { host, id } => history::show_pin(app, ui, *host, *id),
         TabKind::Result { host, request } => collab::show_result_tab(app, ui, *host, *request, tab.id),
         TabKind::Merge { ws } => split::show_merge_tab(app, ui, *ws, tab.id),
         TabKind::Start => crate::shell::show_start_tab(app, ui, ws, tab.id),
@@ -46,12 +48,26 @@ pub fn show_tab(app: &mut App, ui: &mut egui::Ui, ws: WsKey, tab: &Tab) {
 
 /// Draw the right detail panel.
 pub fn show_right_panel(app: &mut App, ui: &mut egui::Ui, panel: &RightPanel) {
+    let detail = app.ui.panel().and_then(|p| p.current()).map(|f| f.detail.clone());
+    if let Some(detail) = detail {
+        match detail {
+            PanelDetail::Pin { host, id } => history::show_pin(app, ui, host, id),
+            PanelDetail::Message(open) => history::show_detail(app, ui, open),
+            PanelDetail::Result { host, request } => collab::show_result_panel(app, ui, host, request),
+            PanelDetail::WorkerList { host, session } => collab::show_panel(app, ui, host, session),
+            PanelDetail::Worker { host, session } => collab::show_worker(app, ui, host, session),
+            PanelDetail::Space { ws } => devices::show_space_panel(app, ui, ws),
+        }
+        return;
+    }
     match panel {
         RightPanel::History => history::show_panel(app, ui),
-        RightPanel::Collab { host, session } => collab::show_panel(app, ui, *host, *session),
-        RightPanel::Result { host, request } => collab::show_result_panel(app, ui, *host, *request),
+        RightPanel::Pins => history::show_pins(app, ui),
+        RightPanel::Workers => match app.ui.panel_target() {
+            Some(t) => collab::show_panel(app, ui, t.host, t.session),
+            None => crate::shell::widgets::empty_note(ui, "세션을 고르면 맡긴 일을 볼 수 있어요"),
+        },
         RightPanel::Activity => activity::show_panel(app, ui),
-        RightPanel::Space { ws } => devices::show_space_panel(app, ui, *ws),
     }
 }
 

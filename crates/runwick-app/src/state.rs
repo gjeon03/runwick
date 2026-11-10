@@ -21,21 +21,48 @@ pub struct WsKey {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum TabKind {
     /// A CLI session (Claude, Codex, shell) running on `host`.
-    Terminal { host: HostKey, session: SessionId },
+    Terminal {
+        host: HostKey,
+        session: SessionId,
+    },
     /// A file in a workspace (edit Markdown/text, view code).
-    Doc { ws: WsKey, path: String },
+    Doc {
+        ws: WsKey,
+        path: String,
+    },
     /// Project wiki: list and a page.
-    Wiki { project: ProjectId, page: Option<String> },
+    Wiki {
+        project: ProjectId,
+        page: Option<String>,
+    },
     /// Wiki relationship graph.
-    WikiGraph { project: ProjectId },
+    WikiGraph {
+        project: ProjectId,
+    },
     /// Timeline for one project or all projects.
-    Timeline { project: Option<ProjectId> },
+    Timeline {
+        project: Option<ProjectId>,
+    },
     /// Conversation search expanded to the center.
     History,
+    /// A specific record, independent of panel navigation.
+    Record {
+        host: HostKey,
+        anchor: runwick_core::api::records::Anchor,
+    },
+    Pin {
+        host: HostKey,
+        id: Uuid,
+    },
     /// Result of delegated work (S11).
-    Result { host: HostKey, request: Uuid },
+    Result {
+        host: HostKey,
+        request: Uuid,
+    },
     /// Merge/integration of a separated workspace (S11 merge).
-    Merge { ws: WsKey },
+    Merge {
+        ws: WsKey,
+    },
     /// Start screen inside a workspace (pick a CLI or open files).
     Start,
 }
@@ -202,19 +229,137 @@ pub enum ProjectFilter {
     Favorites,
 }
 
-/// Right-hand detail panel (S04, S07, S11...). Closed by default.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// Fixed tabs of the shared side panel.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum RightPanel {
-    /// Conversation search, context and pins (S07).
-    History,
-    /// Delegation detail for a session (S04).
-    Collab { host: HostKey, session: SessionId },
-    /// Result detail (S11).
-    Result { host: HostKey, request: Uuid },
-    /// All activity (S06).
+    #[default]
     Activity,
-    /// A device's workspace: connection, input, logins, environment (RemoteSpace).
+    History,
+    Pins,
+    Workers,
+}
+
+impl RightPanel {
+    pub const ALL: [(Self, &'static str); 4] =
+        [(Self::Activity, "활동"), (Self::History, "기록"), (Self::Pins, "핀"), (Self::Workers, "작업자")];
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PanelTarget {
+    pub host: HostKey,
+    pub session: SessionId,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum PanelDetail {
+    Message(crate::views::history::Opened),
+    Pin { host: HostKey, id: Uuid },
+    Result { host: HostKey, request: Uuid },
+    Worker { host: HostKey, session: SessionId },
+    WorkerList { host: HostKey, session: SessionId },
     Space { ws: WsKey },
+}
+
+#[derive(Debug, Clone)]
+pub struct PanelFrame {
+    pub detail: PanelDetail,
+    pub target: Option<PanelTarget>,
+    return_tab: RightPanel,
+    return_target: Option<PanelTarget>,
+}
+
+/// Selection and width persist per workspace; navigation is kept only for this window.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct PanelState {
+    pub selected: RightPanel,
+    pub width: f32,
+    #[serde(skip)]
+    pub target: Option<PanelTarget>,
+    #[serde(skip)]
+    pub pinned: bool,
+    #[serde(skip)]
+    followed: Option<PanelTarget>,
+    #[serde(skip)]
+    pub stacks: BTreeMap<RightPanel, Vec<PanelFrame>>,
+}
+
+impl Default for PanelState {
+    fn default() -> Self {
+        Self {
+            selected: RightPanel::Activity,
+            width: crate::theme::size::RIGHT_PANEL,
+            target: None,
+            pinned: false,
+            followed: None,
+            stacks: BTreeMap::new(),
+        }
+    }
+}
+
+impl PanelState {
+    pub fn follow(&mut self, target: Option<PanelTarget>) {
+        if self.followed != target {
+            self.followed = target;
+            if !self.pinned
+                && let Some(target) = target
+            {
+                self.target = Some(target);
+                self.stacks.clear();
+            }
+        }
+    }
+
+    pub fn current(&self) -> Option<&PanelFrame> {
+        self.stacks.get(&self.selected).and_then(|s| s.last())
+    }
+
+    pub fn current_target(&self) -> Option<PanelTarget> {
+        match self.current() {
+            Some(PanelFrame { detail: PanelDetail::Space { .. }, .. }) | None => self.target,
+            Some(frame) => frame.target,
+        }
+    }
+
+    pub fn pin(&mut self, pinned: bool) {
+        self.target = if pinned { self.current_target() } else { self.followed };
+        self.pinned = pinned;
+        if !pinned {
+            self.stacks.clear();
+        }
+    }
+
+    pub fn push(&mut self, tab: RightPanel, detail: PanelDetail, target: Option<PanelTarget>) {
+        if self.selected == tab && self.current().is_some_and(|f| f.detail == detail) {
+            return;
+        }
+        let frame = PanelFrame { detail, target, return_tab: self.selected, return_target: self.target };
+        self.stacks.entry(tab).or_default().push(frame);
+        self.selected = tab;
+    }
+
+    pub fn back(&mut self) {
+        if let Some(frame) = self.stacks.entry(self.selected).or_default().pop() {
+            self.selected = frame.return_tab;
+            self.target = frame.return_target;
+        }
+    }
+}
+
+// Older layouts stored a detail in the panel slot. Restore its fixed tab, leaving the
+// transient detail stack empty, without discarding the rest of the saved layout.
+fn deserialize_right<'de, D: serde::Deserializer<'de>>(de: D) -> Result<Option<RightPanel>, D::Error> {
+    let value = Option::<serde_json::Value>::deserialize(de)?;
+    Ok(value.and_then(|v| {
+        let name = v.as_str().or_else(|| v.as_object()?.keys().next().map(String::as_str))?;
+        match name {
+            "Activity" | "Space" => Some(RightPanel::Activity),
+            "History" => Some(RightPanel::History),
+            "Pins" => Some(RightPanel::Pins),
+            "Workers" | "Collab" | "Result" => Some(RightPanel::Workers),
+            _ => None,
+        }
+    }))
 }
 
 /// Top-level page in the window.
@@ -295,7 +440,14 @@ pub struct UiState {
     pub project_search: String,
     pub expanded_projects: BTreeSet<ProjectId>,
     pub tabsets: BTreeMap<String, TabSet>,
+    #[serde(default, deserialize_with = "deserialize_right")]
     pub right: Option<RightPanel>,
+    #[serde(default)]
+    pub panels: BTreeMap<String, PanelState>,
+    #[serde(skip)]
+    panel_workspace: Option<String>,
+    #[serde(skip)]
+    panel_lock: Option<PanelTarget>,
     pub sidebar_width: f32,
     pub right_width: f32,
     pub sidebar_collapsed: bool,
@@ -327,6 +479,9 @@ impl Default for UiState {
             expanded_projects: BTreeSet::new(),
             tabsets: BTreeMap::new(),
             right: None,
+            panels: BTreeMap::new(),
+            panel_workspace: None,
+            panel_lock: None,
             sidebar_width: crate::theme::size::SIDEBAR,
             right_width: crate::theme::size::RIGHT_PANEL,
             sidebar_collapsed: false,
@@ -348,6 +503,121 @@ pub fn ws_storage_key(ws: &WsKey) -> String {
 }
 
 impl UiState {
+    fn panel_key(&self) -> String {
+        self.selected_ws.as_ref().map(ws_storage_key).unwrap_or_else(|| "global".into())
+    }
+
+    pub fn panel(&self) -> Option<&PanelState> {
+        self.panels.get(&self.panel_key())
+    }
+
+    pub fn panel_mut(&mut self) -> &mut PanelState {
+        self.panels.entry(self.panel_key()).or_default()
+    }
+
+    pub fn panel_target(&self) -> Option<PanelTarget> {
+        self.panel().and_then(PanelState::current_target)
+    }
+
+    pub fn sync_panel(&mut self) {
+        let key = self.panel_key();
+        if self.panel_workspace.as_ref() != Some(&key) {
+            if let Some(old) = &self.panel_workspace
+                && let Some(p) = self.panels.get_mut(old)
+            {
+                if let Some(tab) = self.right {
+                    p.selected = tab;
+                }
+                p.width = self.right_width;
+            }
+            let legacy_tab = self.right.unwrap_or_default();
+            let legacy_width = self.right_width;
+            let p = self.panels.entry(key.clone()).or_insert_with(|| PanelState {
+                selected: legacy_tab,
+                width: legacy_width,
+                ..Default::default()
+            });
+            if let Some(locked) = self.panel_lock
+                && p.current_target() != Some(locked)
+            {
+                p.stacks.clear();
+            }
+            self.right_width = if p.width.is_finite() {
+                p.width.clamp(crate::theme::size::RIGHT_PANEL_MIN, crate::theme::size::RIGHT_PANEL_MAX)
+            } else {
+                crate::theme::size::RIGHT_PANEL
+            };
+            if self.right.is_some() {
+                self.right = Some(p.selected);
+            }
+            self.panel_workspace = Some(key);
+        }
+        let target = self.focused_session().map(|(host, session)| PanelTarget { host, session });
+        let tab = self.right;
+        let width = self.right_width;
+        let locked = self.panel_lock;
+        let p = self.panel_mut();
+        p.pinned = locked.is_some();
+        if let Some(locked) = locked {
+            p.target = Some(locked);
+        }
+        p.follow(target);
+        if let Some(tab) = tab {
+            p.selected = tab;
+        }
+        p.width = width;
+    }
+
+    pub fn pin_panel(&mut self, pinned: bool) {
+        self.panel_lock = if pinned { self.panel_target() } else { None };
+        self.panel_mut().pin(pinned);
+    }
+
+    pub fn panel_entry_matches(&self, tab: RightPanel, target: Option<PanelTarget>) -> bool {
+        self.right == Some(tab)
+            && (if tab == RightPanel::Activity {
+                self.panel().is_none_or(|p| p.current().is_none())
+            } else {
+                self.panel_target() == target
+            })
+    }
+
+    pub fn show_panel(&mut self, tab: RightPanel, target: Option<PanelTarget>) {
+        self.sync_panel();
+        if self.panel_lock.is_some() && target.is_some() {
+            self.panel_lock = target;
+        }
+        let p = self.panel_mut();
+        if let Some(target) = target {
+            p.target = Some(target);
+            p.stacks.remove(&tab);
+        }
+        p.selected = tab;
+        self.right = Some(tab);
+    }
+
+    pub fn show_panel_root(&mut self, tab: RightPanel, target: Option<PanelTarget>) {
+        self.show_panel(tab, target);
+        self.panel_mut().stacks.remove(&tab);
+    }
+
+    pub fn push_panel(&mut self, tab: RightPanel, detail: PanelDetail, target: Option<PanelTarget>) {
+        self.sync_panel();
+        if self.panel_lock.is_some() && target.is_some() {
+            self.panel_lock = target;
+        }
+        self.panel_mut().push(tab, detail, target);
+        self.right = Some(tab);
+    }
+
+    pub fn back_panel(&mut self) {
+        self.panel_mut().back();
+        if self.panel_lock.is_some() {
+            self.panel_lock = self.panel_target();
+        }
+        self.right = Some(self.panel_mut().selected);
+    }
+
     pub fn tabset(&self, ws: &WsKey) -> Option<&TabSet> {
         self.tabsets.get(&ws_storage_key(ws))
     }
@@ -446,6 +716,212 @@ pub fn parse_ws_storage_key(k: &str) -> Option<WsKey> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn panel_sessions() -> (UiState, WsKey, PanelTarget, PanelTarget) {
+        let ws = WsKey { host: HostKey::Local, id: Uuid::new_v4() };
+        let mut ui = UiState { selected_ws: Some(ws), ..Default::default() };
+        let left = PanelTarget { host: ws.host, session: Uuid::new_v4() };
+        let right = PanelTarget { host: ws.host, session: Uuid::new_v4() };
+        ui.open_tab(ws, TabKind::Terminal { host: left.host, session: left.session });
+        ui.open_tab_in_pane(ws, TabKind::Terminal { host: right.host, session: right.session }, Pane::Right);
+        ui.sync_panel();
+        (ui, ws, left, right)
+    }
+
+    #[test]
+    fn panel_tabs_have_a_fixed_order_and_unresolved_details_do_not_claim_another_session() {
+        assert_eq!(RightPanel::ALL.map(|(_, label)| label), ["활동", "기록", "핀", "작업자"]);
+        let (mut ui, _, _, _) = panel_sessions();
+        ui.push_panel(RightPanel::Workers, PanelDetail::Result { host: HostKey::Local, request: Uuid::new_v4() }, None);
+        assert_eq!(ui.panel_target(), None);
+    }
+
+    #[test]
+    fn panel_follows_the_focused_pane_and_unpin_returns_to_it() {
+        let (mut ui, ws, left, right) = panel_sessions();
+        ui.show_panel(RightPanel::Pins, Some(right));
+        assert_eq!(ui.panel_target(), Some(right));
+        ui.pin_panel(true);
+        ui.tabset_mut(&ws).focused_pane = Pane::Left;
+        ui.sync_panel();
+        assert_eq!(ui.panel_target(), Some(right));
+        ui.pin_panel(false);
+        assert_eq!(ui.panel_target(), Some(left));
+        ui.tabset_mut(&ws).focused_pane = Pane::Right;
+        ui.sync_panel();
+        assert_eq!(ui.panel_target(), Some(right));
+        ui.tabset_mut(&ws).set_right_hidden(true);
+        ui.sync_panel();
+        assert_eq!(ui.panel_target(), Some(left));
+    }
+
+    #[test]
+    fn panel_entry_matches_both_tab_and_target() {
+        let (mut ui, _, left, right) = panel_sessions();
+        ui.show_panel(RightPanel::History, Some(right));
+        assert!(ui.panel_entry_matches(RightPanel::History, Some(right)));
+        assert!(!ui.panel_entry_matches(RightPanel::History, Some(left)));
+        assert!(!ui.panel_entry_matches(RightPanel::Pins, Some(right)));
+        ui.show_panel(RightPanel::Activity, None);
+        assert!(ui.panel_entry_matches(RightPanel::Activity, Some(left)));
+    }
+
+    #[test]
+    fn an_activity_entry_returns_from_workspace_details_to_the_global_list() {
+        let (mut ui, ws, _, _) = panel_sessions();
+        ui.show_panel(RightPanel::Activity, None);
+        ui.push_panel(RightPanel::Activity, PanelDetail::Space { ws }, None);
+        assert!(!ui.panel_entry_matches(RightPanel::Activity, None));
+        ui.show_panel_root(RightPanel::Activity, None);
+        assert!(ui.panel().unwrap().current().is_none());
+        assert!(ui.panel_entry_matches(RightPanel::Activity, None));
+    }
+
+    #[test]
+    fn tabs_keep_independent_stacks_and_back_returns_to_the_origin() {
+        let (mut ui, _, left, right) = panel_sessions();
+        ui.show_panel(RightPanel::Activity, None);
+        let list = PanelDetail::WorkerList { host: left.host, session: left.session };
+        let result = PanelDetail::Result { host: right.host, request: Uuid::new_v4() };
+        ui.push_panel(RightPanel::Workers, list.clone(), Some(left));
+        ui.push_panel(RightPanel::Workers, result.clone(), Some(right));
+        ui.show_panel(RightPanel::History, None);
+        let message = PanelDetail::Message(crate::views::history::Opened {
+            host: left.host,
+            anchor: runwick_core::api::records::Anchor::SessionEnd { id: left.session },
+            before: 30,
+            after: 0,
+            terms: Vec::new(),
+        });
+        ui.push_panel(RightPanel::History, message.clone(), Some(left));
+        ui.show_panel(RightPanel::Workers, None);
+        assert_eq!(ui.panel().unwrap().current().unwrap().detail, result);
+        ui.back_panel();
+        assert_eq!(ui.panel_target(), Some(left));
+        assert_eq!(ui.panel().unwrap().current().unwrap().detail, list);
+        ui.back_panel();
+        assert_eq!(ui.right, Some(RightPanel::Activity));
+        ui.show_panel(RightPanel::History, None);
+        assert_eq!(ui.panel().unwrap().current().unwrap().detail, message);
+    }
+
+    #[test]
+    fn pinned_worker_detail_returns_to_the_original_parent_list() {
+        let (mut ui, _, parent, worker) = panel_sessions();
+        ui.show_panel(RightPanel::Workers, Some(parent));
+        ui.pin_panel(true);
+        ui.push_panel(
+            RightPanel::Workers,
+            PanelDetail::Result { host: worker.host, request: Uuid::new_v4() },
+            Some(worker),
+        );
+        ui.sync_panel();
+        assert_eq!(ui.panel_target(), Some(worker));
+        ui.back_panel();
+        ui.sync_panel();
+        assert_eq!(ui.panel_target(), Some(parent));
+        assert!(ui.panel().unwrap().current().is_none());
+    }
+
+    #[test]
+    fn expanding_a_record_keeps_the_panel_detail_and_uses_distinct_tabs() {
+        let (mut ui, ws, left, _) = panel_sessions();
+        let anchor = runwick_core::api::records::Anchor::Message { id: Uuid::new_v4() };
+        let detail = PanelDetail::Message(crate::views::history::Opened {
+            host: left.host,
+            anchor,
+            before: 6,
+            after: 6,
+            terms: Vec::new(),
+        });
+        ui.push_panel(RightPanel::History, detail.clone(), Some(left));
+        let a = ui.open_tab(ws, TabKind::Record { host: left.host, anchor });
+        ui.sync_panel();
+        assert_eq!(ui.panel().unwrap().current().unwrap().detail, detail);
+        let b = ui.open_tab(
+            ws,
+            TabKind::Record {
+                host: left.host,
+                anchor: runwick_core::api::records::Anchor::Message { id: Uuid::new_v4() },
+            },
+        );
+        assert_ne!(a, b);
+        assert_eq!(ui.open_tab(ws, TabKind::Record { host: left.host, anchor }), a);
+    }
+
+    #[test]
+    fn workspace_panel_selection_and_width_survive_serialization_without_details() {
+        let (mut ui, first, _, right) = panel_sessions();
+        ui.show_panel(RightPanel::Pins, Some(right));
+        ui.right_width = 410.0;
+        ui.sync_panel();
+        let second = WsKey { host: HostKey::Device(Uuid::new_v4()), id: Uuid::new_v4() };
+        ui.selected_ws = Some(second);
+        ui.sync_panel();
+        ui.show_panel(RightPanel::Workers, None);
+        ui.right_width = 480.0;
+        ui.push_panel(
+            RightPanel::Workers,
+            PanelDetail::Worker { host: right.host, session: right.session },
+            Some(right),
+        );
+        ui.sync_panel();
+        let mut restored: UiState = serde_json::from_value(serde_json::to_value(&ui).unwrap()).unwrap();
+        restored.sync_panel();
+        assert_eq!((restored.right, restored.right_width), (Some(RightPanel::Workers), 480.0));
+        assert!(restored.panel().unwrap().current().is_none());
+        restored.selected_ws = Some(first);
+        restored.sync_panel();
+        assert_eq!((restored.right, restored.right_width), (Some(RightPanel::Pins), 410.0));
+    }
+
+    #[test]
+    fn pin_overrides_an_existing_detail_when_returning_to_another_workspace() {
+        let (mut ui, first, left, right) = panel_sessions();
+        ui.push_panel(
+            RightPanel::Workers,
+            PanelDetail::Worker { host: right.host, session: right.session },
+            Some(right),
+        );
+        let second = WsKey { host: HostKey::Local, id: Uuid::new_v4() };
+        ui.selected_ws = Some(second);
+        ui.open_tab(second, TabKind::Terminal { host: left.host, session: left.session });
+        ui.sync_panel();
+        ui.pin_panel(true);
+        ui.selected_ws = Some(first);
+        ui.sync_panel();
+        assert_eq!(ui.panel_target(), Some(left));
+        assert!(ui.panel().unwrap().current().is_none());
+        ui.pin_panel(false);
+        assert_eq!(ui.panel_target(), Some(right));
+    }
+
+    #[test]
+    fn old_detail_layouts_restore_without_losing_workspace_tabs() {
+        let (ui, ws, _, right) = panel_sessions();
+        for variant in ["Collab", "Result", "Space"] {
+            let mut value = serde_json::to_value(&ui).unwrap();
+            value.as_object_mut().unwrap().remove("panels");
+            value["right"] = serde_json::json!({ variant: { "host": "Local", "session": right.session } });
+            let mut restored: UiState = serde_json::from_value(value).unwrap();
+            restored.sync_panel();
+            assert_eq!(restored.tabset(&ws).unwrap().tabs.len(), 2);
+            assert!(RightPanel::ALL.iter().any(|(tab, _)| Some(*tab) == restored.right));
+        }
+    }
+
+    #[test]
+    fn pinned_target_survives_workspace_switch_and_remote_host_is_part_of_identity() {
+        let (mut ui, _, _, right) = panel_sessions();
+        ui.pin_panel(true);
+        let ws = WsKey { host: HostKey::Device(Uuid::new_v4()), id: Uuid::new_v4() };
+        ui.selected_ws = Some(ws);
+        ui.open_tab(ws, TabKind::Terminal { host: ws.host, session: right.session });
+        ui.sync_panel();
+        assert_eq!(ui.panel_target(), Some(right));
+        ui.pin_panel(false);
+        assert_eq!(ui.panel_target(), Some(PanelTarget { host: ws.host, session: right.session }));
+    }
 
     #[test]
     fn open_tab_focuses_existing_and_close_moves_active() {

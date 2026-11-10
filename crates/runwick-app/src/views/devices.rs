@@ -91,7 +91,8 @@ pub fn start_add_folder(app: &mut App, device: runwick_core::api::devices::Devic
 
 /// Open the `이 공간` panel for a workspace of a device.
 pub fn open_space_panel(app: &mut App, ws: WsKey) {
-    app.ui.right = Some(RightPanel::Space { ws });
+    let tab = app.ui.right.unwrap_or(RightPanel::Activity);
+    app.ui.push_panel(tab, crate::state::PanelDetail::Space { ws }, None);
 }
 
 pub fn show_space_panel(app: &mut App, ui: &mut egui::Ui, ws: WsKey) {

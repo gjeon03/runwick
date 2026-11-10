@@ -27,7 +27,8 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
     };
     let live = data::live_of(app, host, &info);
     let st = data::status(&info.session, live.as_ref());
-    let workers: Vec<_> = list
+    let all = data::all_sessions(app, host).data;
+    let workers: Vec<_> = all
         .iter()
         .flat_map(|l| l.iter())
         .filter(|s| s.session.parent_id == Some(session) && !s.session.archived)
@@ -56,11 +57,12 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
     // Right: tools.
     let pin = crate::views::history::session_pin(app, host, session, info.session.tool);
     let mut x = bar.right() - 6.0;
-    let tools: [(&str, &str); 4] = [
+    let tools: [(&str, &str); 5] = [
         (icons::ELLIPSIS, "더 보기"),
         (icons::REFRESH_CW, "세션 새로고침"),
         (icons::PIN, "핀"),
         (icons::HISTORY, "이 세션 기록"),
+        (icons::PIN, "이 세션 핀"),
     ];
     let mut clicked = None;
     let mut more_resp = None;
@@ -68,7 +70,8 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
         if i == 2 && !info.session.tool.is_agent() {
             continue;
         }
-        let r = Rect::from_min_size(Pos2::new(x - 28.0, cy - 13.0), Vec2::new(28.0, 26.0));
+        let width = if i == 4 { 54.0 } else { 28.0 };
+        let r = Rect::from_min_size(Pos2::new(x - width, cy - 13.0), Vec2::new(width, 26.0));
         let resp = ui
             .scope_builder(egui::UiBuilder::new().max_rect(r), |ui| {
                 if i == 2 {
@@ -83,6 +86,8 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
                     })
                     .inner
                     .on_disabled_hover_text("아직 고정할 응답이 없거나 기록을 불러오는 중이에요")
+                } else if i == 4 {
+                    ui.add_sized([54.0, 26.0], egui::Button::new("핀 목록").frame(false)).on_hover_text(*name)
                 } else {
                     widgets::icon_btn(ui, g, name, 28.0, 26.0, 14.0)
                 }
@@ -104,14 +109,14 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
     x -= 9.0;
     // Collaboration entry (only with workers).
     if !workers.is_empty() {
-        let text = format!("협업 {}", workers.len());
+        let text = format!("작업자 {}", workers.len());
         let need = if worker_attention > 0 { Some(format!("확인 필요 {worker_attention}")) } else { None };
         let tw = widgets::text_width(ui, &text, font(12.0));
         let nw = need.as_ref().map(|n| widgets::text_width(ui, n, medium(12.0)) + 6.0).unwrap_or(0.0);
         let w = tw + nw + 18.0 + 19.0;
         let r = Rect::from_min_size(Pos2::new(x - w, cy - 12.0), Vec2::new(w, 24.0));
         let resp = ui.interact(r, ui.scope_id().with(("collab", session)), Sense::click());
-        let label = format!("협업 상세 열기: {text} {}", need.clone().unwrap_or_default());
+        let label = format!("작업자 보기: {text} {}", need.clone().unwrap_or_default());
         resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, &label));
         let highlight = worker_attention > 0;
         let bg = if highlight {
@@ -144,7 +149,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
         }
         crate::theme::focus_ring(ui, &resp, CornerRadius::same(12));
         if resp.on_hover_text(label.clone()).clicked() {
-            actions::toggle_right(app, RightPanel::Collab { host, session });
+            actions::toggle_panel_target(app, RightPanel::Workers, Some(crate::state::PanelTarget { host, session }));
         }
         x = r.left() - 10.0;
     }
@@ -206,7 +211,8 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
         );
     }
     match clicked {
-        Some(3) => crate::views::history::toggle_from_session_bar(app),
+        Some(4) => crate::views::history::toggle_pins(app, host, session),
+        Some(3) => crate::views::history::toggle_from_session_bar(app, host, session),
         Some(2) => {
             if let Some((message, _)) = pin {
                 crate::views::history::pin_from_session_bar(app, host, session, message);

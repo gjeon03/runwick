@@ -8,13 +8,11 @@ mod panel;
 mod peek;
 mod result;
 
-pub use peek::open as open_peek;
-
 use crate::App;
 use crate::client::{HostKey, Query};
 use crate::icons;
 use crate::shell::data;
-use crate::state::{TabId, WsKey};
+use crate::state::{PanelDetail, PanelTarget, RightPanel, TabId, WsKey};
 use crate::theme::Tone;
 use runwick_core::api::collab::{CollabList, CollabOverview, Overview, ReqStatus, Request, RequestQuery};
 use runwick_core::api::projects::{ProjectId, WorkspaceKind};
@@ -25,17 +23,113 @@ use uuid::Uuid;
 #[derive(Default)]
 pub struct State {
     peek: Option<peek::Peek>,
-    /// Follow-up drafts per worker, and the worker whose editor is open.
-    drafts: HashMap<SessionId, String>,
-    follow_open: Option<SessionId>,
-    /// Show each worker's request text and attempt history in the panel.
-    history_open: bool,
     /// "협업 중단" confirmation for a parent session.
     stop_all: Option<(HostKey, SessionId)>,
     /// File selected in a result, per request.
     result_file: HashMap<Uuid, String>,
     /// Logs of checks expanded in a result.
     open_logs: HashSet<(Uuid, usize)>,
+    read_versions: HashMap<(HostKey, Uuid, runwick_core::Ts), ReadAttempt>,
+}
+
+struct ReadAttempt {
+    at: std::time::Instant,
+    pending_or_done: bool,
+}
+
+impl ReadAttempt {
+    fn can_retry(&self) -> bool {
+        !self.pending_or_done && self.at.elapsed() >= std::time::Duration::from_secs(5)
+    }
+}
+
+pub fn peek_is_open(app: &App) -> bool {
+    app.feat.collab.peek.is_some()
+}
+
+pub fn open_workers(app: &mut App, host: HostKey, session: SessionId) {
+    app.ui.push_panel(
+        RightPanel::Workers,
+        PanelDetail::WorkerList { host, session },
+        Some(PanelTarget { host, session }),
+    );
+}
+
+pub fn open_result(app: &mut App, host: HostKey, request: Uuid) {
+    let target = app
+        .hub
+        .query::<runwick_core::api::collab::CollabGet>(host, &runwick_core::api::projects::ById { id: request })
+        .data
+        .map(|v| PanelTarget { host, session: v.request.worker_id });
+    app.ui.push_panel(RightPanel::Workers, PanelDetail::Result { host, request }, target);
+}
+
+pub fn open_worker(app: &mut App, host: HostKey, session: SessionId) {
+    app.ui.push_panel(RightPanel::Workers, PanelDetail::Worker { host, session }, Some(PanelTarget { host, session }));
+}
+
+pub fn show_worker(app: &mut App, ui: &mut egui::Ui, host: HostKey, session: SessionId) {
+    let q =
+        app.hub.query::<CollabList>(host, &RequestQuery { worker_id: Some(session), limit: 1, ..Default::default() });
+    if let Some(r) = q.data.as_ref().and_then(|l| l.first()) {
+        if let Some(frame) = app.ui.panel_mut().stacks.get_mut(&RightPanel::Workers).and_then(|s| s.last_mut()) {
+            frame.detail = PanelDetail::Result { host, request: r.id };
+        }
+        result::show_panel(app, ui, host, r.id);
+    } else {
+        crate::shell::widgets::empty_note(
+            ui,
+            &q.error.map(|e| e.message).unwrap_or_else(|| {
+                if q.data.is_some() {
+                    "아직 보고된 결과가 없어요".into()
+                } else {
+                    "작업자를 불러오는 중…".into()
+                }
+            }),
+        );
+        ui.horizontal_wrapped(|ui| {
+            if crate::theme::secondary_button(ui, "화면 보기").clicked() {
+                peek::open(app, host, session, None);
+            }
+            if crate::theme::secondary_button(ui, "직접 대화").clicked() {
+                direct(app, host, session);
+            }
+            if crate::theme::secondary_button(ui, "멈추기").clicked() {
+                app.shell.modal.ask_stop(host, session);
+            }
+        });
+    }
+}
+
+pub fn direct(app: &mut App, host: HostKey, worker: SessionId) {
+    use runwick_core::api::collab::{CollabDirect, Direct};
+    use runwick_core::api::projects::ById;
+    use runwick_core::api::sessions::{SessionsGet, SessionsTakeInput};
+    app.hub.call::<SessionsGet>(host, ById { id: worker }, move |app, res| {
+        let info = match res {
+            Ok(info) => info,
+            Err(e) => {
+                app.toast_error(&e.message);
+                return;
+            }
+        };
+        let p = place(app, host, &info.session);
+        let (Some(project), Some(ws)) = (p.project_id, p.ws) else {
+            app.toast_error("작업자의 공간을 찾을 수 없어요");
+            return;
+        };
+        app.hub.call::<CollabDirect>(host, Direct { worker_id: worker, on: true }, move |app, res| {
+            if let Err(e) = res {
+                app.toast_error(&e.message);
+                return;
+            }
+            crate::shell::actions::open_session(app, project, ws, worker, info.session.hidden);
+            app.hub.call::<SessionsTakeInput>(host, ById { id: worker }, move |app, res| match res {
+                Ok(()) => crate::terminal::focus(app, host, worker),
+                Err(e) => app.toast_error(&format!("입력권을 가져오지 못했어요: {}", e.message)),
+            });
+        });
+    });
 }
 
 pub fn show_panel(app: &mut App, ui: &mut egui::Ui, host: HostKey, session: SessionId) {
@@ -126,7 +220,7 @@ pub fn look(r: &Request, direct: bool) -> Look {
         ReqStatus::Done => {
             let checks = r.result.as_ref().map(|x| x.checks.as_slice()).unwrap_or(&[]);
             let label = if checks.is_empty() {
-                "응답 완료 · 미검증"
+                "응답 완료"
             } else if checks.iter().any(|c| !c.passed) {
                 "응답 완료 · 검증 실패 있음"
             } else {
@@ -302,6 +396,16 @@ mod tests {
             input_prompt: false,
             leftovers: Vec::new(),
         }
+    }
+
+    #[test]
+    fn failed_read_marks_can_retry_without_flooding_or_repeating_successful_requests() {
+        let mut attempt = ReadAttempt { at: std::time::Instant::now(), pending_or_done: false };
+        assert!(!attempt.can_retry());
+        attempt.at -= std::time::Duration::from_secs(6);
+        assert!(attempt.can_retry());
+        attempt.pending_or_done = true;
+        assert!(!attempt.can_retry());
     }
 
     #[test]

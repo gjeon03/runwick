@@ -117,7 +117,7 @@ pub fn apply_open_request(app: &mut App) {
     match req {
         OpenRequest::Activity => {
             app.ui.page = Page::Work;
-            app.ui.right = Some(RightPanel::Activity);
+            app.ui.show_panel_root(RightPanel::Activity, None);
         }
         OpenRequest::Quit => app.ui.modal = Some(Modal::Quit),
         OpenRequest::Session(id) => {
@@ -127,7 +127,12 @@ pub fn apply_open_request(app: &mut App) {
             match list.iter().find(|s| s.session.id == id).map(|s| s.session.clone()) {
                 Some(s) => {
                     let ws = WsKey { host: HostKey::Local, id: s.workspace_id };
-                    actions::open_session(app, s.project_id, ws, id, s.hidden);
+                    if s.parent_id.is_some() {
+                        actions::select_workspace(app, s.project_id, ws);
+                        crate::views::collab::open_worker(app, HostKey::Local, id);
+                    } else {
+                        actions::open_session(app, s.project_id, ws, id, s.hidden);
+                    }
                 }
                 None => app.toast_info("메뉴 막대에서 고른 세션을 찾지 못했어요"),
             }

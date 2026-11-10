@@ -1,6 +1,6 @@
 //! Pins of the current scope: source links, inline titles and optional memo editing.
 
-use super::{PinDraft, PinField, ScopeKind, fmt, note, scope_ctx};
+use super::{PinDraft, PinField, fmt, note, scope_ctx};
 use crate::App;
 use crate::client::HostKey;
 use crate::icons;
@@ -42,19 +42,9 @@ pub(crate) fn toggle_button(ui: &mut egui::Ui, pinned: bool, tooltip: &str, heig
 
 fn query(app: &mut App) -> (HostKey, PinQuery, String) {
     let sc = scope_ctx(app);
-    let (kind, _, label) = super::search::effective(app.feat.history.scope, &sc);
-    let q = match kind {
-        ScopeKind::Session => PinQuery { session_id: sc.session.as_ref().map(|s| s.0), project_id: None },
-        ScopeKind::Project => PinQuery { project_id: sc.project.as_ref().map(|p| p.0), session_id: None },
-        ScopeKind::All => PinQuery::default(),
-    };
+    let q = PinQuery { session_id: sc.session.as_ref().map(|s| s.0), project_id: None };
+    let label = sc.session.map(|s| s.1).unwrap_or_else(|| "이 세션".into());
     (sc.host, q, label)
-}
-
-/// Number of pins in the current scope, once known.
-pub fn count(app: &mut App) -> Option<usize> {
-    let (host, q, _) = query(app);
-    app.hub.query::<PinsList>(host, &q).data.map(|l| l.len())
 }
 
 pub fn show(app: &mut App, ui: &mut egui::Ui) {
@@ -63,7 +53,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
     egui::Frame::new().inner_margin(Margin { left: 12, right: 12, top: 8, bottom: 8 }).show(ui, |ui| {
         let n = res.data.as_ref().map(|l| l.len());
         let line = match n {
-            Some(n) => format!("{label}의 핀 {n}개 · 범위는 검색과 같아요"),
+            Some(n) => format!("{label}의 핀 {n}개"),
             None => format!("{label}의 핀"),
         };
         note(ui, &line);
@@ -98,6 +88,23 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
     }
 }
 
+pub fn show_detail(app: &mut App, ui: &mut egui::Ui, host: HostKey, id: PinId) {
+    let query = app.hub.query::<PinsList>(host, &PinQuery::default());
+    let Some(list) = query.data else {
+        widgets::empty_note(ui, &query.error.map(|e| e.message).unwrap_or_else(|| "핀을 불러오는 중…".into()));
+        return;
+    };
+    let Some(pin) = list.iter().find(|p| p.id == id) else {
+        widgets::empty_note(ui, "해제된 핀이에요. 뒤로 가면 목록을 볼 수 있어요");
+        return;
+    };
+    egui::ScrollArea::vertical().id_salt(("pin-detail", host, id)).auto_shrink([false, false]).show(ui, |ui| {
+        egui::Frame::new().inner_margin(Margin::same(12)).show(ui, |ui| {
+            card_body(app, ui, host, pin, true);
+        });
+    });
+}
+
 /// Where a pin came from, and whether that is still reachable (warning color when not).
 pub fn source_line(pin: &Pin) -> (String, bool) {
     let kind = match pin.kind {
@@ -116,52 +123,57 @@ pub fn source_line(pin: &Pin) -> (String, bool) {
 
 fn card(app: &mut App, ui: &mut egui::Ui, host: HostKey, pin: &Pin, highlighted: bool) -> egui::Response {
     let editing = app.feat.history.edit_pin.as_ref().is_some_and(|d| d.id == pin.id);
-    let confirming = app.feat.history.confirm_unpin == Some(pin.id);
     let fill = if highlighted || editing { c::CONTROL } else { c::ROW };
     egui::Frame::new()
         .fill(fill)
         .corner_radius(CornerRadius::same(8))
         .inner_margin(Margin::same(10))
         .show(ui, |ui| {
-            ui.set_width(ui.available_width());
-            ui.spacing_mut().item_spacing.y = 6.0;
-            title(app, ui, host, pin);
-            let mut job = egui::text::LayoutJob::simple(pin.text.clone(), font(12.5), c::TEXT_2, ui.available_width());
-            job.wrap.max_rows = 5;
-            let body = ui.add(egui::Label::new(job).wrap());
-            if body.hovered() && pin.text.lines().count() > 5 {
-                body.on_hover_text(pin.text.chars().take(2000).collect::<String>());
-            }
-            if app.feat.history.edit_pin.as_ref().is_some_and(|d| d.id == pin.id && d.field == PinField::Note) {
-                edit_note(app, ui);
-            } else if !pin.note.is_empty() {
-                ui.add(
-                    egui::Label::new(RichText::new(format!("메모: {}", pin.note)).font(font(12.0)).color(c::TEXT))
-                        .wrap(),
-                );
-            }
-            let (src, warn) = source_line(pin);
-            theme::truncated(ui, src, font(11.5), if warn { c::YELLOW } else { c::TEXT_3 });
-            if confirming {
-                confirm(app, ui, host, pin);
-                return;
-            }
-            ui.horizontal(|ui| {
-                ui.spacing_mut().item_spacing = egui::vec2(4.0, 4.0);
-                if pin.source_available
-                    && let Some(id) = pin.message_id
-                    && fmt::small_button(ui, "원문").clicked()
-                {
-                    super::open_message(app, host, id, Vec::new());
-                }
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let more = widgets::icon_btn(ui, icons::ELLIPSIS, "핀 더 보기", 28.0, 24.0, 14.0);
-                    crate::terminal::verify::target("pin:더 보기", more.rect);
-                    egui::Popup::menu(&more).show(|ui| menu(app, ui, host, pin));
-                });
-            });
+            card_body(app, ui, host, pin, false);
         })
         .response
+}
+
+fn card_body(app: &mut App, ui: &mut egui::Ui, host: HostKey, pin: &Pin, detail: bool) {
+    ui.set_width(ui.available_width());
+    ui.spacing_mut().item_spacing.y = 6.0;
+    title(app, ui, host, pin);
+    if !detail && fmt::quiet_link(ui, "자세히 보기").clicked() {
+        super::open_pin(app, host, pin.id, pin.session_id);
+    }
+    let mut job = egui::text::LayoutJob::simple(pin.text.clone(), font(12.5), c::TEXT_2, ui.available_width());
+    if !detail {
+        job.wrap.max_rows = 5;
+    }
+    let body = ui.add(egui::Label::new(job).wrap());
+    if body.hovered() && pin.text.lines().count() > 5 {
+        body.on_hover_text(pin.text.chars().take(2000).collect::<String>());
+    }
+    if app.feat.history.edit_pin.as_ref().is_some_and(|d| d.id == pin.id && d.field == PinField::Note) {
+        edit_note(app, ui);
+    } else if !pin.note.is_empty() {
+        ui.add(egui::Label::new(RichText::new(format!("메모: {}", pin.note)).font(font(12.0)).color(c::TEXT)).wrap());
+    }
+    let (src, warn) = source_line(pin);
+    theme::truncated(ui, src, font(11.5), if warn { c::YELLOW } else { c::TEXT_3 });
+    if app.feat.history.confirm_unpin == Some(pin.id) {
+        confirm(app, ui, host, pin);
+        return;
+    }
+    ui.horizontal(|ui| {
+        ui.spacing_mut().item_spacing = egui::vec2(4.0, 4.0);
+        if pin.source_available
+            && let Some(id) = pin.message_id
+            && fmt::small_button(ui, "원문").clicked()
+        {
+            super::open_pin_message(app, host, id);
+        }
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            let more = widgets::icon_btn(ui, icons::ELLIPSIS, "핀 더 보기", 28.0, 24.0, 14.0);
+            crate::terminal::verify::target("pin:더 보기", more.rect);
+            egui::Popup::menu(&more).show(|ui| menu(app, ui, host, pin));
+        });
+    });
 }
 
 fn menu(app: &mut App, ui: &mut egui::Ui, host: HostKey, pin: &Pin) {

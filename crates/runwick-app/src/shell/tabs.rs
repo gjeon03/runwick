@@ -82,6 +82,8 @@ pub fn look(app: &App, tab: &Tab, sessions: &HashMap<uuid::Uuid, SessionInfo>) -
         TabKind::WikiGraph { .. } => simple("위키 관계 그래프", icons::WAYPOINTS),
         TabKind::Timeline { .. } => simple("타임라인", icons::CHART_GANTT),
         TabKind::History => simple(&crate::views::history::tab_title(app), icons::HISTORY),
+        TabKind::Pin { .. } => simple("핀", icons::PIN),
+        TabKind::Record { .. } => simple("기록", icons::HISTORY),
         TabKind::Result { .. } => simple("결과", icons::LIST_CHECKS),
         TabKind::Merge { .. } => simple("통합", icons::GIT_MERGE),
         TabKind::Start => simple("새 세션", icons::PLUS),

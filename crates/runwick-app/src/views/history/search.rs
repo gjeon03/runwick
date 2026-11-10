@@ -369,7 +369,7 @@ fn results(app: &mut App, ui: &mut egui::Ui, kind: ScopeKind, scope: Scope, sc: 
     let index_error = shown.iter().find_map(|(_, r, ..)| r.as_ref().and_then(|r| r.index_error.clone()));
     let unreachable = app.hub.hosts().filter(|c| !c.state().is_connected()).count();
     let terms = fmt::query_terms(&q.text);
-    let open_id = match app.feat.history.open.as_ref().map(|o| o.anchor) {
+    let open_id = match app.feat.history.reader.open.as_ref().map(|o| o.anchor) {
         Some(Anchor::Message { id }) => Some(id),
         _ => None,
     };

@@ -230,10 +230,20 @@ pub fn copy_path(app: &mut App, ctx: &egui::Context, path: &str) {
 }
 
 pub fn toggle_right(app: &mut App, panel: RightPanel) {
-    if app.ui.right.as_ref() == Some(&panel) {
-        app.ui.right = None;
+    let target = app.ui.focused_session().map(|(host, session)| crate::state::PanelTarget { host, session });
+    toggle_panel_target(app, panel, target);
+}
+
+pub fn toggle_panel_target(app: &mut App, tab: RightPanel, target: Option<crate::state::PanelTarget>) {
+    app.ui.sync_panel();
+    if app.ui.panel_entry_matches(tab, target) {
+        if let Some(ctx) = app.shell.center.ctx() {
+            super::right::close(app, &ctx);
+        } else {
+            app.ui.right = None;
+        }
     } else {
-        app.ui.right = Some(panel);
+        app.ui.show_panel_root(tab, target);
     }
 }
 

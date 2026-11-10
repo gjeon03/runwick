@@ -77,7 +77,7 @@ fn power_card(app: &mut App, ui: &mut egui::Ui) {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if theme::secondary_button(ui, "활동에서 보기").clicked() {
                     app.ui.page = crate::state::Page::Work;
-                    app.ui.right = Some(RightPanel::Activity);
+                    app.ui.show_panel_root(RightPanel::Activity, None);
                 }
             });
         });

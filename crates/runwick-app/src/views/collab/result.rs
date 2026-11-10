@@ -1,31 +1,22 @@
-//! S11 결과 (Result.dc.html, Failed.dc.html): what a worker answered and changed, the checks it
-//! reported (stale once files changed afterwards), what it did not do, and the next steps:
-//! 통합 준비, 파일 열기, 검토 요청, 이어서 수정 / 처음부터 다시. `확인함` is separate from
-//! verification. In the right panel it is compact; as a tab it also shows the selected diff.
+//! Worker result reader shared by the panel and expanded center tabs.
 
-use super::{Place, look, place, requests_of, short};
+use super::{Place, place, short};
 use crate::App;
 use crate::client::HostKey;
 use crate::icons;
-use crate::shell::{actions, data, widgets};
-use crate::state::{RightPanel, TabKind};
-use crate::theme::{self, c, font, icon, medium, mono, semibold, ty};
+use crate::shell::{data, widgets};
+use crate::theme::{self, c, font, icon, medium, mono, ty};
 use egui::{Color32, CornerRadius, Margin, RichText, Sense};
 use runwick_core::api::collab::*;
-use runwick_core::api::projects::{ById, WorkspaceKind};
+use runwick_core::api::projects::ById;
 use runwick_core::api::sessions::{SessionInfo, Tool};
 use uuid::Uuid;
 
 enum Act {
     Select(String),
-    Switch(Uuid),
-    Ack(bool),
-    Merge,
-    OpenFile(String),
-    Review,
-    Retry(RetryMode),
-    CopyPath,
     Peek,
+    Direct,
+    Stop,
     ToggleLog(usize),
 }
 
@@ -43,7 +34,6 @@ struct Ctx {
     view: RequestView,
     worker: Option<SessionInfo>,
     place: Place,
-    in_other_ws: bool,
 }
 
 fn load(app: &mut App, ui: &mut egui::Ui, host: HostKey, request: Uuid) -> Option<Ctx> {
@@ -60,192 +50,68 @@ fn load(app: &mut App, ui: &mut egui::Ui, host: HostKey, request: Uuid) -> Optio
         .data
         .and_then(|l| l.iter().find(|s| s.session.id == view.request.worker_id).cloned());
     let place = worker.as_ref().map(|w| place(app, host, &w.session)).unwrap_or_default();
-    let in_other_ws = place.ws.is_some() && place.ws != app.ui.selected_ws;
-    Some(Ctx { host, view, worker, place, in_other_ws })
+    let r = &view.request;
+    let key = (host, r.id, r.updated_at);
+    let previous = app.feat.collab.read_versions.get(&key);
+    let first = previous.is_none();
+    if !r.status.is_open() && !r.acknowledged && previous.is_none_or(super::ReadAttempt::can_retry) {
+        app.feat
+            .collab
+            .read_versions
+            .insert(key, super::ReadAttempt { at: std::time::Instant::now(), pending_or_done: true });
+        app.hub.call::<CollabRead>(host, ById { id: r.id }, move |app, res| {
+            if let Err(e) = res {
+                if let Some(attempt) = app.feat.collab.read_versions.get_mut(&key) {
+                    attempt.pending_or_done = false;
+                }
+                if first {
+                    app.toast_error(&format!("읽음 표시를 저장하지 못했어요: {}", e.message));
+                }
+            }
+        });
+    }
+    Some(Ctx { host, view, worker, place })
 }
 
 pub fn show_panel(app: &mut App, ui: &mut egui::Ui, host: HostKey, request: Uuid) {
-    let Some(cx) = load(app, ui, host, request) else {
-        return;
-    };
-    let mut acts = Vec::new();
-    let siblings = cx
-        .view
-        .request
-        .parent_id
-        .and_then(|p| requests_of(app, host, p).data)
-        .map(|l| {
-            l.iter()
-                .filter(|r| {
-                    r.id == request || (!r.acknowledged && matches!(r.status, ReqStatus::Done | ReqStatus::Failed))
-                })
-                .take(3)
-                .cloned()
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-    let selected = app.feat.collab.result_file.get(&request).cloned();
-    let open_logs = app.feat.collab.open_logs.clone();
-    // Measured outside the scroll area: its content may not push the panel wider.
-    let panel_w = (ui.available_width() - 28.0).max(120.0);
-    egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-        egui::Frame::new().inner_margin(Margin::same(14)).show(ui, |ui| {
-            let w = panel_w;
-            // The panel is narrow: nothing inside may push it wider.
-            ui.set_width(w);
-            ui.set_max_width(w);
-            ui.spacing_mut().item_spacing.y = 16.0;
-            if siblings.len() > 1 {
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing.x = 4.0;
-                    let w = (ui.available_width() - 4.0 * (siblings.len() as f32 - 1.0)) / siblings.len() as f32;
-                    for r in &siblings {
-                        if switcher(ui, r, r.id == request, w) {
-                            acts.push(Act::Switch(r.id));
-                        }
-                    }
-                });
-            }
-            if cx.view.request.status == ReqStatus::Failed {
-                failed_head(ui, &cx);
-            }
-            summary(ui, &cx);
-            files(ui, &cx, selected.as_deref(), &mut acts);
-            if let Some(path) = &selected {
-                diff_view(app, ui, host, request, path, 260.0);
-            }
-            checks(ui, &cx, &open_logs, &mut acts);
-            not_done(ui, &cx);
-            if cx.in_other_ws {
-                note(ui, &format!(
-                    "다른 공간의 결과라 여기서는 읽기만 합니다. 파일을 열면 {} 공간으로 전환하고, 돌아올 수 있어요.",
-                    cx.place.workspace
-                ));
-            }
-            buttons(ui, &cx, &mut acts);
-            ack(ui, &cx, &mut acts);
-        });
-    });
-    apply(app, &cx, acts);
+    show(app, ui, host, request, true);
 }
 
 pub fn show_tab(app: &mut App, ui: &mut egui::Ui, host: HostKey, request: Uuid) {
     ui.painter().rect_filled(ui.max_rect(), CornerRadius::ZERO, c::DOC);
-    let Some(cx) = load(app, ui, host, request) else {
-        return;
-    };
+    show(app, ui, host, request, false);
+}
+
+fn show(app: &mut App, ui: &mut egui::Ui, host: HostKey, request: Uuid, panel: bool) {
+    let Some(cx) = load(app, ui, host, request) else { return };
     let mut acts = Vec::new();
     let selected = app.feat.collab.result_file.get(&request).cloned();
     let open_logs = app.feat.collab.open_logs.clone();
-    egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-        egui::Frame::new().inner_margin(Margin::symmetric(32, 28)).show(ui, |ui| {
-            let w = ui.available_width().min(960.0);
-            let side = (ui.available_width() - w) / 2.0;
-            ui.horizontal(|ui| {
-                ui.add_space(side.max(0.0));
-                ui.vertical(|ui| {
-                    ui.set_width(w);
-                    ui.spacing_mut().item_spacing.y = 18.0;
-                    tab_head(ui, &cx, &mut acts);
-                    let two = w > 720.0;
-                    let col = if two { (w - 12.0) / 2.0 } else { w };
-                    let left = |ui: &mut egui::Ui, acts: &mut Vec<Act>| {
-                        card(ui, col, |ui| {
-                            // After a failure the card lists what is left over; otherwise it is the result.
-                            let heading = if cx.view.request.status == ReqStatus::Failed { "남아 있는 것" } else { "결과" };
-                            ui.label(RichText::new(heading).font(semibold(13.0)).color(c::TEXT_STRONG));
-                            summary(ui, &cx);
-                            files(ui, &cx, selected.as_deref(), acts);
-                            checks(ui, &cx, &open_logs, acts);
-                            not_done(ui, &cx);
-                            let link = ui.add(
-                                egui::Label::new(RichText::new("전체 로그와 원문 보기").font(font(12.5)).color(c::TEXT_2).underline())
-                                    .sense(Sense::click()),
-                            );
-                            if link.clicked() {
-                                acts.push(Act::Peek);
-                            }
-                        });
-                    };
-                    if two {
-                        ui.horizontal_top(|ui| {
-                            ui.spacing_mut().item_spacing.x = 12.0;
-                            left(ui, &mut acts);
-                            card(ui, col, |ui| right_card(app, ui, &cx, request, selected.as_deref()));
-                        });
-                    } else {
-                        left(ui, &mut acts);
-                        card(ui, col, |ui| right_card(app, ui, &cx, request, selected.as_deref()));
-                    }
-                    if cx.in_other_ws {
-                        note(ui, &format!(
-                            "다른 공간의 결과라 여기서는 읽기만 합니다. 파일을 열면 {} 공간으로 전환하고, 돌아올 수 있어요.",
-                            cx.place.workspace
-                        ));
-                    }
-                    note(ui, "자동으로 다시 실행하지 않았어요. 이전 시도의 기록은 어떤 선택을 해도 지워지지 않습니다.");
-                    ack(ui, &cx, &mut acts);
-                });
-            });
+    let width = (ui.available_width() - 28.0).clamp(120.0, 960.0);
+    egui::ScrollArea::vertical().id_salt(("result", host, request, panel)).auto_shrink([false, false]).show(ui, |ui| {
+        egui::Frame::new().inner_margin(Margin::same(14)).show(ui, |ui| {
+            ui.set_width(width);
+            ui.set_max_width(width);
+            ui.spacing_mut().item_spacing.y = 14.0;
+            ui.heading(&cx.view.request.title);
+            if cx.view.request.status == ReqStatus::Failed {
+                failed_head(ui, &cx);
+            }
+            buttons(ui, &cx, &mut acts);
+            summary(ui, &cx);
+            files(ui, &cx, selected.as_deref(), &mut acts);
+            if let Some(path) = &selected {
+                diff_view(app, ui, host, request, path, if panel { 260.0 } else { 520.0 });
+            }
+            checks(ui, &cx, &open_logs, &mut acts);
+            not_done(ui, &cx);
+            if let Some(answer) = &cx.view.answer {
+                ui.label(RichText::new("전체 답변").font(medium(12.0)).color(c::TEXT_3));
+                ui.add(egui::Label::new(RichText::new(answer).font(font(ty::BODY)).color(c::TEXT)).wrap());
+            }
         });
     });
     apply(app, &cx, acts);
-}
-
-fn card(ui: &mut egui::Ui, width: f32, add: impl FnOnce(&mut egui::Ui)) {
-    egui::Frame::new().fill(c::PANEL).corner_radius(CornerRadius::same(12)).inner_margin(Margin::same(16)).show(
-        ui,
-        |ui| {
-            // Cards sit side by side in a horizontal row; their content still runs top to bottom.
-            ui.vertical(|ui| {
-                ui.set_width(width - 32.0);
-                ui.set_max_width(width - 32.0);
-                ui.spacing_mut().item_spacing.y = 12.0;
-                add(ui);
-            });
-        },
-    );
-}
-
-fn right_card(app: &mut App, ui: &mut egui::Ui, cx: &Ctx, request: Uuid, selected: Option<&str>) {
-    let r = &cx.view.request;
-    if r.status == ReqStatus::Failed {
-        ui.label(
-            RichText::new(format!("이어서 수정하면 시도 {}로 진행해요", r.attempt + 1))
-                .font(semibold(13.0))
-                .color(c::TEXT_STRONG),
-        );
-        let files = r.result.as_ref().map(|x| x.files.len()).unwrap_or(0);
-        ui.label(RichText::new("다시 쓰는 것").font(medium(12.0)).color(c::MINT));
-        bullet(ui, icons::CHECK, c::MINT, &format!("작업 폴더에 남아 있는 변경 {files}개 (미커밋 포함)"));
-        bullet(ui, icons::CHECK, c::MINT, "이전 시도의 대화와 출력 기록");
-        ui.label(RichText::new("다시 수행하는 것").font(medium(12.0)).color(c::YELLOW));
-        bullet(ui, icons::ROTATE_CCW, c::YELLOW, "맡긴 일 중 끝내지 못한 부분");
-        let passed = r.result.as_ref().is_some_and(|x| x.checks.iter().any(|c| c.passed));
-        let checks = if passed {
-            "검증 다시 실행. 이전 통과는 지금 파일에 쓰지 않아요"
-        } else {
-            "검증 실행. 이전 시도에 통과 기록이 없어요"
-        };
-        bullet(ui, icons::ROTATE_CCW, c::YELLOW, checks);
-        return;
-    }
-    match selected {
-        Some(path) => {
-            ui.label(RichText::new(path).font(mono(12.0)).color(c::TEXT_STRONG));
-            diff_view(app, ui, cx.host, request, path, 520.0);
-        }
-        None => {
-            ui.label(RichText::new("변경 내용").font(semibold(13.0)).color(c::TEXT_STRONG));
-            let none = cx.view.request.result.as_ref().is_some_and(|x| x.files.is_empty());
-            let note = if none {
-                "바뀐 파일이 없어요"
-            } else {
-                "왼쪽에서 파일을 고르면 시작 기준과 비교한 변경을 보여 줘요"
-            };
-            widgets::empty_note(ui, note);
-        }
-    }
 }
 
 fn bullet(ui: &mut egui::Ui, glyph: &str, color: Color32, text: &str) {
@@ -253,32 +119,6 @@ fn bullet(ui: &mut egui::Ui, glyph: &str, color: Color32, text: &str) {
         ui.label(icon(glyph, 13.0, color));
         ui.add(egui::Label::new(RichText::new(text).font(font(12.5)).color(c::TEXT)).wrap());
     });
-}
-
-fn note(ui: &mut egui::Ui, text: &str) {
-    ui.add(egui::Label::new(RichText::new(text).font(font(12.0)).color(c::TEXT_3)).wrap());
-}
-
-fn switcher(ui: &mut egui::Ui, r: &Request, on: bool, w: f32) -> bool {
-    let lk = look(r, false);
-    let resp = egui::Frame::new()
-        .fill(if on { c::CONTROL } else { c::ROW })
-        .corner_radius(CornerRadius::same(8))
-        .inner_margin(Margin::symmetric(10, 8))
-        .show(ui, |ui| {
-            // In a horizontal row: title over state, not side by side.
-            ui.vertical(|ui| {
-                ui.set_width(w - 20.0);
-                ui.set_max_width(w - 20.0);
-                ui.spacing_mut().item_spacing.y = 0.0;
-                theme::truncated(ui, &r.title, medium(12.5), if on { c::TEXT_STRONG } else { c::TEXT });
-                let label = if r.status == ReqStatus::Done && !r.acknowledged { "새 결과" } else { &lk.label };
-                ui.label(RichText::new(label).font(font(11.5)).color(lk.tone.fg()));
-            });
-        })
-        .response;
-    let click = ui.interact(resp.rect, ui.scope_id().with(("switch", r.id)), Sense::click());
-    !on && click.clicked()
 }
 
 fn failed_head(ui: &mut egui::Ui, cx: &Ctx) {
@@ -296,35 +136,6 @@ fn failed_head(ui: &mut egui::Ui, cx: &Ctx) {
     });
 }
 
-fn tab_head(ui: &mut egui::Ui, cx: &Ctx, acts: &mut Vec<Act>) {
-    let r = &cx.view.request;
-    let lk = look(r, false);
-    ui.horizontal_top(|ui| {
-        let w = ui.available_width();
-        ui.vertical(|ui| {
-            ui.set_width((w - 260.0).max(240.0));
-            ui.spacing_mut().item_spacing.y = 4.0;
-            let state = if r.status == ReqStatus::Failed {
-                failure_label(r.result.as_ref()).to_string()
-            } else {
-                lk.label.clone()
-            };
-            ui.horizontal(|ui| {
-                ui.label(icon(lk.icon, 14.0, lk.tone.fg()));
-                ui.label(RichText::new(format!("{state} · 시도 {}", r.attempt)).font(medium(12.5)).color(lk.tone.fg()));
-            });
-            ui.add(egui::Label::new(RichText::new(&r.title).font(semibold(ty::TITLE)).color(c::TEXT_STRONG)).wrap());
-            if let Some(reason) = &r.reason {
-                ui.add(egui::Label::new(RichText::new(reason).font(font(ty::BODY)).color(c::TEXT_2)).wrap());
-            }
-        });
-        ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
-            ui.spacing_mut().item_spacing.x = 6.0;
-            buttons_inner(ui, cx, acts, 34.0);
-        });
-    });
-}
-
 fn summary(ui: &mut egui::Ui, cx: &Ctx) {
     let v = &cx.view;
     let r = &v.request;
@@ -338,7 +149,7 @@ fn summary(ui: &mut egui::Ui, cx: &Ctx) {
                     Some(SummaryFrom::Screen) => "화면의 마지막 부분 · 대화 기록 없음",
                     None => "",
                 };
-                let text: String = a.lines().take(12).collect::<Vec<_>>().join("\n");
+                let text = r.result.as_ref().and_then(|r| r.summary.clone()).unwrap_or_else(|| first_line(a, 240));
                 ui.add(egui::Label::new(RichText::new(text).font(font(ty::BODY)).color(c::TEXT_STRONG)).wrap());
                 ui.label(RichText::new(from).font(font(11.5)).color(c::TEXT_3));
             }
@@ -549,7 +360,11 @@ fn checks(ui: &mut egui::Ui, cx: &Ctx, open_logs: &std::collections::HashSet<(Uu
                 if list.is_empty() {
                     ui.horizontal(|ui| {
                         ui.label(icon(icons::MINUS, 13.0, c::TEXT_3));
-                        ui.label(RichText::new("보고된 검증 없음 · 미검증").font(font(12.5)).color(c::TEXT_2));
+                        ui.label(
+                            RichText::new(checks_empty_label(r.tool, cx.view.answer.is_some()))
+                                .font(font(12.5))
+                                .color(c::TEXT_2),
+                        );
                     });
                     return;
                 }
@@ -644,90 +459,34 @@ fn not_done(ui: &mut egui::Ui, cx: &Ctx) {
     });
 }
 
+fn checks_empty_label(tool: Tool, answer: bool) -> &'static str {
+    if tool == Tool::Codex && answer { "검증 내용은 답변에 있어요" } else { "보고된 검증 없음" }
+}
+
 fn buttons(ui: &mut egui::Ui, cx: &Ctx, acts: &mut Vec<Act>) {
     ui.horizontal_wrapped(|ui| {
-        ui.spacing_mut().item_spacing = egui::vec2(6.0, 6.0);
-        buttons_inner(ui, cx, acts, 30.0);
-    });
-}
-
-fn btn(ui: &mut egui::Ui, text: &str, primary: bool, h: f32) -> egui::Response {
-    let b = if primary {
-        egui::Button::new(RichText::new(text).font(medium(12.5)).color(c::ON_EMBER)).fill(c::EMBER)
-    } else {
-        egui::Button::new(RichText::new(text).font(font(12.5)).color(c::TEXT_STRONG)).fill(c::CONTROL)
-    };
-    ui.add(b.min_size(egui::vec2(0.0, h)).corner_radius(CornerRadius::same(7)))
-}
-
-/// Context actions. Exactly one is ember: 이어서 수정 after a failure, 통합 준비 for a finished
-/// worktree, otherwise none.
-fn buttons_inner(ui: &mut egui::Ui, cx: &Ctx, acts: &mut Vec<Act>, h: f32) {
-    let r = &cx.view.request;
-    let failed = r.status == ReqStatus::Failed;
-    let can_merge = r.status == ReqStatus::Done && cx.place.kind == Some(WorkspaceKind::Worktree);
-    let first_file = r.result.as_ref().and_then(|x| x.files.iter().find(|f| f.status != "D")).map(|f| f.path.clone());
-    let rtl = ui.layout().prefer_right_to_left();
-    let mut items: Vec<(&str, bool, Act)> = Vec::new();
-    if can_merge {
-        items.push(("통합 준비", true, Act::Merge));
-    }
-    if let Some(p) = app_file(cx, first_file) {
-        items.push(("파일 열기", false, Act::OpenFile(p)));
-    }
-    if !r.status.is_open() && !failed {
-        items.push(("검토 요청", false, Act::Review));
-    }
-    if failed {
-        items.push(("처음부터 다시", false, Act::Retry(RetryMode::Fresh)));
-        items.push(("이어서 수정", true, Act::Retry(RetryMode::Continue)));
-    } else if r.status == ReqStatus::Done {
-        items.push(("이어서 수정", false, Act::Retry(RetryMode::Continue)));
-    }
-    if rtl {
-        items.reverse();
-    }
-    for (text, primary, act) in items {
-        if btn(ui, text, primary, h).clicked() {
-            acts.push(act);
+        if theme::secondary_button(ui, "화면 보기").clicked() {
+            acts.push(Act::Peek);
         }
-    }
-    if widgets::icon_btn(ui, icons::COPY, "작업 폴더 경로 복사", h, h, 14.0).clicked() {
-        acts.push(Act::CopyPath);
-    }
-}
-
-fn app_file(cx: &Ctx, first: Option<String>) -> Option<String> {
-    first.filter(|_| cx.view.folder_exists && cx.place.ws.is_some())
-}
-
-fn ack(ui: &mut egui::Ui, cx: &Ctx, acts: &mut Vec<Act>) {
-    let r = &cx.view.request;
-    if r.status.is_open() {
-        return;
-    }
-    ui.painter().hline(ui.max_rect().x_range(), ui.cursor().top() - 6.0, egui::Stroke::new(1.0, c::LINE));
-    let mut on = r.acknowledged;
-    let label = RichText::new("확인함으로 표시").font(font(12.5)).color(c::TEXT);
-    ui.horizontal(|ui| {
-        if ui.checkbox(&mut on, label).changed() {
-            acts.push(Act::Ack(on));
+        if theme::secondary_button(ui, "직접 대화").clicked() {
+            acts.push(Act::Direct);
         }
-        ui.label(RichText::new("(검증 통과와는 별개예요)").font(font(12.5)).color(c::TEXT_3));
-    });
-}
-
-pub fn retry(app: &mut App, host: HostKey, id: Uuid, mode: RetryMode) {
-    let (cols, rows) = app.shell.center.terminal_grid();
-    app.hub.call::<CollabRetry>(host, Retry { id, mode, note: None, cols, rows }, move |app, res| match res {
-        Ok(d) => {
-            let what = match mode {
-                RetryMode::Continue => "같은 작업자에게 이어서 맡겼어요",
-                RetryMode::Fresh => "새 작업자에게 처음부터 맡겼어요",
-            };
-            app.toast_info(&format!("시도 {} · {what}", d.request.attempt));
+        if ui
+            .add_enabled(
+                cx.worker.as_ref().is_some_and(|w| {
+                    w.live.as_ref().is_some_and(|l| {
+                        matches!(
+                            l.phase,
+                            runwick_core::api::sessions::Phase::Running | runwick_core::api::sessions::Phase::Starting
+                        )
+                    })
+                }),
+                egui::Button::new("멈추기"),
+            )
+            .clicked()
+        {
+            acts.push(Act::Stop);
         }
-        Err(e) => app.toast_error(&e.message),
     });
 }
 
@@ -737,35 +496,15 @@ fn apply(app: &mut App, cx: &Ctx, acts: Vec<Act>) {
     for a in acts {
         match a {
             Act::Select(p) => {
-                let cur = app.feat.collab.result_file.get(&r.id);
-                if cur == Some(&p) {
+                if app.feat.collab.result_file.get(&r.id) == Some(&p) {
                     app.feat.collab.result_file.remove(&r.id);
                 } else {
                     app.feat.collab.result_file.insert(r.id, p);
                 }
             }
-            Act::Switch(id) => app.ui.right = Some(RightPanel::Result { host, request: id }),
-            Act::Ack(on) => app.hub.send::<CollabAck>(host, Ack { id: r.id, acknowledged: on }),
-            Act::Merge => {
-                if let (Some(project), Some(ws)) = (cx.place.project_id, cx.place.ws) {
-                    actions::select_workspace(app, project, ws);
-                    app.ui.open_tab(ws, TabKind::Merge { ws });
-                }
-            }
-            Act::OpenFile(path) => {
-                if let (Some(project), Some(ws)) = (cx.place.project_id, cx.place.ws) {
-                    actions::select_workspace(app, project, ws);
-                    crate::views::docs::open(app, ws, &path, false);
-                }
-            }
-            Act::Review => review(app, cx),
-            Act::Retry(mode) => retry(app, host, r.id, mode),
-            Act::CopyPath => {
-                if let Some(ctx) = app.shell.center.ctx() {
-                    actions::copy_path(app, &ctx, &cx.view.worker_cwd);
-                }
-            }
             Act::Peek => super::peek::open(app, host, r.worker_id, None),
+            Act::Direct => super::direct(app, host, r.worker_id),
+            Act::Stop => app.shell.modal.ask_stop(host, r.worker_id),
             Act::ToggleLog(i) => {
                 let key = (r.id, i);
                 if !app.feat.collab.open_logs.remove(&key) {
@@ -776,56 +515,16 @@ fn apply(app: &mut App, cx: &Ctx, acts: Vec<Act>) {
     }
 }
 
-/// "검토 요청": the other CLI reviews this result in the same workspace (a person's request).
-fn review(app: &mut App, cx: &Ctx) {
-    let r = &cx.view.request;
-    let Some(worker) = &cx.worker else { return };
-    let tool = if r.tool == Tool::Codex { Tool::Claude } else { Tool::Codex };
-    let files: Vec<String> =
-        r.result.as_ref().map(|x| x.files.iter().map(|f| f.path.clone()).collect()).unwrap_or_default();
-    let mut prompt = format!(
-        "다음 작업 결과를 검토해 주세요. 바뀐 파일을 직접 읽고 문제와 확인한 범위를 알려 주세요.\n\n맡긴 일: {}\n",
-        r.title
-    );
-    if let Some(a) = &cx.view.answer {
-        prompt.push_str(&format!("작업자 요약: {}\n", first_line(a, 400)));
-    }
-    if !files.is_empty() {
-        prompt.push_str(&format!("바뀐 파일: {}\n", files.join(", ")));
-    }
-    if let Some(base) = r.start_rev.as_deref() {
-        prompt.push_str(&format!("비교 기준 revision: {}\n", short(base)));
-    }
-    let (cols, rows) = app.shell.center.terminal_grid();
-    let d = Delegate {
-        parent_id: r.parent_id,
-        workspace_id: Some(worker.session.workspace_id),
-        tool,
-        role: Some("검토".into()),
-        title: Some(format!("검토: {}", r.title)),
-        prompt,
-        split: None,
-        key: None,
-        source: Source::Person,
-        cols,
-        rows,
-    };
-    let host = cx.host;
-    let parent = r.parent_id;
-    app.hub.call::<CollabDelegate>(host, d, move |app, res| match res {
-        Ok(d) => {
-            app.toast_info(&format!("{}에게 검토를 맡겼어요 ({})", d.request.tool.label(), d.request.receipt()));
-            if let Some(p) = parent {
-                app.ui.right = Some(RightPanel::Collab { host, session: p });
-            }
-        }
-        Err(e) => app.toast_error(&e.message),
-    });
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn missing_structured_checks_are_neutral_and_codex_points_to_the_answer() {
+        assert_eq!(checks_empty_label(Tool::Claude, true), "보고된 검증 없음");
+        assert_eq!(checks_empty_label(Tool::Codex, false), "보고된 검증 없음");
+        assert_eq!(checks_empty_label(Tool::Codex, true), "검증 내용은 답변에 있어요");
+    }
 
     #[test]
     fn reported_files_git_does_not_show_are_listed_apart() {

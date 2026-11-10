@@ -26,6 +26,7 @@ pub struct State {
 
 /// Something the person asked for in the sidebar, applied after drawing.
 pub enum Act {
+    OpenWorker(crate::client::HostKey, uuid::Uuid),
     ToggleExpand(ProjectId),
     SelectProject(ProjectId),
     SelectWs(ProjectId, WsKey),
@@ -138,6 +139,7 @@ fn apply(app: &mut App, ctx: &egui::Context, act: Act) {
         Act::Reveal(path) => actions::reveal(app, &path),
         Act::SpaceInfo(ws) => crate::views::devices::open_space_panel(app, ws),
         Act::CopyPath(path) => actions::copy_path(app, ctx, &path),
+        Act::OpenWorker(host, session) => crate::views::collab::open_worker(app, host, session),
         Act::OpenSession { project, ws, session, hidden } => actions::open_session(app, project, ws, session, hidden),
         Act::StopSession(host, id) => app.shell.modal.ask_stop(host, id),
         Act::Restart(host, id, resume) => actions::restart_session(app, host, id, resume),

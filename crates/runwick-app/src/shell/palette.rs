@@ -52,7 +52,7 @@ enum Action {
     Files,
     Project(ProjectId),
     Workspace(ProjectId, WsKey),
-    Session { project: ProjectId, ws: WsKey, session: SessionId, hidden: bool },
+    Session { project: ProjectId, ws: WsKey, session: SessionId, hidden: bool, worker: bool },
 }
 
 #[derive(Clone)]
@@ -190,6 +190,7 @@ fn entries(app: &mut App) -> Vec<Entry> {
                     ws: data::ws_key(w),
                     session: s.session.id,
                     hidden: s.session.hidden,
+                    worker: s.session.parent_id.is_some(),
                 },
             });
         }
@@ -370,11 +371,11 @@ fn perform(app: &mut App, a: Action) {
         Action::Settings => actions::open_settings(app, None),
         Action::History => {
             app.ui.page = crate::state::Page::Work;
-            app.ui.right = Some(RightPanel::History);
+            app.ui.show_panel_root(RightPanel::History, None);
         }
         Action::Activity => {
             app.ui.page = crate::state::Page::Work;
-            app.ui.right = Some(RightPanel::Activity);
+            app.ui.show_panel_root(RightPanel::Activity, None);
         }
         Action::Wiki => match app.ui.selected_project {
             Some(project) => actions::open_center_tab(app, TabKind::Wiki { project, page: None }),
@@ -404,7 +405,14 @@ fn perform(app: &mut App, a: Action) {
         }
         Action::Project(p) => actions::select_project(app, p),
         Action::Workspace(p, ws) => actions::select_workspace(app, p, ws),
-        Action::Session { project, ws, session, hidden } => actions::open_session(app, project, ws, session, hidden),
+        Action::Session { project, ws, session, hidden, worker } => {
+            if worker {
+                app.ui.page = crate::state::Page::Work;
+                crate::views::collab::open_worker(app, ws.host, session);
+            } else {
+                actions::open_session(app, project, ws, session, hidden);
+            }
+        }
     }
 }
 

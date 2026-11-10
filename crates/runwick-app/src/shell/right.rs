@@ -2,10 +2,10 @@
 //! then the feature's body. When the center would drop below 520 it floats over the center.
 //! Closing (× or Esc) returns keyboard focus to where it was.
 
-use super::{actions, data, widgets};
+use super::{data, widgets};
 use crate::App;
 use crate::icons;
-use crate::state::{RightPanel, TabKind};
+use crate::state::{PanelDetail, RightPanel, TabKind};
 use crate::theme::{c, font, medium, size};
 use egui::{CornerRadius, Pos2, Rect, Sense, Stroke, UiBuilder, Vec2};
 
@@ -15,6 +15,7 @@ pub struct State {
     pub rect: Option<Rect>,
     /// Focus outside the panel before it opened, restored on close.
     return_focus: Option<egui::Id>,
+    focused: bool,
 }
 
 /// Remember where keyboard focus was outside the panel (call every frame).
@@ -31,6 +32,7 @@ pub fn track_focus(app: &mut App, ctx: &egui::Context) {
 
 pub fn close(app: &mut App, ctx: &egui::Context) {
     app.ui.right = None;
+    app.shell.right.focused = false;
     app.shell.right.rect = None;
     if let Some(id) = app.shell.right.return_focus.take() {
         ctx.memory_mut(|m| m.request_focus(id));
@@ -51,6 +53,7 @@ pub fn show_docked(app: &mut App, ui: &mut egui::Ui, panel: &RightPanel) {
     let handle = Rect::from_x_y_ranges(rect.left() - 2.0..=rect.left() + 4.0, rect.y_range());
     if let Some(dx) = super::resize_handle(ui, handle, "right-resize") {
         app.ui.right_width = (app.ui.right_width - dx).clamp(size::RIGHT_PANEL_MIN, size::RIGHT_PANEL_MAX);
+        app.ui.panel_mut().width = app.ui.right_width;
     }
 }
 
@@ -72,6 +75,12 @@ pub fn show_overlay(app: &mut App, ctx: &egui::Context, panel: &RightPanel) {
 }
 
 fn body(app: &mut App, ui: &mut egui::Ui, panel: &RightPanel) {
+    if !app.shell.right.focused {
+        let id = ui.scope_id().with("panel-focus");
+        ui.interact(egui::Rect::from_min_size(ui.max_rect().min, Vec2::splat(1.0)), id, Sense::click()).request_focus();
+        app.shell.right.focused = true;
+    }
+    resolve_target(app);
     let full = ui.max_rect();
     let head = Rect::from_min_size(full.min, Vec2::new(full.width(), size::PANEL_HEAD));
     ui.scope_builder(UiBuilder::new().max_rect(head), |ui| panel_head(app, ui, panel));
@@ -80,37 +89,108 @@ fn body(app: &mut App, ui: &mut egui::Ui, panel: &RightPanel) {
         UiBuilder::new().max_rect(rest).id_salt("right-body").layout(egui::Layout::top_down(egui::Align::Min)),
     );
     child.set_clip_rect(rest.intersect(ui.clip_rect()));
-    crate::views::show_right_panel(app, &mut child, panel);
+    if *panel != RightPanel::Activity {
+        target_row(app, &mut child);
+    }
+    navigation(app, &mut child);
+    let selected = app.ui.right.unwrap_or(*panel);
+    crate::views::show_right_panel(app, &mut child, &selected);
 }
 
-/// The panels a person can switch between here, in design order.
-fn items(app: &mut App, panel: &RightPanel) -> Vec<(RightPanel, &'static str)> {
-    let mut v = Vec::new();
-    if *panel == RightPanel::Activity {
-        v.push((RightPanel::Activity, "전체 활동"));
-    }
-    v.push((RightPanel::History, "기록·핀"));
-    let collab = match panel {
-        RightPanel::Collab { host, session } => Some((*host, *session)),
-        _ => active_session_with_workers(app),
+fn resolve_target(app: &mut App) {
+    use runwick_core::api::{
+        collab::CollabGet,
+        projects::ById,
+        records::{ContextQuery, PinQuery, PinsList, RecordsContext},
     };
-    if let Some((host, session)) = collab {
-        v.push((RightPanel::Collab { host, session }, "협업"));
+    let Some(frame) = app.ui.panel().and_then(|p| p.current()).cloned() else { return };
+    let target = match &frame.detail {
+        PanelDetail::Pin { host, id } => app
+            .hub
+            .query::<PinsList>(*host, &PinQuery::default())
+            .data
+            .and_then(|l| l.iter().find(|p| p.id == *id).and_then(|p| p.session_id))
+            .map(|session| crate::state::PanelTarget { host: *host, session }),
+        PanelDetail::Message(o) => app
+            .hub
+            .query::<RecordsContext>(o.host, &ContextQuery { anchor: o.anchor, before: 0, after: 0 })
+            .data
+            .map(|cx| crate::state::PanelTarget { host: o.host, session: cx.session_id }),
+        PanelDetail::Result { host, request } => app
+            .hub
+            .query::<CollabGet>(*host, &ById { id: *request })
+            .data
+            .map(|v| crate::state::PanelTarget { host: *host, session: v.request.worker_id }),
+        _ => frame.target,
+    };
+    if let Some(tab) = app.ui.right
+        && let Some(top) = app.ui.panel_mut().stacks.get_mut(&tab).and_then(|s| s.last_mut())
+    {
+        top.target = target;
     }
-    if let RightPanel::Result { .. } = panel {
-        v.push((panel.clone(), "변경·결과"));
-    }
-    if let RightPanel::Space { .. } = panel {
-        v.push((panel.clone(), "이 공간"));
-    }
-    v
 }
 
-fn active_session_with_workers(app: &mut App) -> Option<(crate::client::HostKey, uuid::Uuid)> {
-    let ws = app.ui.selected_ws?;
-    let TabKind::Terminal { host, session } = app.ui.active_tab()?.kind.clone() else { return None };
-    let list = data::sessions_in(app, ws).data?;
-    list.iter().any(|s| s.session.parent_id == Some(session)).then_some((host, session))
+fn target_row(app: &mut App, ui: &mut egui::Ui) {
+    let target = app.ui.panel_target();
+    let label = target
+        .and_then(|t| {
+            let sessions = data::all_sessions(app, t.host).data?;
+            let session = sessions.iter().find(|s| s.session.id == t.session)?;
+            let place = crate::views::collab::place(app, t.host, &session.session);
+            let path = format!("{} › {} › {}", place.project, place.workspace, session.session.title);
+            Some(if t.host == crate::client::HostKey::Local {
+                path
+            } else {
+                format!("{} › {path}", crate::views::history::host_label(app, t.host))
+            })
+        })
+        .unwrap_or_else(|| {
+            if target.is_some() {
+                "대상을 불러오는 중…".into()
+            } else {
+                "세션을 고르면 여기에 보여요".into()
+            }
+        });
+    egui::Frame::new().inner_margin(egui::Margin::symmetric(12, 8)).show(ui, |ui| {
+        ui.horizontal(|ui| {
+            let mut pinned = app.ui.panel().is_some_and(|p| p.pinned);
+            let label_width = (ui.available_width() - 58.0).max(40.0);
+            ui.allocate_ui(Vec2::new(label_width, 20.0), |ui| {
+                crate::theme::truncated(ui, &label, font(11.5), c::TEXT_2).on_hover_text(&label);
+            });
+            if ui
+                .add_enabled(target.is_some(), egui::Button::selectable(pinned, "고정"))
+                .on_hover_text("이 대상을 유지해요. 고정을 풀면 선택한 세션을 따라가요")
+                .clicked()
+            {
+                pinned = !pinned;
+                app.ui.pin_panel(pinned);
+            }
+        });
+    });
+}
+
+fn navigation(app: &mut App, ui: &mut egui::Ui) {
+    let detail = app.ui.panel().and_then(|p| p.current()).map(|f| f.detail.clone());
+    let Some(detail) = detail else { return };
+    egui::Frame::new().inner_margin(egui::Margin::symmetric(12, 6)).show(ui, |ui| {
+        ui.horizontal(|ui| {
+            if crate::theme::secondary_button(ui, "← 뒤로").clicked() {
+                app.ui.back_panel();
+            }
+            let kind = match &detail {
+                PanelDetail::Pin { host, id } => Some(TabKind::Pin { host: *host, id: *id }),
+                PanelDetail::Message(o) => Some(TabKind::Record { host: o.host, anchor: o.anchor }),
+                PanelDetail::Result { host, request } => Some(TabKind::Result { host: *host, request: *request }),
+                _ => None,
+            };
+            if let Some(kind) = kind
+                && crate::theme::secondary_button(ui, "크게 보기").clicked()
+            {
+                super::actions::open_center_tab(app, kind);
+            }
+        });
+    });
 }
 
 fn panel_head(app: &mut App, ui: &mut egui::Ui, panel: &RightPanel) {
@@ -120,7 +200,7 @@ fn panel_head(app: &mut App, ui: &mut egui::Ui, panel: &RightPanel) {
     let mut x = r.left() + 8.0;
     let cy = r.center().y;
     let mut switch = None;
-    for (p, title) in items(app, panel) {
+    for (p, title) in RightPanel::ALL {
         let on = p == *panel;
         let f = if on { medium(12.5) } else { font(12.5) };
         let w = widgets::text_width(ui, title, f.clone()) + 20.0;
@@ -156,7 +236,7 @@ fn panel_head(app: &mut App, ui: &mut egui::Ui, panel: &RightPanel) {
         })
         .inner;
     if let Some(p) = switch {
-        actions::toggle_right(app, p);
+        app.ui.show_panel(p, None);
     }
     if closed {
         close(app, ui.ctx());

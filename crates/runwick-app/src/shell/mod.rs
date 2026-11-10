@@ -96,6 +96,7 @@ fn effective_page(app: &mut App) -> Page {
 pub fn show(app: &mut App, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
     let ctx = ui.ctx().clone();
     frame.set_traffic_lights_position(&ctx, egui::Rangef::new(0.0, size::TITLEBAR), 14.0);
+    right::track_focus(app, &ctx);
     keys::track_ime(app, &ctx);
     keys::handle(app, &ctx);
     crate::views::lifecycle::tick(app, &ctx, app.shell.keys.composing);
@@ -104,6 +105,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
     crate::presence::apply_open_request(app);
     open_requested_overlay(app, &ctx);
     let page = effective_page(app);
+    app.ui.sync_panel();
     titlebar::show(app, ui, page);
     // A window the host refused shows why and what to do, instead of failing lists.
     if crate::views::window_refusal::show(app, ui) {
@@ -122,7 +124,6 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
     split_picker::show(app, &ctx);
     toasts::show(app, &ctx);
     drop_overlay(app, &ctx);
-    right::track_focus(app, &ctx);
     layout::tick(app, &ctx);
 }
 
@@ -141,7 +142,7 @@ fn work(app: &mut App, ui: &mut egui::Ui) {
         sidebar::show(app, ui);
     }
     let side_w = if rail { size::SIDEBAR_COLLAPSED } else { app.ui.sidebar_width };
-    let panel = app.ui.right.clone();
+    let panel = app.ui.right;
     let right_w = app.ui.right_width.clamp(size::RIGHT_PANEL_MIN, size::RIGHT_PANEL_MAX);
     let overlay = panel.is_some() && win_w - side_w - right_w < size::CENTER_MIN;
     if let (Some(p), false) = (&panel, overlay) {

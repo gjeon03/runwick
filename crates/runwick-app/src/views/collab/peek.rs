@@ -12,8 +12,7 @@ use crate::state::{Page, RightPanel};
 use crate::theme::{c, font, icon, icon_font, medium, mono, semibold, size};
 use egui::{Align2, Color32, CornerRadius, Id, Pos2, Rect, RichText, Sense, Stroke, UiBuilder, Vec2};
 use runwick_core::api::collab::{CollabDirect, CollabList, Direct, ReqStatus, RequestQuery};
-use runwick_core::api::projects::ById;
-use runwick_core::api::sessions::{Attention, Phase, SessionId, SessionsTakeInput};
+use runwick_core::api::sessions::{Attention, Phase, SessionId};
 
 #[derive(Debug, Clone)]
 pub struct Peek {
@@ -246,11 +245,8 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
         match a {
             Act::Close => close(app),
             Act::Direct => {
-                app.hub.send::<CollabDirect>(p.host, Direct { worker_id: p.worker, on: true });
-                app.hub.call::<SessionsTakeInput>(p.host, ById { id: p.worker }, move |app, res| match res {
-                    Ok(()) => crate::terminal::focus(app, p.host, p.worker),
-                    Err(e) => app.toast_error(&format!("입력권을 가져오지 못했어요: {}", e.message)),
-                });
+                super::direct(app, p.host, p.worker);
+                close(app);
             }
             Act::Release => {
                 app.hub.send::<CollabDirect>(p.host, Direct { worker_id: p.worker, on: false });
@@ -264,11 +260,11 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
                 _ => app.toast_error("작업자의 공간을 찾을 수 없어요"),
             },
             Act::Result(id) => {
-                app.ui.right = Some(RightPanel::Result { host: p.host, request: id });
+                super::open_result(app, p.host, id);
                 close(app);
             }
             Act::BackToActivity => {
-                app.ui.right = Some(RightPanel::Activity);
+                app.ui.show_panel_root(RightPanel::Activity, None);
                 close(app);
             }
         }

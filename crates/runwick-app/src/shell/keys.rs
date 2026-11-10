@@ -63,7 +63,7 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
     }
     if take(ctx, cmd | Modifiers::SHIFT, Key::F) {
         app.ui.page = crate::state::Page::Work;
-        app.ui.right = Some(RightPanel::History);
+        app.ui.show_panel_root(RightPanel::History, None);
     } else if take(ctx, cmd, Key::T) {
         actions::new_session(app);
     } else if take(ctx, cmd, Key::O) {
@@ -112,11 +112,7 @@ fn escape(app: &mut App, ctx: &egui::Context) {
         }
         return;
     }
-    // A focused terminal (it owns Esc, Cmd+F, ...) or a text field outside the panel (sidebar
-    // search, document) keeps its own Esc.
-    let terminal = crate::terminal::focused_session(app).is_some();
-    let typing_elsewhere = ctx.text_edit_focused() && !focus_in(app.shell.right.rect, ctx);
-    if app.ui.right.is_some() && !terminal && !focus_in(app.shell.center.rect, ctx) && !typing_elsewhere {
+    if app.ui.right.is_some() && !crate::views::collab::peek_is_open(app) {
         super::right::close(app, ctx);
         consume_esc(ctx);
     }
@@ -124,11 +120,4 @@ fn escape(app: &mut App, ctx: &egui::Context) {
 
 fn consume_esc(ctx: &egui::Context) {
     ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::Escape));
-}
-
-/// The keyboard focus is inside `area` (the center: a terminal or document gets Esc).
-fn focus_in(area: Option<egui::Rect>, ctx: &egui::Context) -> bool {
-    let Some(id) = ctx.memory(|m| m.focused()) else { return false };
-    let Some(rect) = ctx.read_response(id).map(|r| r.rect) else { return false };
-    area.is_some_and(|a| a.contains(rect.center()))
 }

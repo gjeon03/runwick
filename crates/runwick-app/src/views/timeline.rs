@@ -15,7 +15,7 @@ use super::history::fmt;
 use crate::App;
 use crate::client::HostKey;
 use crate::icons;
-use crate::state::{RightPanel, TabId, TabKind, WsKey};
+use crate::state::{TabId, TabKind, WsKey};
 use crate::theme::{c, font, icon_font, mono};
 use chrono::NaiveDate;
 use egui::{Align2, CornerRadius, Pos2, Rect, Sense, Vec2};
@@ -110,13 +110,7 @@ fn follow(app: &mut App, ctx: &egui::Context, ev: &Event, project: ProjectId) {
     match &ev.link {
         Some(EventLink::Session { id }) => super::history::open_session_records(app, host, *id),
         Some(EventLink::Message { id }) => super::history::open_message(app, host, *id, Vec::new()),
-        Some(EventLink::Pin { id }) => {
-            let h = &mut app.feat.history;
-            h.mode = super::history::Mode::Pins;
-            h.scope = super::history::ScopeKind::Project;
-            h.highlight_pin = Some(*id);
-            app.ui.right = Some(RightPanel::History);
-        }
+        Some(EventLink::Pin { id }) => super::history::open_pin(app, host, *id, None),
         Some(EventLink::Commit { sha }) => {
             ctx.copy_text(sha.clone());
             app.toast(crate::state::ToastKind::Success, "커밋 해시를 복사했어요");
@@ -130,9 +124,7 @@ fn follow(app: &mut App, ctx: &egui::Context, ev: &Event, project: ProjectId) {
         Some(EventLink::Wiki { page }) => {
             crate::shell::actions::open_center_tab(app, TabKind::Wiki { project, page: Some(page.clone()) })
         }
-        Some(EventLink::Collab { request, .. }) => {
-            crate::shell::actions::open_center_tab(app, TabKind::Result { host, request: *request })
-        }
+        Some(EventLink::Collab { request, .. }) => super::collab::open_result(app, host, *request),
         None => {}
     }
 }

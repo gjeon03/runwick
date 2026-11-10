@@ -8,7 +8,7 @@ use crate::App;
 use crate::client::HostKey;
 use crate::icons;
 use crate::shell::{actions, data, widgets};
-use crate::state::{Modal, RightPanel, SettingsSection, WsKey};
+use crate::state::{Modal, SettingsSection, WsKey};
 use crate::theme::{self, Tone, c, font, icon, medium};
 use crate::views::collab::{self, look, place};
 use egui::{CornerRadius, Margin, RichText, Sense};
@@ -686,13 +686,17 @@ fn footer(app: &mut App, ui: &mut egui::Ui, go: &mut Option<Go>) {
 
 fn follow(app: &mut App, g: Go) {
     match g {
-        Go::Peek(host, worker, asked) => collab::open_peek(app, host, worker, asked),
-        Go::Result(host, request) => app.ui.right = Some(RightPanel::Result { host, request }),
-        Go::Collab(host, session) => app.ui.right = Some(RightPanel::Collab { host, session }),
+        Go::Peek(host, worker, _asked) => collab::open_worker(app, host, worker),
+        Go::Result(host, request) => collab::open_result(app, host, request),
+        Go::Collab(host, session) => collab::open_workers(app, host, session),
         Go::Open(host, session) => {
             let info =
                 data::all_sessions(app, host).data.and_then(|l| l.iter().find(|s| s.session.id == session).cloned());
             if let Some(s) = info {
+                if s.session.parent_id.is_some() {
+                    collab::open_worker(app, host, session);
+                    return;
+                }
                 let pl = place(app, host, &s.session);
                 match (pl.project_id, pl.ws) {
                     (Some(p), Some(ws)) => actions::open_session(app, p, ws, session, s.session.hidden),
