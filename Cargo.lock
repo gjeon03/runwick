@@ -3205,7 +3205,7 @@ dependencies = [
 
 [[package]]
 name = "runwick"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -3225,7 +3225,7 @@ dependencies = [
 
 [[package]]
 name = "runwick-app"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "alacritty_terminal",
  "anyhow",
@@ -3250,7 +3250,7 @@ dependencies = [
 
 [[package]]
 name = "runwick-core"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "chrono",
  "serde",
@@ -3262,7 +3262,7 @@ dependencies = [
 
 [[package]]
 name = "runwick-host"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "alacritty_terminal",
  "anyhow",
