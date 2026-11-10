@@ -15,6 +15,19 @@ use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
 pub const DIR: &str = "projects";
+pub const GROUPS_PATH: &str = "projects/groups.json";
+
+/// Choosing a saved conflict is a new edit, including the nested placement/group records.
+pub fn stamp_restored(v: &mut Value, now: &str) {
+    if let Some(placement) = v.get_mut("placement").and_then(Value::as_object_mut) {
+        placement.insert("updated_at".into(), Value::String(now.into()));
+    }
+    if let Some(groups) = v.get_mut("groups").and_then(Value::as_object_mut) {
+        for group in groups.values_mut().filter_map(Value::as_object_mut) {
+            group.insert("updated_at".into(), Value::String(now.into()));
+        }
+    }
+}
 
 pub fn path_of(id: Uuid) -> String {
     format!("{DIR}/{id}.json")
@@ -33,6 +46,7 @@ pub fn is_unlinked(home: &Path, root: &str) -> bool {
 pub const SYNCED: &str = "EXISTS (SELECT 1 FROM workspaces w WHERE w.project_id = p.id AND w.remote_device_id IS NULL)";
 
 pub fn render(cx: &Cx, c: &Connection, out: &mut BTreeMap<String, Value>) -> rusqlite::Result<()> {
+    render_groups(c, out)?;
     let mut others: BTreeMap<Uuid, Map<String, Value>> = BTreeMap::new();
     {
         let mut st = c.prepare("SELECT project_id, host_id, device, path FROM sync_roots")?;
@@ -45,7 +59,7 @@ pub fn render(cx: &Cx, c: &Connection, out: &mut BTreeMap<String, Value>) -> rus
         }
     }
     let mut st = c.prepare(&format!(
-        "SELECT id, name, root, favorite, archived, created_at, remote_url FROM projects p WHERE {SYNCED}"
+        "SELECT id, name, root, favorite, archived, created_at, remote_url, order_index, group_id, placement_updated_at FROM projects p WHERE {SYNCED}"
     ))?;
     let rows = st.query_map([], |r| {
         Ok((
@@ -56,10 +70,13 @@ pub fn render(cx: &Cx, c: &Connection, out: &mut BTreeMap<String, Value>) -> rus
             r.get::<_, bool>(4)?,
             r.get::<_, String>(5)?,
             r.get::<_, Option<String>>(6)?,
+            r.get::<_, i64>(7)?,
+            r.get::<_, Option<Uuid>>(8)?,
+            r.get::<_, String>(9)?,
         ))
     })?;
     for row in rows {
-        let (id, name, root, favorite, archived, created_at, remote_url) = row?;
+        let (id, name, root, favorite, archived, created_at, remote_url, order_index, group_id, updated_at) = row?;
         let mut roots = others.remove(&id).unwrap_or_default();
         if !is_unlinked(cx.home, &root) {
             roots.insert(cx.device.host_id.to_string(), json!({ "device": cx.device.name, "path": root }));
@@ -74,6 +91,7 @@ pub fn render(cx: &Cx, c: &Connection, out: &mut BTreeMap<String, Value>) -> rus
                 "created_at": created_at,
                 "remote_url": remote_url.as_deref().map(runwick_core::api::sync::without_credentials),
                 "roots": Value::Object(roots),
+                "placement": { "order_index": order_index, "group_id": group_id, "updated_at": updated_at },
             }),
         );
     }
@@ -81,6 +99,9 @@ pub fn render(cx: &Cx, c: &Connection, out: &mut BTreeMap<String, Value>) -> rus
 }
 
 pub fn apply(cx: &Cx, c: &Connection, path: &str, merged: Option<&Value>) -> Result<(), String> {
+    if path == GROUPS_PATH {
+        return apply_groups(c, merged);
+    }
     // Projects are never deleted (only archived); a missing file changes nothing here.
     let Some(v) = merged else { return Ok(()) };
     let id = super::uuid_at(path, 1).ok_or("파일 이름이 프로젝트 id가 아니에요")?;
@@ -96,6 +117,32 @@ pub fn apply(cx: &Cx, c: &Connection, path: &str, merged: Option<&Value>) -> Res
     let (favorite, archived) = (bool_field(v, "favorite"), bool_field(v, "archived"));
     let roots = v.get("roots").and_then(Value::as_object).cloned().unwrap_or_default();
     let db = |e: rusqlite::Error| e.to_string();
+    let placement = v
+        .get("placement")
+        .map(|p| -> Result<_, String> {
+            let order = p.get("order_index").and_then(Value::as_i64).ok_or("프로젝트 순서를 읽지 못했어요")?;
+            let group = match p.get("group_id") {
+                None | Some(Value::Null) => None,
+                Some(Value::String(id)) => Some(id.parse::<Uuid>().map_err(|_| "그룹 id를 읽지 못했어요")?),
+                _ => return Err("그룹 id를 읽지 못했어요".into()),
+            };
+            let group = match group {
+                Some(id)
+                    if c.query_row("SELECT 1 FROM project_groups WHERE id = ?1 AND deleted = 0", [id], |_| Ok(()))
+                        .optional()
+                        .map_err(db)?
+                        .is_some() =>
+                {
+                    Some(id)
+                }
+                _ => None,
+            };
+            let at = opt_str(p, "updated_at")
+                .filter(|at| super::super::format::parse_ts(at).is_some())
+                .unwrap_or_else(|| "1970-01-01T00:00:00.000Z".into());
+            Ok((order, group, at))
+        })
+        .transpose()?;
 
     let exists = super::project_exists(c, id).map_err(db)?;
     if exists {
@@ -110,8 +157,8 @@ pub fn apply(cx: &Cx, c: &Connection, path: &str, merged: Option<&Value>) -> Res
         let is_git = root.is_dir() && crate::git::find_repo_root(&root).is_some();
         let now = ts_to_sql(&runwick_core::now());
         c.execute(
-            "INSERT INTO projects (id, name, root, is_git, favorite, archived, created_at, remote_url)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            "INSERT INTO projects (id, name, root, is_git, favorite, archived, created_at, remote_url, order_index)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, (SELECT COALESCE(MIN(order_index), 0) - 1 FROM projects WHERE group_id IS NULL))",
             params![id, name, root_s, is_git, favorite, archived, created_at, remote_url],
         )
         .map_err(db)?;
@@ -121,6 +168,9 @@ pub fn apply(cx: &Cx, c: &Connection, path: &str, merged: Option<&Value>) -> Res
             params![Uuid::now_v7(), id, DEFAULT_WORKSPACE_NAME, root_s, now],
         )
         .map_err(db)?;
+    }
+    if let Some((order, group, at)) = placement {
+        c.execute(&format!("UPDATE projects AS p SET order_index = ?2, group_id = ?3, placement_updated_at = ?4 WHERE id = ?1 AND {SYNCED}"), params![id, order, group, at]).map_err(db)?;
     }
     c.execute("DELETE FROM sync_roots WHERE project_id = ?1", [id]).map_err(db)?;
     for (host, entry) in &roots {
@@ -138,6 +188,56 @@ pub fn apply(cx: &Cx, c: &Connection, path: &str, merged: Option<&Value>) -> Res
             params![id, host, device, p],
         )
         .map_err(db)?;
+    }
+    Ok(())
+}
+
+fn render_groups(c: &Connection, out: &mut BTreeMap<String, Value>) -> rusqlite::Result<()> {
+    let mut groups = Map::new();
+    let mut st = c.prepare("SELECT id, name, order_index, collapsed, deleted, updated_at FROM project_groups")?;
+    let rows = st.query_map([], |r| {
+        Ok((
+            r.get::<_, Uuid>(0)?,
+            json!({
+                "name": r.get::<_, String>(1)?, "order_index": r.get::<_, i64>(2)?,
+                "collapsed": r.get::<_, bool>(3)?, "deleted": r.get::<_, bool>(4)?, "updated_at": r.get::<_, String>(5)?
+            }),
+        ))
+    })?;
+    for row in rows {
+        let (id, value) = row?;
+        groups.insert(id.to_string(), value);
+    }
+    if !groups.is_empty() {
+        out.insert(GROUPS_PATH.into(), json!({ "name": "프로젝트 그룹", "groups": groups }));
+    }
+    Ok(())
+}
+
+fn apply_groups(c: &Connection, merged: Option<&Value>) -> Result<(), String> {
+    let Some(v) = merged else { return Ok(()) };
+    let groups = v.get("groups").and_then(Value::as_object).ok_or("그룹 목록을 읽지 못했어요")?;
+    // Validate the whole record before changing any rows in the caller's import transaction.
+    let rows = groups
+        .iter()
+        .map(|(id, v)| -> Result<_, String> {
+            let id = id.parse::<Uuid>().map_err(|_| "그룹 id를 읽지 못했어요")?;
+            let name = str_field(v, "name")?.trim().to_string();
+            if name.is_empty() {
+                return Err("그룹 이름이 비어 있어요".into());
+            }
+            let order = v.get("order_index").and_then(Value::as_i64).ok_or("그룹 순서를 읽지 못했어요")?;
+            Ok((id, name, order, bool_field(v, "collapsed"), bool_field(v, "deleted"), ts_text(v, "updated_at")?))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    for (id, name, order, collapsed, deleted, at) in rows {
+        c.execute("INSERT INTO project_groups (id, name, order_index, collapsed, deleted, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            ON CONFLICT(id) DO UPDATE SET name = excluded.name, order_index = excluded.order_index,
+                collapsed = excluded.collapsed, deleted = excluded.deleted, updated_at = excluded.updated_at",
+            params![id, name, order, collapsed, deleted, at]).map_err(|e| e.to_string())?;
+        if deleted {
+            c.execute("UPDATE projects SET group_id = NULL WHERE group_id = ?1", [id]).map_err(|e| e.to_string())?;
+        }
     }
     Ok(())
 }

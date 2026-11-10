@@ -407,6 +407,9 @@ pub fn restore(cx: &Cx, id: Uuid) -> Result<SyncKind, RpcError> {
             let mut v = parse()?;
             // A new edit: it must win over what is there now.
             let now = ts_to_sql(&runwick_core::now());
+            if kind == SyncKind::Projects {
+                super::projects::stamp_restored(&mut v, &now);
+            }
             if let Some(o) = v.as_object_mut() {
                 for k in ["updated_at", "generated_at"] {
                     if o.contains_key(k) {

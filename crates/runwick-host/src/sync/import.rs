@@ -33,7 +33,7 @@ impl Engine<'_> {
     pub(super) fn import(&self, inp: &Input, tally: &mut Tally) -> Result<(), Failure> {
         let cx = self.cx;
         let mut order: Vec<&String> = inp.delta.iter().collect();
-        order.sort_by_key(|p| (rank(p), p.as_str()));
+        order.sort_by_key(|p| (rank(p), p.as_str() != kinds::projects::GROUPS_PATH, p.as_str()));
         // Records a tombstone points at, as they are at origin (a record re-added there wins).
         let tombs: Vec<String> = order
             .iter()

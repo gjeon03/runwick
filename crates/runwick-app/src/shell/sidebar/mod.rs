@@ -18,6 +18,7 @@ use std::collections::BTreeSet;
 
 #[derive(Default)]
 pub struct State {
+    pub organization: projects::OrganizationState,
     /// Parents whose delegated workers are listed under them.
     pub expanded_parents: BTreeSet<SessionId>,
     /// Narrow window: the full sidebar shown over the content.

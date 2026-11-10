@@ -321,6 +321,29 @@ fn restore_replaces_the_data_and_rebuilds_the_index() {
 }
 
 #[test]
+fn backup_restores_project_group_order_membership_and_collapse() {
+    use crate::projects::{create_group, delete_group, get_project, list_groups, update_group};
+    use runwick_core::api::projects::{ProjectGroupCreate, ProjectGroupUpdate};
+    let live = Live::new();
+    let group =
+        create_group(&live.store, &ProjectGroupCreate { name: "Work".into(), project: Some(live.project) }).unwrap();
+    create_group(&live.store, &ProjectGroupCreate { name: "Empty".into(), project: None }).unwrap();
+    update_group(&live.store, &ProjectGroupUpdate { id: group.id, collapsed: Some(true), ..Default::default() })
+        .unwrap();
+    let before_groups = list_groups(&live.store).unwrap();
+    let before_project = get_project(&live.store, live.project).unwrap();
+    let (path, _) = archive::create(&live.src(), &live.home.join("backups"), None).unwrap();
+    delete_group(&live.store, group.id).unwrap();
+    let unpacked = live.home.join("restore-groups");
+    archive::verify(&path, &unpacked).unwrap();
+    restore::activate(&live.store, &live.wiki(), &unpacked).unwrap();
+    assert_eq!(list_groups(&live.store).unwrap(), before_groups);
+    let project = get_project(&live.store, live.project).unwrap();
+    assert_eq!(project.group_id, before_project.group_id);
+    assert_eq!(project.order_index, before_project.order_index);
+}
+
+#[test]
 fn a_failed_restore_keeps_the_current_data() {
     let live = Live::new();
     live.message("지금 데이터");

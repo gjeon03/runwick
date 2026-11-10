@@ -71,7 +71,7 @@ impl SyncKind {
     /// What exactly travels, for the include list.
     pub fn detail(self) -> &'static str {
         match self {
-            SyncKind::Projects => "이름 · 즐겨찾기 · 보관 · 저장소 주소 · 기기별 폴더 위치",
+            SyncKind::Projects => "이름 · 순서 · 그룹 · 즐겨찾기 · 보관 · 저장소 주소 · 기기별 폴더 위치",
             SyncKind::Sessions => "제목 · 도구 · 시각 · 만든 기기 (다른 기기에서는 읽기 전용)",
             SyncKind::Messages => "수집한 대화 원문 (만든 기기만 씀)",
             SyncKind::Pins => "고정한 내용과 메모",

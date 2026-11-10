@@ -1,5 +1,8 @@
 //! Project search/filter bar and the project → workspace tree.
 
+mod organization;
+pub use organization::State as OrganizationState;
+
 use super::{Act, filter_index, filter_segments};
 use crate::App;
 use crate::client::HostKey;
@@ -87,12 +90,14 @@ fn device_matches(filter: Option<HostKey>, w: &Workspace) -> bool {
 }
 
 pub fn list(app: &mut App, ui: &mut egui::Ui, acts: &mut Vec<Act>) {
+    organization::editor(app, ui);
     let pq = data::projects(app);
     let wq = data::workspaces(app);
-    let (projects, workspaces) = match (pq.data, wq.data) {
-        (Some(p), Some(w)) => (p, w),
+    let gq = app.hub.query::<runwick_core::api::projects::ProjectGroupsList>(HostKey::Local, &());
+    let (projects, workspaces, groups) = match (pq.data, wq.data, gq.data) {
+        (Some(p), Some(w), Some(g)) => (p, w, g),
         _ => {
-            if let Some(e) = pq.error.or(wq.error) {
+            if let Some(e) = pq.error.or(wq.error).or(gq.error) {
                 widgets::empty_note(ui, &format!("프로젝트 목록을 불러오지 못했어요 · {}", e.message));
             } else {
                 widgets::empty_note(ui, "프로젝트를 불러오는 중…");
@@ -102,9 +107,9 @@ pub fn list(app: &mut App, ui: &mut egui::Ui, acts: &mut Vec<Act>) {
     };
     let sessions = data::all_sessions(app, HostKey::Local).data;
     let all: Vec<&Project> = data::visible_projects(&projects).collect();
-    if all.is_empty() {
+    if all.is_empty() && groups.is_empty() {
         widgets::empty_note(ui, "아직 프로젝트가 없어요. 폴더를 열면 기본 공간이 바로 준비돼요.");
-        open_folder_row(ui, acts);
+        organization::add_row(app, ui, acts);
         return;
     }
     let q = app.ui.project_search.trim().to_lowercase();
@@ -117,7 +122,8 @@ pub fn list(app: &mut App, ui: &mut egui::Ui, acts: &mut Vec<Act>) {
         .filter(|p| q.is_empty() || p.name.to_lowercase().contains(&q) || p.root.to_lowercase().contains(&q))
         .filter(|p| dev.is_none() || workspaces.iter().any(|w| w.project_id == p.id && device_matches(dev, w)))
         .collect();
-    if shown.is_empty() {
+    let filtering = fav || !q.is_empty() || dev.is_some();
+    if shown.is_empty() && filtering {
         if fav && !all.iter().any(|p| p.favorite) {
             widgets::empty_note(
                 ui,
@@ -139,6 +145,7 @@ pub fn list(app: &mut App, ui: &mut egui::Ui, acts: &mut Vec<Act>) {
                 app.ui.device_filter = None;
             }
         }
+        organization::add_row(app, ui, acts);
         return;
     }
     let attention_counts = crate::views::activity::workspace_counts(app);
@@ -149,13 +156,30 @@ pub fn list(app: &mut App, ui: &mut egui::Ui, acts: &mut Vec<Act>) {
             lives.entry(s.session.workspace_id).or_default().push(s.clone());
         }
     }
-    for p in shown {
+    let mut organization_acts = Vec::new();
+    for entry in organization::entries(&shown, &groups, filtering) {
+        let p = match entry {
+            organization::Entry::Group(group) => {
+                organization::group_row(ui, group, &groups, &mut organization_acts);
+                continue;
+            }
+            organization::Entry::Ungrouped => {
+                organization::ungrouped_row(ui, &mut organization_acts);
+                continue;
+            }
+            organization::Entry::Project(p) => p,
+        };
         let spaces: Vec<&Workspace> =
             workspaces.iter().filter(|w| w.project_id == p.id && device_matches(dev, w)).collect();
         let expanded = app.ui.expanded_projects.contains(&p.id);
         let badge: usize =
             spaces.iter().map(|w| attention_counts.get(&data::ws_key(w)).copied().unwrap_or_default()).sum();
-        project_row(ui, p, spaces.len(), badge, expanded, acts);
+        let resp = project_row(ui, p, spaces.len(), badge, expanded, acts);
+        resp.context_menu(|ui| {
+            organization::project_menu(ui, p, &shown, &projects, &groups, &mut organization_acts);
+            project_menu(ui, p, acts);
+        });
+        organization::project_drop(ui, &resp, p, &projects, &mut organization_acts);
         if expanded {
             for w in spaces {
                 let key = data::ws_key(w);
@@ -174,7 +198,8 @@ pub fn list(app: &mut App, ui: &mut egui::Ui, acts: &mut Vec<Act>) {
             }
         }
     }
-    open_folder_row(ui, acts);
+    organization::apply(app, organization_acts);
+    organization::add_row(app, ui, acts);
 }
 
 /// A device's workspace: its sessions' state while connected, unknown otherwise.
@@ -189,27 +214,20 @@ fn remote_ws_state(app: &mut App, device: uuid::Uuid, ws: uuid::Uuid) -> data::W
     data::ws_state(lives.iter().map(|l| l.as_ref()))
 }
 
-fn open_folder_row(ui: &mut egui::Ui, acts: &mut Vec<Act>) {
-    ui.add_space(2.0);
-    let resp = widgets::row(ui, 28.0, false, "폴더 열기");
-    let r = resp.rect;
-    let fg = if resp.hovered() { c::TEXT } else { c::TEXT_3 };
-    ui.painter().text(
-        Pos2::new(r.left() + 10.0, r.center().y),
-        Align2::CENTER_CENTER,
-        icons::FOLDER_PLUS,
-        icon_font(12.5),
-        fg,
-    );
-    ui.painter().text(Pos2::new(r.left() + 21.0, r.center().y), Align2::LEFT_CENTER, "폴더 열기", font(12.5), fg);
-    ui.painter().text(Pos2::new(r.right() - 8.0, r.center().y), Align2::RIGHT_CENTER, "⌘O", font(11.5), c::TEXT_OFF);
-    if resp.on_hover_text("폴더를 프로젝트로 열기 — 창으로 끌어다 놓아도 돼요").clicked() {
-        acts.push(Act::OpenFolder);
-    }
-}
-
-fn project_row(ui: &mut egui::Ui, p: &Project, spaces: usize, badge: usize, expanded: bool, acts: &mut Vec<Act>) {
-    let resp = widgets::row(ui, 28.0, false, &p.name);
+fn project_row(
+    ui: &mut egui::Ui,
+    p: &Project,
+    spaces: usize,
+    badge: usize,
+    expanded: bool,
+    acts: &mut Vec<Act>,
+) -> egui::Response {
+    let inset = if p.group_id.is_some() && !p.remote_only { 10.0 } else { 0.0 };
+    let resp = widgets::row_inset(ui, 28.0, false, &p.name, inset).interact(if p.remote_only {
+        Sense::click()
+    } else {
+        Sense::click_and_drag()
+    });
     let r = resp.rect;
     let cy = r.center().y;
     let painter = ui.painter();
@@ -257,34 +275,36 @@ fn project_row(ui: &mut egui::Ui, p: &Project, spaces: usize, badge: usize, expa
     } else if chev_resp.clicked() {
         acts.push(Act::ToggleExpand(p.id));
     } else {
-        let resp = if cut || badge > 0 { resp.on_hover_text(tip) } else { resp };
+        let resp = if cut || badge > 0 { resp.clone().on_hover_text(tip) } else { resp.clone() };
         if resp.clicked() {
             acts.push(if expanded { Act::ToggleExpand(p.id) } else { Act::SelectProject(p.id) });
         }
-        resp.context_menu(|ui| {
-            if widgets::menu_item(ui, icons::PENCIL, "이름 바꾸기").clicked() {
-                acts.push(Act::Rename(RenameTarget::Project { host: HostKey::Local, id: p.id }));
-            }
-            let (g, t) =
-                if fav { (icons::STAR, "즐겨찾기 해제") } else { (icons::STAR, "즐겨찾기에 추가") };
-            if widgets::menu_item(ui, g, t).clicked() {
-                acts.push(Act::Favorite(p.id, !fav));
-            }
-            widgets::menu_sep(ui);
-            if widgets::menu_item(ui, icons::FOLDER_OPEN, "Finder에서 열기").clicked() {
-                acts.push(Act::Reveal(p.root.clone()));
-            }
-            if widgets::menu_item(ui, icons::COPY, "경로 복사").clicked() {
-                acts.push(Act::CopyPath(p.root.clone()));
-            }
-            widgets::menu_sep(ui);
-            if widgets::menu_item(ui, icons::ARCHIVE, "목록에서 보관")
-                .on_hover_text("목록에서만 숨겨요. 실행과 기록, 폴더는 그대로예요")
-                .clicked()
-            {
-                acts.push(Act::ArchiveProject(p.id, p.name.clone()));
-            }
-        });
+    }
+    resp
+}
+
+fn project_menu(ui: &mut egui::Ui, p: &Project, acts: &mut Vec<Act>) {
+    let fav = p.favorite;
+    if widgets::menu_item(ui, icons::PENCIL, "이름 바꾸기").clicked() {
+        acts.push(Act::Rename(RenameTarget::Project { host: HostKey::Local, id: p.id }));
+    }
+    let (g, t) = if fav { (icons::STAR, "즐겨찾기 해제") } else { (icons::STAR, "즐겨찾기에 추가") };
+    if widgets::menu_item(ui, g, t).clicked() {
+        acts.push(Act::Favorite(p.id, !fav));
+    }
+    widgets::menu_sep(ui);
+    if widgets::menu_item(ui, icons::FOLDER_OPEN, "Finder에서 열기").clicked() {
+        acts.push(Act::Reveal(p.root.clone()));
+    }
+    if widgets::menu_item(ui, icons::COPY, "경로 복사").clicked() {
+        acts.push(Act::CopyPath(p.root.clone()));
+    }
+    widgets::menu_sep(ui);
+    if widgets::menu_item(ui, icons::ARCHIVE, "목록에서 보관")
+        .on_hover_text("목록에서만 숨겨요. 실행과 기록, 폴더는 그대로예요")
+        .clicked()
+    {
+        acts.push(Act::ArchiveProject(p.id, p.name.clone()));
     }
 }
 
@@ -299,7 +319,8 @@ fn workspace_row(
     device: Option<&str>,
     acts: &mut Vec<Act>,
 ) {
-    let resp = widgets::row_inset(ui, 28.0, selected, &w.name, 12.0);
+    let inset = if p.group_id.is_some() && !p.remote_only { 22.0 } else { 12.0 };
+    let resp = widgets::row_inset(ui, 28.0, selected, &w.name, inset);
     let r = resp.rect;
     let cy = r.center().y;
     let fg = if selected { c::TEXT_STRONG } else { c::TEXT_2 };

@@ -152,6 +152,12 @@ mod window_tests {
             SessionsList::NAME,
             FilesWrite::NAME,
             ProjectsUpdate::NAME,
+            ProjectsMove::NAME,
+            ProjectGroupsList::NAME,
+            ProjectGroupsCreate::NAME,
+            ProjectGroupsUpdate::NAME,
+            ProjectGroupsDelete::NAME,
+            ProjectGroupsMove::NAME,
             WikiSave::NAME,
             JobsList::NAME,
             KvGet::NAME,
@@ -160,6 +166,7 @@ mod window_tests {
             "backup.restore_activate",
         ] {
             assert!(!allowed_without_window(m), "{m}");
+            assert!(r.has(m), "window-only method does not exist: {m}");
         }
     }
 }

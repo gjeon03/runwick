@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 pub type ProjectId = Uuid;
 pub type WorkspaceId = Uuid;
+pub type ProjectGroupId = Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Project {
@@ -27,6 +28,49 @@ pub struct Project {
     /// `origin` remote URL when known; used to match projects across computers.
     #[serde(default)]
     pub remote_url: Option<String>,
+    #[serde(default)]
+    pub order_index: i64,
+    #[serde(default)]
+    pub group_id: Option<ProjectGroupId>,
+    /// View-only links to another device do not participate in local organization.
+    #[serde(default)]
+    pub remote_only: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ProjectGroup {
+    pub id: ProjectGroupId,
+    pub name: String,
+    pub order_index: i64,
+    pub collapsed: bool,
+}
+
+/// Move one project before an anchor in the destination group; None appends it.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectMove {
+    pub id: ProjectId,
+    pub group_id: Option<ProjectGroupId>,
+    pub before: Option<ProjectId>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectGroupCreate {
+    pub name: String,
+    /// Optional project to move into the new group in the same transaction.
+    pub project: Option<ProjectId>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct ProjectGroupUpdate {
+    pub id: ProjectGroupId,
+    pub name: Option<String>,
+    pub collapsed: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProjectGroupMove {
+    pub id: ProjectGroupId,
+    pub before: Option<ProjectGroupId>,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -124,5 +168,11 @@ pub struct ById {
 method!(ProjectsList, "projects.list", () => Vec<Project>, [topic::PROJECTS]);
 method!(ProjectsOpen, "projects.open", OpenFolder => Opened);
 method!(ProjectsUpdate, "projects.update", ProjectUpdate => Project);
+method!(ProjectsMove, "projects.move", ProjectMove => ());
+method!(ProjectGroupsList, "project_groups.list", () => Vec<ProjectGroup>, [topic::PROJECTS]);
+method!(ProjectGroupsCreate, "project_groups.create", ProjectGroupCreate => ProjectGroup);
+method!(ProjectGroupsUpdate, "project_groups.update", ProjectGroupUpdate => ProjectGroup);
+method!(ProjectGroupsDelete, "project_groups.delete", ById => ());
+method!(ProjectGroupsMove, "project_groups.move", ProjectGroupMove => ());
 method!(WorkspacesList, "workspaces.list", WorkspaceQuery => Vec<Workspace>, [topic::WORKSPACES, topic::PROJECTS]);
 method!(WorkspacesUpdate, "workspaces.update", WorkspaceUpdate => Workspace);

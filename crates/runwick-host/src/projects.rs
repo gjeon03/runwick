@@ -1,5 +1,8 @@
 //! Projects and workspaces.
 
+mod organization;
+pub use organization::*;
+
 use crate::git;
 use crate::host::Ctx;
 use crate::router::Router;
@@ -10,9 +13,10 @@ use rusqlite::{OptionalExtension, Row, params};
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
-pub const MIGRATIONS: &[Migration] = &[(
-    "0002_projects",
-    "CREATE TABLE projects (
+pub const MIGRATIONS: &[Migration] = &[
+    (
+        "0002_projects",
+        "CREATE TABLE projects (
         id BLOB PRIMARY KEY,
         name TEXT NOT NULL,
         root TEXT NOT NULL,
@@ -38,11 +42,33 @@ pub const MIGRATIONS: &[Migration] = &[(
         remote_workspace_id BLOB
     );
     CREATE INDEX workspaces_project ON workspaces(project_id);",
-)];
+    ),
+    (
+        "0021_project_organization",
+        "CREATE TABLE project_groups (
+        id BLOB PRIMARY KEY,
+        name TEXT NOT NULL,
+        order_index INTEGER NOT NULL,
+        collapsed INTEGER NOT NULL DEFAULT 0,
+        deleted INTEGER NOT NULL DEFAULT 0,
+        updated_at TEXT NOT NULL
+    );
+    ALTER TABLE projects ADD COLUMN order_index INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE projects ADD COLUMN group_id BLOB REFERENCES project_groups(id) ON DELETE SET NULL;
+    ALTER TABLE projects ADD COLUMN placement_updated_at TEXT NOT NULL DEFAULT '1970-01-01T00:00:00.000Z';
+    WITH ranked AS (
+        SELECT id, ROW_NUMBER() OVER (ORDER BY COALESCE(last_opened_at, created_at) DESC, name, id) - 1 AS position
+        FROM projects
+    )
+    UPDATE projects SET order_index = (SELECT position FROM ranked WHERE ranked.id = projects.id);
+    CREATE INDEX projects_group_order ON projects(group_id, order_index);",
+    ),
+];
 
 pub const DEFAULT_WORKSPACE_NAME: &str = "기본 공간";
 
 pub fn register(r: &mut Router) {
+    organization::register(r);
     r.add::<ProjectsList, _, _>(|ctx: Ctx, _: ()| async move { list_projects(&ctx.host.store).map_err(db_err) });
     r.add::<ProjectsOpen, _, _>(|ctx: Ctx, p: OpenFolder| async move {
         let out = open_folder(&ctx.host.store, &p.path)?;
@@ -59,7 +85,7 @@ pub fn register(r: &mut Router) {
     });
     r.add::<WorkspacesUpdate, _, _>(|ctx: Ctx, u: WorkspaceUpdate| async move {
         let w = update_workspace(&ctx.host.store, &u)?;
-        ctx.host.bus.changed(&[topic::WORKSPACES]);
+        ctx.host.bus.changed(if u.touch { &[topic::WORKSPACES, topic::PROJECTS] } else { &[topic::WORKSPACES] });
         Ok(w)
     });
 }
@@ -77,6 +103,9 @@ fn project_from_row(r: &Row) -> rusqlite::Result<Project> {
         created_at: ts_from_sql(&r.get::<_, String>("created_at")?),
         last_opened_at: opt_ts(r.get("last_opened_at")?),
         remote_url: r.get("remote_url")?,
+        order_index: r.get("order_index")?,
+        group_id: r.get("group_id")?,
+        remote_only: r.get("remote_only")?,
     })
 }
 
@@ -107,7 +136,12 @@ fn workspace_from_row(r: &Row) -> rusqlite::Result<Workspace> {
 
 pub fn list_projects(store: &Store) -> rusqlite::Result<Vec<Project>> {
     store.with(|c| {
-        let mut st = c.prepare("SELECT * FROM projects ORDER BY COALESCE(last_opened_at, created_at) DESC, name")?;
+        let mut st = c.prepare(&format!(
+            "{PROJECT_SELECT} ORDER BY remote_only,
+             CASE WHEN NOT ({LOCAL_PROJECT}) THEN COALESCE(last_opened_at, created_at) END DESC,
+             CASE WHEN NOT ({LOCAL_PROJECT}) THEN name END,
+             order_index, created_at DESC, id"
+        ))?;
         let rows = st.query_map([], project_from_row)?;
         rows.collect()
     })
@@ -115,7 +149,7 @@ pub fn list_projects(store: &Store) -> rusqlite::Result<Vec<Project>> {
 
 pub fn get_project(store: &Store, id: Uuid) -> Result<Project, RpcError> {
     store
-        .with(|c| c.query_row("SELECT * FROM projects WHERE id = ?1", [id], project_from_row).optional())
+        .with(|c| c.query_row(&format!("{PROJECT_SELECT} WHERE p.id = ?1"), [id], project_from_row).optional())
         .map_err(db_err)?
         .ok_or_else(|| RpcError::not_found("프로젝트를 찾을 수 없어요"))
 }
@@ -241,8 +275,9 @@ pub fn open_folder(store: &Store, path: &str) -> Result<Opened, RpcError> {
     store
         .tx(|tx| {
             tx.execute(
-                "INSERT INTO projects (id, name, root, is_git, created_at, last_opened_at, remote_url)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6)",
+                "INSERT INTO projects (id, name, root, is_git, created_at, last_opened_at, remote_url, order_index, placement_updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6,
+                    (SELECT COALESCE(MIN(order_index), 0) - 1 FROM projects WHERE group_id IS NULL), ?5)",
                 params![pid, folder_name(&dir), dir_s, is_git, ts_to_sql(&now), remote_url],
             )?;
             tx.execute(

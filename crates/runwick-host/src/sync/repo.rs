@@ -165,6 +165,10 @@ fn count(
     f: &str,
     bytes: &[u8],
 ) -> rusqlite::Result<(u64, u64, Option<String>)> {
+    // Group metadata travels with projects, but is not another project or missing folder.
+    if f == projects::GROUPS_PATH {
+        return Ok((0, 0, None));
+    }
     match kind {
         SyncKind::Env => {
             let vars = format::parse(bytes)

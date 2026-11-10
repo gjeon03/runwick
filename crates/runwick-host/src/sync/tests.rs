@@ -32,6 +32,66 @@ fn bare_repo() -> (tempfile::TempDir, String) {
     (d, path.to_string_lossy().to_string())
 }
 
+#[test]
+fn project_order_and_groups_sync_with_empty_groups_collapse_and_deletion() {
+    use crate::projects::{
+        create_group, delete_group, get_project, list_groups, list_projects, move_group, move_project, update_group,
+    };
+    use runwick_core::api::projects::{ProjectGroupCreate, ProjectGroupMove, ProjectGroupUpdate, ProjectMove};
+    let (_repo, url) = bare_repo();
+    let a = Dev::new("A");
+    let b = Dev::new("B");
+    let (p, _) = a.project("one");
+    let (q, _) = a.project("two");
+    let group = create_group(&a.store, &ProjectGroupCreate { name: "Work".into(), project: Some(p) }).unwrap();
+    let empty = create_group(&a.store, &ProjectGroupCreate { name: "Empty".into(), project: None }).unwrap();
+    update_group(&a.store, &ProjectGroupUpdate { id: group.id, collapsed: Some(true), ..Default::default() }).unwrap();
+    move_group(&a.store, &ProjectGroupMove { id: empty.id, before: Some(group.id) }).unwrap();
+    move_project(&a.store, &ProjectMove { id: q, group_id: Some(group.id), before: Some(p) }).unwrap();
+    a.connect(&url);
+    assert!(a.sync().skipped.is_empty());
+    let preview = b.connect(&url);
+    assert_eq!(preview.new_here.iter().find(|k| k.kind == SyncKind::Projects).unwrap().count, 2);
+    assert!(b.sync().skipped.is_empty());
+    assert_eq!(list_groups(&b.store).unwrap(), list_groups(&a.store).unwrap());
+    assert_eq!(get_project(&b.store, p).unwrap().group_id, Some(group.id));
+    let placement = |d: &Dev| {
+        list_projects(&d.store).unwrap().into_iter().map(|p| (p.id, p.group_id, p.order_index)).collect::<Vec<_>>()
+    };
+    assert_eq!(placement(&a), placement(&b));
+    update_group(&b.store, &ProjectGroupUpdate { id: empty.id, name: Some("Renamed".into()), ..Default::default() })
+        .unwrap();
+    assert!(b.sync().skipped.is_empty());
+    assert!(a.sync().skipped.is_empty());
+    assert_eq!(list_groups(&a.store).unwrap()[0].name, "Renamed");
+    delete_group(&a.store, group.id).unwrap();
+    assert!(a.sync().skipped.is_empty());
+    assert!(b.sync().skipped.is_empty());
+    assert_eq!(list_groups(&b.store).unwrap(), list_groups(&a.store).unwrap());
+    assert_eq!(placement(&a), placement(&b));
+    assert_eq!(get_project(&b.store, p).unwrap().group_id, None);
+    assert_eq!(list_projects(&b.store).unwrap().len(), 2);
+    // An old client omitting organization metadata must not reset existing placement.
+    let wiki = b.wiki();
+    let cx = Cx { store: &b.store, home: &b.home, wiki_root: &wiki, env: &b.env, device: &b.device };
+    let path = super::kinds::projects::path_of(p);
+    let mut v = b.store.with(|c| super::kinds::render_shared(&cx, c)).unwrap().remove(&path).unwrap();
+    v.as_object_mut().unwrap().remove("placement");
+    let before = get_project(&b.store, p).unwrap();
+    b.store
+        .with(|c| {
+            super::kinds::projects::apply(&cx, c, &path, Some(&v)).unwrap();
+            Ok(())
+        })
+        .unwrap();
+    assert_eq!(get_project(&b.store, p).unwrap().order_index, before.order_index);
+    let c = Dev::new("C");
+    c.connect(&url);
+    assert!(c.sync().skipped.is_empty());
+    assert_eq!(list_groups(&c.store).unwrap(), list_groups(&a.store).unwrap());
+    assert_eq!(placement(&c), placement(&a));
+}
+
 impl Dev {
     fn new(name: &str) -> Dev {
         let tmp = tempfile::tempdir().unwrap();
@@ -258,6 +318,81 @@ impl Dev {
 
     fn waiting(&self) -> Vec<runwick_core::api::sync::StagedVar> {
         super::kinds::env::staged(&self.store, &self.device).unwrap()
+    }
+}
+
+#[test]
+fn migration_placement_does_not_override_an_explicit_edit_on_an_upgraded_computer() {
+    use super::format::{Prefer, merge3};
+    let a = Dev::new("A");
+    let p = Uuid::new_v4();
+    a.exec("INSERT INTO projects (id, name, root, created_at) VALUES (?1, 'existing', '/missing/existing', '2000-01-01T00:00:00Z')", [p]);
+    a.exec("INSERT INTO workspaces (id, project_id, name, path, kind, created_at) VALUES (?1, ?2, 'default', '/missing/existing', 'default', '2000-01-01T00:00:00Z')", params![Uuid::new_v4(), p]);
+    let path = super::kinds::projects::path_of(p);
+    let local = a.with_cx(|cx| a.store.with(|c| super::kinds::render_shared(cx, c))).unwrap().remove(&path).unwrap();
+    let mut base = local.clone();
+    base.as_object_mut().unwrap().remove("placement");
+    let mut remote = base.clone();
+    remote["placement"] =
+        serde_json::json!({ "order_index": 42, "group_id": Uuid::new_v4(), "updated_at": "2000-01-02T00:00:00Z" });
+    let merged = merge3(Some(&base), Some(&local), Some(&remote), Prefer::Newer).unwrap();
+    assert_eq!(merged["placement"], remote["placement"]);
+}
+
+#[test]
+fn restoring_organization_conflicts_is_a_new_edit_for_every_nested_record() {
+    use super::format::{Prefer, canonical, merge3};
+    use super::kinds::conflicts::{Found, Side, record, restore};
+    use runwick_core::api::projects::ProjectGroupCreate;
+    let a = Dev::new("A");
+    let (p, _) = a.project("app");
+    let g = crate::projects::create_group(&a.store, &ProjectGroupCreate { name: "Restored".into(), project: Some(p) })
+        .unwrap();
+    let records = a.with_cx(|cx| a.store.with(|c| super::kinds::render_shared(cx, c))).unwrap();
+    for (path, title) in
+        [(super::kinds::projects::path_of(p), "placement"), (super::kinds::projects::GROUPS_PATH.into(), "groups")]
+    {
+        let mut lost = records[&path].clone();
+        super::kinds::projects::stamp_restored(&mut lost, "2000-01-01T00:00:00Z");
+        let mut base = lost.clone();
+        let mut remote = lost.clone();
+        if title == "placement" {
+            base["placement"]["order_index"] = serde_json::json!(1);
+            remote["placement"]["order_index"] = serde_json::json!(2);
+        } else {
+            base["groups"][g.id.to_string()]["name"] = serde_json::json!("Kept");
+            remote["groups"][g.id.to_string()]["name"] = serde_json::json!("Intermediate");
+        }
+        super::kinds::projects::stamp_restored(&mut base, "2000-01-02T00:00:00Z");
+        super::kinds::projects::stamp_restored(&mut remote, "2000-01-03T00:00:00Z");
+        a.with_cx(|cx| {
+            a.store.tx(|c| {
+                super::kinds::projects::apply(cx, c, &path, Some(&base)).unwrap();
+                record(
+                    cx,
+                    c,
+                    &Found {
+                        kind: SyncKind::Projects,
+                        path: path.clone(),
+                        title: title.into(),
+                        lost: Side::Local,
+                        content: canonical(&lost),
+                    },
+                    &(None, "B".into()),
+                )
+            })
+        })
+        .unwrap();
+        let conflict = a.conflicts().into_iter().find(|c| c.title == title).unwrap();
+        a.with_cx(|cx| restore(cx, conflict.id)).unwrap();
+        let local =
+            a.with_cx(|cx| a.store.with(|c| super::kinds::render_shared(cx, c))).unwrap().remove(&path).unwrap();
+        let merged = merge3(Some(&base), Some(&local), Some(&remote), Prefer::Newer).unwrap();
+        if title == "placement" {
+            assert_eq!(merged["placement"]["order_index"], lost["placement"]["order_index"]);
+        } else {
+            assert_eq!(merged["groups"][g.id.to_string()]["name"], lost["groups"][g.id.to_string()]["name"]);
+        }
     }
 }
 
