@@ -12,6 +12,7 @@ mod right;
 mod session_bar;
 mod settings_page;
 mod sidebar;
+mod split_picker;
 mod start;
 mod tabs;
 mod titlebar;
@@ -118,6 +119,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, frame: &mut eframe::Frame) {
     modal::show_container(app, &ctx);
     crate::views::refresh::show_overlay(app, &ctx);
     palette::show(app, &ctx);
+    split_picker::show(app, &ctx);
     toasts::show(app, &ctx);
     drop_overlay(app, &ctx);
     right::track_focus(app, &ctx);
@@ -165,6 +167,7 @@ fn open_requested_overlay(app: &mut App, ctx: &egui::Context) {
     }
     match req.as_str() {
         "palette" => palette::open(app, ctx),
+        "split-picker" => split_picker::open(app, ws, crate::state::Pane::Right),
         "flyout" => app.shell.sidebar.flyout = true,
         "stop" => match app.ui.active_tab().map(|t| t.kind.clone()) {
             Some(crate::state::TabKind::Terminal { host, session }) => app.shell.modal.ask_stop(host, session),

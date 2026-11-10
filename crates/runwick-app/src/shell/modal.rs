@@ -95,6 +95,15 @@ pub fn show_container(app: &mut App, ctx: &egui::Context) {
 
 /// S01 chooser as a dialog (⌘T, `+`).
 pub fn show_new_session_modal(app: &mut App, ctx: &egui::Context, ws: WsKey) -> bool {
+    show_session_chooser(app, ctx, ws, None)
+}
+
+pub(super) fn show_session_chooser(
+    app: &mut App,
+    ctx: &egui::Context,
+    ws: WsKey,
+    target: Option<(crate::state::Pane, Tool)>,
+) -> bool {
     let wq = data::workspaces(app);
     let Some(list) = wq.data else {
         // Still loading: keep the dialog requested; it draws as soon as the list arrives.
@@ -119,7 +128,7 @@ pub fn show_new_session_modal(app: &mut App, ctx: &egui::Context, ws: WsKey) -> 
         .unwrap_or(Tool::Claude);
     let st = &mut app.shell.modal;
     if st.new_tool.is_none() {
-        st.new_tool = Some(default_tool);
+        st.new_tool = Some(target.map(|(_, tool)| tool).unwrap_or(default_tool));
         st.new_title.clear();
         st.focus_next = true;
     }
@@ -229,7 +238,14 @@ pub fn show_new_session_modal(app: &mut App, ctx: &egui::Context, ws: WsKey) -> 
         let t = st.new_title.trim().to_string();
         st.new_tool = None;
         st.new_title.clear();
-        actions::start_session(app, ws, w.project_id, chosen, (!t.is_empty()).then_some(t));
+        actions::start_session_in_pane(
+            app,
+            ws,
+            w.project_id,
+            chosen,
+            (!t.is_empty()).then_some(t),
+            target.map(|(pane, _)| pane),
+        );
         return false;
     }
     if close || cancel {

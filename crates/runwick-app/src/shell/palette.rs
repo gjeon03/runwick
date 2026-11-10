@@ -119,7 +119,17 @@ fn commands(app: &App) -> Vec<Entry> {
         cmd("위키", "선택한 프로젝트의 위키", icons::BOOK_OPEN, "", Action::Wiki),
         cmd("타임라인", "선택한 프로젝트의 타임라인", icons::CHART_GANTT, "", Action::Timeline),
         cmd("분리해서 작업", "worktree 공간을 만들어 따로 작업", icons::GIT_BRANCH, "", Action::SplitWork),
-        cmd("나란히 보기", "두 탭을 좌우로", icons::COLUMNS_2, "", Action::SideBySide),
+        cmd(
+            if app.ui.current_tabset().is_some_and(|s| s.split.is_some()) {
+                "분할 닫기"
+            } else {
+                "나란히 보기"
+            },
+            "옆에 열 CLI, 탭, 파일 고르기",
+            icons::COLUMNS_2,
+            "",
+            Action::SideBySide,
+        ),
         cmd("파일 보기", "사이드바를 파일 목록으로", icons::FOLDER_OPEN, "", Action::Files),
         cmd(
             if collapsed { "사이드바 펼치기" } else { "사이드바 접기" },
@@ -378,14 +388,13 @@ fn perform(app: &mut App, a: Action) {
         Action::Quit => app.ui.modal = Some(Modal::Quit),
         Action::ToggleSidebar => app.ui.sidebar_collapsed = !app.ui.sidebar_collapsed,
         Action::SideBySide => {
+            app.ui.page = crate::state::Page::Work;
             if let Some(ws) = app.ui.selected_ws {
                 let set = app.ui.tabset_mut(&ws);
                 if set.split.is_some() {
-                    set.split = None;
-                } else if let Some(other) = set.tabs.iter().rev().find(|t| Some(t.id) != set.active).map(|t| t.id) {
-                    set.split = Some(other);
+                    set.close_pane(crate::state::Pane::Right);
                 } else {
-                    app.toast_info("나란히 보려면 탭이 둘 이상 있어야 해요");
+                    super::split_picker::open(app, ws, crate::state::Pane::Right);
                 }
             }
         }

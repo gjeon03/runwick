@@ -23,7 +23,7 @@ pub struct Search {
 }
 
 pub fn field(app: &mut App, ui: &mut egui::Ui, cx: &Ctx) {
-    let id = egui::Id::unique(("files-search", cx.ws));
+    let id = field_id(ui, cx.ws);
     let composing = app.shell.keys.composing;
     let focused = ui.ctx().memory(|m| m.has_focus(id));
     let mut nav = 0i32;
@@ -55,7 +55,19 @@ pub fn field(app: &mut App, ui: &mut egui::Ui, cx: &Ctx) {
     }
 }
 
+pub(super) fn field_id(ui: &egui::Ui, ws: crate::state::WsKey) -> egui::Id {
+    ui.scope_id().with(("files-search", ws))
+}
+
 pub fn show(app: &mut App, ui: &mut egui::Ui, cx: &Ctx, acts: &mut Vec<Act>) {
+    show_results(app, ui, cx, acts, false);
+}
+
+pub(super) fn show_picker(app: &mut App, ui: &mut egui::Ui, cx: &Ctx, acts: &mut Vec<Act>) {
+    show_results(app, ui, cx, acts, true);
+}
+
+fn show_results(app: &mut App, ui: &mut egui::Ui, cx: &Ctx, acts: &mut Vec<Act>, picker: bool) {
     let query = app.feat.files.query.trim().to_string();
     let params = FindFiles { workspace_id: cx.ws.id, query: query.clone(), limit: LIMIT };
     let q = app.hub.query::<FilesFind>(cx.ws.host, &params);
@@ -97,10 +109,12 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, cx: &Ctx, acts: &mut Vec<Act>) {
         if i == sel && scroll {
             ui.scroll_to_rect(resp.rect, None);
         }
-        if resp.clicked() {
+        if resp.clicked() && (!picker || !stale) {
             acts.push(Act::Open(hit.path.clone(), ui.input(|i| i.modifiers.command)));
         }
-        resp.context_menu(|ui| menu(ui, cx, &hit.path, false, acts));
+        if !picker {
+            resp.context_menu(|ui| menu(ui, cx, &hit.path, false, acts));
+        }
     }
     if res.truncated {
         widgets::empty_note(ui, &format!("파일이 너무 많아 {}개까지만 찾았어요.", res.indexed));
@@ -110,7 +124,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, cx: &Ctx, acts: &mut Vec<Act>) {
         let cut = widgets::paint_clipped(
             ui,
             r.shrink2(Vec2::new(8.0, 0.0)),
-            "↑↓ · Enter 열기 · ⌘Enter 나란히",
+            if picker { "↑↓ · Enter 선택" } else { "↑↓ · Enter 열기 · ⌘Enter 나란히" },
             font(11.5),
             c::TEXT_OFF,
             true,

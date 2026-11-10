@@ -69,6 +69,38 @@ impl Ctx {
     }
 }
 
+/// Keep picker queries separate from the sidebar while reusing its search controls.
+#[derive(Default)]
+pub(crate) struct FilePicker(State);
+
+pub(crate) fn pick_file(
+    app: &mut App,
+    ui: &mut egui::Ui,
+    ws: WsKey,
+    picker: &mut FilePicker,
+    focus: bool,
+) -> Option<String> {
+    std::mem::swap(&mut app.feat.files, &mut picker.0);
+    let cx = Ctx { ws, root: None, remote: ws.host != HostKey::Local, show_hidden: false, active: None };
+    if focus {
+        ui.memory_mut(|m| m.request_focus(search::field_id(ui, ws)));
+    }
+    search::field(app, ui, &cx);
+    let mut acts = Vec::new();
+    egui::ScrollArea::vertical().max_height(240.0).show(ui, |ui| {
+        if app.feat.files.query.trim().is_empty() {
+            widgets::empty_note(ui, "파일 이름을 입력해 주세요");
+        } else {
+            search::show_picker(app, ui, &cx, &mut acts);
+        }
+    });
+    std::mem::swap(&mut app.feat.files, &mut picker.0);
+    acts.into_iter().find_map(|act| match act {
+        Act::Open(path, _) => Some(path),
+        _ => None,
+    })
+}
+
 pub fn show_sidebar(app: &mut App, ui: &mut egui::Ui, ws: WsKey) {
     let ectx = ui.ctx().clone();
     auto_refresh(app, &ectx, ws);

@@ -111,6 +111,17 @@ pub fn close_tab(app: &mut App, ws: WsKey, id: TabId) {
 
 /// Start a CLI in a workspace and open its tab.
 pub fn start_session(app: &mut App, ws: WsKey, project: ProjectId, tool: Tool, title: Option<String>) {
+    start_session_in_pane(app, ws, project, tool, title, None);
+}
+
+pub(super) fn start_session_in_pane(
+    app: &mut App,
+    ws: WsKey,
+    project: ProjectId,
+    tool: Tool,
+    title: Option<String>,
+    pane: Option<crate::state::Pane>,
+) {
     let (cols, rows) = app.shell.center.terminal_grid();
     app.shell.center.starting = Some(tool);
     let params = StartSession {
@@ -128,7 +139,13 @@ pub fn start_session(app: &mut App, ws: WsKey, project: ProjectId, tool: Tool, t
         match res {
             Ok(info) => {
                 app.shell.modal.last_tool = Some(tool);
-                open_session(app, project, ws, info.session.id, false);
+                if let Some(pane) = pane {
+                    select_workspace(app, project, ws);
+                    app.shell.center.note_opened(info.session.id);
+                    app.ui.open_tab_in_pane(ws, TabKind::Terminal { host: ws.host, session: info.session.id }, pane);
+                } else {
+                    open_session(app, project, ws, info.session.id, false);
+                }
             }
             Err(e) => app.toast_error(&format!("{} 시작하지 못했어요: {}", josa::eul_reul(tool.label()), e.message)),
         }

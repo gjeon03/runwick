@@ -35,12 +35,17 @@ const DIGITS: [Key; 9] =
 
 /// Handle global shortcuts before any widget sees the keys.
 pub fn handle(app: &mut App, ctx: &egui::Context) {
+    super::center::prepare_panes(app, ctx);
     if app.shell.keys.composing {
         return;
     }
     let cmd = Modifiers::COMMAND;
     // ⌘K toggles the palette from anywhere except over a modal dialog.
-    if take(ctx, cmd, Key::K) && app.ui.modal.is_none() && app.shell.modal.stop.is_none() {
+    if take(ctx, cmd, Key::K)
+        && app.ui.modal.is_none()
+        && app.shell.modal.stop.is_none()
+        && app.shell.center.picker.is_none()
+    {
         if app.ui.palette_open {
             super::palette::close(app, ctx);
         } else {
@@ -48,7 +53,11 @@ pub fn handle(app: &mut App, ctx: &egui::Context) {
         }
         return;
     }
-    if app.ui.palette_open || app.ui.modal.is_some() || app.shell.modal.stop.is_some() {
+    if app.ui.palette_open
+        || app.ui.modal.is_some()
+        || app.shell.modal.stop.is_some()
+        || app.shell.center.picker.is_some()
+    {
         // The open overlay owns Esc and the remaining keys.
         return;
     }
@@ -76,7 +85,7 @@ fn close_active_tab(app: &mut App) {
     }
     let Some(ws) = app.ui.selected_ws else { return };
     let Some(set) = app.ui.tabset(&ws) else { return };
-    let target = if app.shell.center.focused_pane == 1 { set.split.or(set.active) } else { set.active };
+    let target = set.focused_tab();
     if let Some(id) = target {
         actions::close_tab(app, ws, id);
     }
@@ -85,15 +94,8 @@ fn close_active_tab(app: &mut App) {
 fn focus_tab(app: &mut App, n: usize) {
     let Some(ws) = app.ui.selected_ws else { return };
     let set = app.ui.tabset_mut(&ws);
-    // ⌘9 is always the last tab, like browsers.
-    let idx = if n == 8 { set.tabs.len().checked_sub(1) } else { Some(n) };
-    if let Some(t) = idx.and_then(|i| set.tabs.get(i)) {
-        set.active = Some(t.id);
-        if set.split == Some(t.id) {
-            set.split = None;
-        }
-        app.ui.page = crate::state::Page::Work;
-    }
+    set.select_number(n);
+    app.ui.page = crate::state::Page::Work;
 }
 
 /// Esc closes the topmost app overlay. In a terminal it belongs to the CLI.

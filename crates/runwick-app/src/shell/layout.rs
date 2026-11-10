@@ -58,6 +58,9 @@ fn apply(app: &mut App, saved: UiState) {
     let modal = app.ui.modal.take();
     let search = std::mem::take(&mut app.ui.project_search);
     app.ui = saved;
+    for set in app.ui.tabsets.values_mut() {
+        set.repair();
+    }
     app.ui.modal = modal;
     app.ui.project_search = search;
     // Always come back to the workroom (or the welcome page), not into settings.
@@ -172,12 +175,7 @@ pub fn best_workspace(
 
 /// Keep the active/split tab ids pointing at existing tabs.
 pub fn fix_active(set: &mut crate::state::TabSet) {
-    if set.active.is_some_and(|a| !set.tabs.iter().any(|t| t.id == a)) {
-        set.active = set.tabs.last().map(|t| t.id);
-    }
-    if set.split.is_some_and(|s| !set.tabs.iter().any(|t| t.id == s) || Some(s) == set.active) {
-        set.split = None;
-    }
+    set.repair();
 }
 
 #[cfg(test)]
@@ -191,6 +189,7 @@ mod tests {
             tabs: vec![Tab { id: 1, kind: TabKind::Start }, Tab { id: 2, kind: TabKind::History }],
             active: Some(9),
             split: Some(2),
+            ..Default::default()
         };
         fix_active(&mut set);
         assert_eq!(set.active, Some(2));

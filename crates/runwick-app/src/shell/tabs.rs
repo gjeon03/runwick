@@ -2,11 +2,11 @@
 //! terminal tab only hides it; the run continues. `+` opens the CLI chooser, the split button
 //! shows two tabs side by side.
 
-use super::{actions, data, widgets};
+use super::{actions, data, split_picker, widgets};
 use crate::App;
 use crate::icons;
-use crate::state::{Tab, TabKind, WsKey};
-use crate::theme::{self, Tone, c, font, icon_font, size};
+use crate::state::{Pane, Tab, TabId, TabKind, WsKey};
+use crate::theme::{self, Tone, c, font, icon_font, size, ty};
 use egui::{Align2, CornerRadius, Pos2, Rect, Sense, Stroke, Vec2};
 use runwick_core::api::sessions::SessionInfo;
 use std::collections::HashMap;
@@ -22,6 +22,12 @@ pub struct TabLook {
 pub enum Mark {
     Text(&'static str),
     Icon(&'static str),
+}
+
+#[derive(Clone, Copy)]
+pub(super) struct TabDrag {
+    pub ws: WsKey,
+    pub id: TabId,
 }
 
 pub fn look(app: &App, tab: &Tab, sessions: &HashMap<uuid::Uuid, SessionInfo>) -> TabLook {
@@ -95,17 +101,21 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey) {
     let bar = ui.max_rect();
     ui.painter().rect_filled(bar, CornerRadius::ZERO, c::NAV);
     ui.painter().hline(bar.x_range(), bar.bottom() - 0.5, Stroke::new(1.0, c::LINE));
-    let tools_w = 66.0;
+    let set = app.ui.tabset(&ws).cloned().unwrap_or_default();
+    let split_on = set.split.is_some();
+    let split_label = if split_on { "분할 닫기" } else { "나란히 보기" };
+    let split_w = widgets::text_width(ui, split_label, font(ty::SMALL)) + 37.0;
+    let tools_w = 6.0 + 26.0 + 4.0 + split_w + 6.0;
     let tabs_rect = Rect::from_min_max(bar.min, Pos2::new(bar.right() - tools_w, bar.bottom() - 1.0));
     let tools_rect =
         Rect::from_min_max(Pos2::new(tabs_rect.right(), bar.top()), Pos2::new(bar.right(), bar.bottom() - 1.0));
     ui.painter().vline(tools_rect.left() + 0.5, tools_rect.y_range(), Stroke::new(1.0, c::LINE));
-    let set = app.ui.tabset(&ws).cloned().unwrap_or_default();
     let sessions = session_map(app, ws);
     let mut close = None;
     let mut activate = None;
     let mut split_with = None;
     let mut rename = None;
+    let mut reorder = None;
     if !set.tabs.is_empty() {
         let n = set.tabs.len() as f32;
         let tab_w = (tabs_rect.width() / n).clamp(90.0, 220.0);
@@ -122,10 +132,11 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey) {
                             Pos2::new(strip.left() + i as f32 * tab_w, strip.top()),
                             Vec2::new(tab_w, strip.height()),
                         );
-                        let active = set.active == Some(tab.id);
-                        let in_split = set.split == Some(tab.id);
+                        let active = set.focused_tab() == Some(tab.id);
+                        let in_split = set.active == Some(tab.id) || set.split == Some(tab.id);
                         let lk = look(app, tab, &sessions);
                         let (hit, resp) = tab_ui(ui, r, tab, &lk, active, in_split, i);
+                        resp.dnd_set_drag_payload(TabDrag { ws, id: tab.id });
                         match hit {
                             TabHit::Activate => activate = Some(tab.id),
                             TabHit::Close => close = Some(tab.id),
@@ -137,8 +148,26 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey) {
                             app.shell.center.revealed_tab = Some(tab.id);
                         }
                         resp.context_menu(|ui| {
-                            if !active && widgets::menu_item(ui, icons::COLUMNS_2, "나란히 보기").clicked() {
+                            if set.active != Some(tab.id)
+                                && widgets::menu_item(ui, icons::COLUMNS_2, "나란히 보기").clicked()
+                            {
                                 split_with = Some(tab.id);
+                            }
+                            if ui
+                                .add_enabled_ui(i > 0, |ui| widgets::menu_item(ui, icons::ARROW_LEFT, "왼쪽으로 이동"))
+                                .inner
+                                .clicked()
+                            {
+                                reorder = Some((tab.id, i - 1));
+                            }
+                            if ui
+                                .add_enabled_ui(i + 1 < set.tabs.len(), |ui| {
+                                    widgets::menu_item(ui, icons::ARROW_RIGHT, "오른쪽으로 이동")
+                                })
+                                .inner
+                                .clicked()
+                            {
+                                reorder = Some((tab.id, i + 2));
                             }
                             if let TabKind::Terminal { host, session } = &tab.kind
                                 && widgets::menu_item(ui, icons::PENCIL, "이름 바꾸기").clicked()
@@ -155,30 +184,61 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey) {
                             }
                         });
                     }
+                    if let Some(drag) = egui::DragAndDrop::payload::<TabDrag>(ui.ctx()).filter(|d| d.ws == ws)
+                        && let Some(pos) = ui.input(|i| i.pointer.interact_pos()).filter(|p| tabs_rect.contains(*p))
+                    {
+                        let gap = insertion_gap(pos.x, strip.left(), tab_w, set.tabs.len());
+                        let x =
+                            (strip.left() + gap as f32 * tab_w).clamp(tabs_rect.left() + 1.0, tabs_rect.right() - 1.0);
+                        ui.painter().vline(
+                            x,
+                            tabs_rect.shrink2(Vec2::new(0.0, 4.0)).y_range(),
+                            Stroke::new(3.0, c::EMBER),
+                        );
+                        ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+                        // Scroll overflowing tabs while dragging near either visible edge.
+                        let dx = if pos.x < tabs_rect.left() + 24.0 {
+                            10.0
+                        } else if pos.x > tabs_rect.right() - 24.0 {
+                            -10.0
+                        } else {
+                            0.0
+                        };
+                        if dx != 0.0 {
+                            ui.scroll_with_delta(Vec2::new(dx, 0.0));
+                            ui.ctx().request_repaint();
+                        }
+                        if ui.input(|i| i.pointer.any_released()) {
+                            reorder = Some((drag.id, gap));
+                            egui::DragAndDrop::clear_payload(ui.ctx());
+                        }
+                    }
                 });
         });
     }
     // Tools: new session, side by side.
     let plus =
         Rect::from_center_size(Pos2::new(tools_rect.left() + 6.0 + 13.0, tools_rect.center().y), Vec2::splat(26.0));
-    let split_r =
-        Rect::from_center_size(Pos2::new(plus.right() + 2.0 + 13.0, tools_rect.center().y), Vec2::splat(26.0));
+    let split_r = Rect::from_min_size(Pos2::new(plus.right() + 4.0, plus.top()), Vec2::new(split_w, 26.0));
     ui.scope_builder(egui::UiBuilder::new().max_rect(plus), |ui| {
         if widgets::icon_btn(ui, icons::PLUS, "새 CLI 세션 (⌘T)", 26.0, 26.0, 14.0).clicked() {
             actions::new_session(app);
         }
     });
-    let can_split = set.tabs.len() >= 2;
-    let split_on = set.split.is_some();
     ui.scope_builder(egui::UiBuilder::new().max_rect(split_r), |ui| {
         let tip = if split_on {
-            "나란히 보기 끝내기"
-        } else if can_split {
-            "나란히 보기"
+            "분할을 닫아도 두 탭은 유지돼요"
         } else {
-            "나란히 보기 — 탭이 둘 이상 있어야 해요"
+            "옆에 열 CLI, 탭, 파일을 골라요"
         };
-        let resp = widgets::icon_btn(ui, icons::COLUMNS_2, tip, 26.0, 26.0, 14.0);
+        let resp = widgets::pill_button(
+            ui,
+            Some(icons::COLUMNS_2),
+            split_label,
+            26.0,
+            if split_on { c::CONTROL } else { c::NAV },
+        )
+        .on_hover_text(tip);
         if split_on {
             ui.painter().rect_stroke(
                 split_r,
@@ -189,25 +249,21 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey) {
         }
         if resp.clicked() {
             if split_on {
-                app.ui.tabset_mut(&ws).split = None;
-            } else if can_split {
-                split_with = pick_split(&set);
+                app.ui.tabset_mut(&ws).close_pane(Pane::Right);
+            } else {
+                split_picker::open(app, ws, Pane::Right);
             }
         }
     });
     if let Some(id) = activate {
-        let s = app.ui.tabset_mut(&ws);
-        s.active = Some(id);
-        if s.split == Some(id) {
-            s.split = None;
-        }
-        app.shell.center.focused_pane = 0;
+        app.ui.tabset_mut(&ws).select_tab(id);
     }
     if let Some(id) = split_with {
-        let s = app.ui.tabset_mut(&ws);
-        if s.active != Some(id) {
-            s.split = Some(id);
-        }
+        app.ui.tabset_mut(&ws).show_in_pane(id, Pane::Right);
+    }
+    if let Some((id, gap)) = reorder {
+        app.ui.tabset_mut(&ws).reorder(id, gap);
+        app.shell.center.revealed_tab = None;
     }
     if let Some((host, id)) = rename {
         app.ui.modal = Some(crate::state::Modal::Rename { target: crate::state::RenameTarget::Session { host, id } });
@@ -217,13 +273,8 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey) {
     }
 }
 
-/// Second pane for side by side: prefer pairing a terminal with a document.
-fn pick_split(set: &crate::state::TabSet) -> Option<crate::state::TabId> {
-    let active = set.active?;
-    let active_is_term =
-        set.tabs.iter().find(|t| t.id == active).is_some_and(|t| matches!(t.kind, TabKind::Terminal { .. }));
-    let others: Vec<&Tab> = set.tabs.iter().filter(|t| t.id != active).collect();
-    others.iter().find(|t| matches!(t.kind, TabKind::Terminal { .. }) != active_is_term).or(others.last()).map(|t| t.id)
+fn insertion_gap(x: f32, left: f32, tab_width: f32, count: usize) -> usize {
+    (((x - left) / tab_width + 0.5).floor().max(0.0) as usize).min(count)
 }
 
 enum TabHit {
@@ -241,7 +292,7 @@ fn tab_ui(
     in_split: bool,
     index: usize,
 ) -> (TabHit, egui::Response) {
-    let resp = ui.interact(r, ui.scope_id().with(("tab", tab.id)), Sense::click());
+    let resp = ui.interact(r, ui.scope_id().with(("tab", tab.id)), Sense::click_and_drag());
     let title = lk.title.clone();
     resp.widget_info(move || egui::WidgetInfo::selected(egui::Role::Tab, true, active, &title));
     let painter = ui.painter_at(r);
@@ -321,4 +372,20 @@ fn tab_ui(
         }
     }
     (hit, resp)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn insertion_marker_tracks_tab_midpoints_and_scrolled_strip() {
+        assert_eq!(insertion_gap(20.0, 10.0, 100.0, 3), 0);
+        assert_eq!(insertion_gap(59.0, 10.0, 100.0, 3), 0);
+        assert_eq!(insertion_gap(60.0, 10.0, 100.0, 3), 1);
+        assert_eq!(insertion_gap(310.0, 10.0, 100.0, 3), 3);
+        assert_eq!(insertion_gap(40.0, -110.0, 100.0, 3), 2);
+        assert_eq!(insertion_gap(-20.0, 10.0, 100.0, 3), 0);
+        assert_eq!(insertion_gap(900.0, 10.0, 100.0, 3), 3);
+    }
 }

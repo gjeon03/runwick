@@ -47,13 +47,145 @@ pub struct Tab {
 }
 
 /// Tabs of one workspace. Switching workspaces switches the whole set (S01).
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct TabSet {
     pub tabs: Vec<Tab>,
     pub active: Option<TabId>,
     /// Second pane for side-by-side (terminal + document).
     #[serde(default)]
     pub split: Option<TabId>,
+    #[serde(default)]
+    pub focused_pane: Pane,
+    #[serde(default = "default_split_ratio")]
+    pub split_ratio: f32,
+    /// Rendering constraint, never part of the saved layout.
+    #[serde(skip)]
+    pub right_hidden: bool,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Pane {
+    #[default]
+    Left,
+    Right,
+}
+
+fn default_split_ratio() -> f32 {
+    0.5
+}
+
+impl Default for TabSet {
+    fn default() -> Self {
+        Self {
+            tabs: Vec::new(),
+            active: None,
+            split: None,
+            focused_pane: Pane::Left,
+            split_ratio: 0.5,
+            right_hidden: false,
+        }
+    }
+}
+
+impl TabSet {
+    pub fn pane_tab(&self, pane: Pane) -> Option<TabId> {
+        match pane {
+            Pane::Left => self.active,
+            Pane::Right => self.split,
+        }
+    }
+
+    pub fn focused_tab(&self) -> Option<TabId> {
+        if self.right_hidden { self.active } else { self.pane_tab(self.focused_pane).or(self.active) }
+    }
+
+    pub fn set_right_hidden(&mut self, hidden: bool) {
+        self.right_hidden = hidden;
+        if hidden {
+            self.focused_pane = Pane::Left;
+        }
+    }
+
+    /// Selecting an already visible tab focuses it without duplicating it.
+    pub fn select_tab(&mut self, id: TabId) {
+        let pane = if self.right_hidden { Pane::Left } else { self.focused_pane };
+        self.show_in_pane(id, pane);
+    }
+
+    pub fn select_number(&mut self, number: usize) {
+        let index = if number == 8 { self.tabs.len().checked_sub(1) } else { Some(number) };
+        if let Some(id) = index.and_then(|i| self.tabs.get(i)).map(|t| t.id) {
+            self.select_tab(id);
+        }
+    }
+
+    pub fn show_in_pane(&mut self, id: TabId, pane: Pane) {
+        if !self.tabs.iter().any(|t| t.id == id) {
+            return;
+        }
+        if self.active == Some(id) {
+            self.focused_pane = Pane::Left;
+        } else if self.split == Some(id) {
+            self.focused_pane = Pane::Right;
+        } else if pane == Pane::Right && self.active.is_some() {
+            self.split = Some(id);
+            self.focused_pane = Pane::Right;
+        } else {
+            self.active = Some(id);
+            self.focused_pane = Pane::Left;
+        }
+        // An explicit selection must be visible even when only one pane fits.
+        if self.right_hidden && self.focused_pane == Pane::Right {
+            self.swap_panes();
+        }
+    }
+
+    pub fn swap_panes(&mut self) {
+        if self.split.is_some() {
+            std::mem::swap(&mut self.active, &mut self.split);
+            self.focused_pane = Pane::Left;
+        }
+    }
+
+    /// A drop moves the tab to the requested pane, swapping visible tabs if necessary.
+    pub fn drop_in_pane(&mut self, id: TabId, pane: Pane) {
+        let other = if pane == Pane::Left { Pane::Right } else { Pane::Left };
+        if self.split.is_some() && self.pane_tab(other) == Some(id) {
+            self.swap_panes();
+        }
+        self.show_in_pane(id, pane);
+    }
+
+    /// Close only the pane; both tabs and their running sessions stay open.
+    pub fn close_pane(&mut self, pane: Pane) {
+        if pane == Pane::Left && self.split.is_some() {
+            self.active = self.split;
+        }
+        self.split = None;
+        self.focused_pane = Pane::Left;
+    }
+
+    /// Insert at a gap in the original order (0..=len), preserving pane identities.
+    pub fn reorder(&mut self, id: TabId, gap: usize) {
+        let Some(from) = self.tabs.iter().position(|t| t.id == id) else { return };
+        let gap = gap.min(self.tabs.len());
+        let to = gap.saturating_sub(usize::from(from < gap));
+        let tab = self.tabs.remove(from);
+        self.tabs.insert(to, tab);
+    }
+
+    pub fn repair(&mut self) {
+        if self.active.is_none_or(|a| !self.tabs.iter().any(|t| t.id == a)) {
+            self.active = self.tabs.last().map(|t| t.id);
+        }
+        if self.split.is_some_and(|s| !self.tabs.iter().any(|t| t.id == s) || Some(s) == self.active) {
+            self.split = None;
+        }
+        if self.split.is_none() || self.right_hidden {
+            self.focused_pane = Pane::Left;
+        }
+        self.split_ratio = if self.split_ratio.is_finite() { self.split_ratio.clamp(0.1, 0.9) } else { 0.5 };
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
@@ -238,15 +370,24 @@ impl UiState {
 
     /// Open (or focus, if already open) a tab in a workspace and make it active.
     pub fn open_tab(&mut self, ws: WsKey, kind: TabKind) -> TabId {
+        let id = self.ensure_tab(ws, kind);
+        self.tabset_mut(&ws).select_tab(id);
+        id
+    }
+
+    pub fn open_tab_in_pane(&mut self, ws: WsKey, kind: TabKind, pane: Pane) -> TabId {
+        let id = self.ensure_tab(ws, kind);
+        self.tabset_mut(&ws).show_in_pane(id, pane);
+        id
+    }
+
+    fn ensure_tab(&mut self, ws: WsKey, kind: TabKind) -> TabId {
         if let Some(t) = self.tabset(&ws).and_then(|s| s.tabs.iter().find(|t| t.kind == kind)) {
-            let id = t.id;
-            self.tabset_mut(&ws).active = Some(id);
-            return id;
+            return t.id;
         }
         let id = self.alloc_tab_id();
         let set = self.tabset_mut(&ws);
         set.tabs.push(Tab { id, kind });
-        set.active = Some(id);
         id
     }
 
@@ -257,11 +398,15 @@ impl UiState {
         if let Some(i) = idx {
             set.tabs.remove(i);
             if set.split == Some(id) {
-                set.split = None;
+                set.close_pane(Pane::Right);
+            } else if set.active == Some(id) {
+                if set.split.is_some() {
+                    set.close_pane(Pane::Left);
+                } else {
+                    set.active = set.tabs.get(i.saturating_sub(1)).or(set.tabs.first()).map(|t| t.id);
+                }
             }
-            if set.active == Some(id) {
-                set.active = set.tabs.get(i.saturating_sub(1)).or(set.tabs.first()).map(|t| t.id);
-            }
+            set.repair();
         }
     }
 
@@ -278,6 +423,16 @@ impl UiState {
         let set = self.current_tabset()?;
         let id = set.active?;
         set.tabs.iter().find(|t| t.id == id)
+    }
+
+    /// Session in the focused visible pane, for detail-panel consumers.
+    pub fn focused_session(&self) -> Option<(HostKey, SessionId)> {
+        let set = self.current_tabset()?;
+        let id = set.focused_tab()?;
+        match set.tabs.iter().find(|t| t.id == id)?.kind {
+            TabKind::Terminal { host, session } => Some((host, session)),
+            _ => None,
+        }
     }
 }
 
@@ -304,5 +459,162 @@ mod tests {
         s.close_tab(&ws, a);
         assert_eq!(s.tabset(&ws).unwrap().active, Some(b));
         assert_eq!(parse_ws_storage_key(&ws_storage_key(&ws)), Some(ws));
+    }
+
+    fn split_tabs() -> (UiState, WsKey, [TabId; 3]) {
+        let ws = WsKey { host: HostKey::Local, id: Uuid::new_v4() };
+        let mut ui = UiState { selected_ws: Some(ws), ..Default::default() };
+        let a = ui.open_tab(ws, TabKind::Start);
+        let b = ui.open_tab(ws, TabKind::History);
+        let c = ui.open_tab(ws, TabKind::Timeline { project: None });
+        let set = ui.tabset_mut(&ws);
+        set.select_tab(a);
+        set.show_in_pane(b, Pane::Right);
+        (ui, ws, [a, b, c])
+    }
+
+    #[test]
+    fn selecting_tabs_replaces_focused_pane_and_focuses_visible_duplicates() {
+        let (mut ui, ws, [a, b, c]) = split_tabs();
+        ui.open_tab(ws, TabKind::Start);
+        assert_eq!(ui.tabset(&ws).unwrap().focused_pane, Pane::Left);
+        ui.open_tab(ws, TabKind::History);
+        let set = ui.tabset_mut(&ws);
+        assert_eq!((set.active, set.split, set.focused_pane), (Some(a), Some(b), Pane::Right));
+        set.select_tab(c);
+        assert_eq!((set.active, set.split), (Some(a), Some(c)));
+        set.select_tab(a);
+        set.select_tab(b);
+        assert_eq!((set.active, set.split, set.focused_pane), (Some(b), Some(c), Pane::Left));
+    }
+
+    #[test]
+    fn explicit_open_does_not_replace_left_before_creating_split() {
+        let (mut ui, ws, [a, b, _]) = split_tabs();
+        let doc = TabKind::Doc { ws, path: "README.md".into() };
+        let id = ui.open_tab_in_pane(ws, doc.clone(), Pane::Right);
+        assert_eq!((ui.tabset(&ws).unwrap().active, ui.tabset(&ws).unwrap().split), (Some(a), Some(id)));
+        assert!(ui.tabset(&ws).unwrap().tabs.iter().any(|t| t.id == b));
+        ui.open_tab_in_pane(ws, doc, Pane::Left);
+        assert_eq!(ui.tabset(&ws).unwrap().focused_pane, Pane::Right);
+        assert_eq!(ui.tabset(&ws).unwrap().active, Some(a));
+    }
+
+    #[test]
+    fn number_shortcuts_target_focused_pane_and_nine_selects_last() {
+        let (mut ui, ws, [a, b, c]) = split_tabs();
+        let set = ui.tabset_mut(&ws);
+        set.select_number(8);
+        assert_eq!((set.active, set.split, set.focused_tab()), (Some(a), Some(c), Some(c)));
+        set.select_number(0);
+        assert_eq!(set.focused_pane, Pane::Left);
+        set.select_number(1);
+        assert_eq!((set.active, set.split, set.focused_tab()), (Some(b), Some(c), Some(b)));
+        set.select_number(7);
+        assert_eq!(set.focused_tab(), Some(b));
+    }
+
+    #[test]
+    fn closing_either_pane_keeps_all_tabs() {
+        for pane in [Pane::Left, Pane::Right] {
+            let (mut ui, ws, [a, b, _]) = split_tabs();
+            let set = ui.tabset_mut(&ws);
+            let tabs = set.tabs.clone();
+            set.close_pane(pane);
+            assert_eq!(set.tabs, tabs);
+            assert_eq!(set.split, None);
+            assert_eq!(set.active, Some(if pane == Pane::Left { b } else { a }));
+            assert_eq!(set.focused_pane, Pane::Left);
+        }
+    }
+
+    #[test]
+    fn closing_a_tab_in_split_promotes_survivor_without_duplicates() {
+        for pane in [Pane::Left, Pane::Right] {
+            let (mut ui, ws, [a, b, _]) = split_tabs();
+            ui.close_tab(&ws, if pane == Pane::Left { a } else { b });
+            let set = ui.tabset(&ws).unwrap();
+            assert_eq!(set.tabs.len(), 2);
+            assert_eq!(set.active, Some(if pane == Pane::Left { b } else { a }));
+            assert_eq!(set.split, None);
+        }
+    }
+
+    #[test]
+    fn narrow_layout_never_closes_hidden_pane_and_can_swap() {
+        let (mut ui, ws, [a, b, _]) = split_tabs();
+        let set = ui.tabset_mut(&ws);
+        set.set_right_hidden(true);
+        assert_eq!(set.focused_tab(), Some(a));
+        set.swap_panes();
+        assert_eq!((set.active, set.split, set.focused_tab()), (Some(b), Some(a), Some(b)));
+        set.select_tab(a);
+        assert_eq!((set.active, set.split), (Some(a), Some(b)));
+        let target = set.focused_tab().unwrap();
+        ui.close_tab(&ws, target);
+        let set = ui.tabset(&ws).unwrap();
+        assert!(set.tabs.iter().any(|t| t.id == b));
+        assert_eq!(set.active, Some(b));
+    }
+
+    #[test]
+    fn reorder_preserves_panes_and_is_scoped_to_workspace() {
+        let (mut ui, ws, [a, b, c]) = split_tabs();
+        let other = WsKey { id: Uuid::new_v4(), ..ws };
+        ui.open_tab(other, TabKind::Start);
+        let other_before = ui.tabset(&other).unwrap().clone();
+        let set = ui.tabset_mut(&ws);
+        set.reorder(a, 3);
+        assert_eq!(set.tabs.iter().map(|t| t.id).collect::<Vec<_>>(), [b, c, a]);
+        set.reorder(a, 0);
+        assert_eq!(set.tabs.iter().map(|t| t.id).collect::<Vec<_>>(), [a, b, c]);
+        set.reorder(b, 2);
+        assert_eq!(set.tabs.iter().map(|t| t.id).collect::<Vec<_>>(), [a, b, c]);
+        assert_eq!((set.active, set.split, set.focused_pane), (Some(a), Some(b), Pane::Right));
+        assert_eq!(ui.tabset(&other).unwrap(), &other_before);
+    }
+
+    #[test]
+    fn dropping_visible_tab_swaps_instead_of_duplicating() {
+        let (mut ui, ws, [a, b, c]) = split_tabs();
+        let set = ui.tabset_mut(&ws);
+        set.drop_in_pane(a, Pane::Right);
+        assert_eq!((set.active, set.split, set.focused_pane), (Some(b), Some(a), Pane::Right));
+        set.drop_in_pane(c, Pane::Left);
+        assert_eq!((set.active, set.split), (Some(c), Some(a)));
+        set.drop_in_pane(a, Pane::Left);
+        assert_eq!((set.active, set.split), (Some(a), Some(c)));
+    }
+
+    #[test]
+    fn split_layout_round_trip_and_legacy_defaults() {
+        let (mut ui, ws, [a, _, _]) = split_tabs();
+        let set = ui.tabset_mut(&ws);
+        set.split_ratio = 0.63;
+        set.reorder(a, 3);
+        let saved = serde_json::to_value(&ui).unwrap();
+        let back: UiState = serde_json::from_value(saved.clone()).unwrap();
+        assert_eq!(back.tabset(&ws), ui.tabset(&ws));
+        let mut legacy = saved;
+        let obj = legacy["tabsets"][ws_storage_key(&ws)].as_object_mut().unwrap();
+        obj.remove("split_ratio");
+        obj.remove("focused_pane");
+        let back: UiState = serde_json::from_value(legacy).unwrap();
+        let set = back.tabset(&ws).unwrap();
+        assert_eq!(set.split_ratio, 0.5);
+        assert_eq!(set.focused_pane, Pane::Left);
+        assert_eq!(set.tabs, ui.tabset(&ws).unwrap().tabs);
+    }
+
+    #[test]
+    fn repair_sanitizes_invalid_layout_values() {
+        let (mut ui, ws, [a, _, _]) = split_tabs();
+        let set = ui.tabset_mut(&ws);
+        set.split = Some(a);
+        set.split_ratio = f32::NAN;
+        set.repair();
+        assert_eq!(set.split, None);
+        assert_eq!(set.focused_pane, Pane::Left);
+        assert_eq!(set.split_ratio, 0.5);
     }
 }

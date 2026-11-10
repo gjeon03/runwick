@@ -142,20 +142,20 @@ fn place(app: &mut App, ws: WsKey) -> Place {
 /// Open a document of a workspace (or focus its tab). `side`: show it next to the current tab.
 pub fn open(app: &mut App, ws: WsKey, path: &str, side: bool) {
     app.ui.page = crate::state::Page::Work;
-    let before = app.ui.tabset(&ws).and_then(|s| s.active);
-    let id = app.ui.open_tab(ws, TabKind::Doc { ws, path: path.to_string() });
+    let kind = TabKind::Doc { ws, path: path.to_string() };
+    if side {
+        app.ui.open_tab_in_pane(ws, kind, crate::state::Pane::Right);
+    } else {
+        app.ui.open_tab(ws, kind);
+    }
+    focus_editor(app, ws, path);
+}
+
+pub(crate) fn focus_editor(app: &mut App, ws: WsKey, path: &str) {
     let key = (ws, path.to_string());
     app.feat.docs.entries.entry(key.clone()).or_insert_with(|| Entry::new(Doc::new(ws, path)));
     if let Some(e) = app.feat.docs.entries.get_mut(&key) {
         e.ui.focus_editor = true;
-    }
-    if side && let Some(prev) = before.filter(|p| *p != id) {
-        let set = app.ui.tabset_mut(&ws);
-        set.active = Some(prev);
-        set.split = Some(id);
-        app.shell.center.focused_pane = 1;
-    } else {
-        app.shell.center.focused_pane = 0;
     }
 }
 
@@ -180,9 +180,7 @@ pub fn ask_before_close(app: &mut App, tab_ws: WsKey, tab: TabId, doc_ws: WsKey,
     }
     e.ui.confirm = Some(header::Confirm::Close { ws: tab_ws, tab });
     let set = app.ui.tabset_mut(&tab_ws);
-    if set.split != Some(tab) {
-        set.active = Some(tab);
-    }
+    set.select_tab(tab);
     true
 }
 
