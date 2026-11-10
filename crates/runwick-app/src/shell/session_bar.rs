@@ -39,6 +39,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
     let cy = bar.center().y;
 
     // Right: tools.
+    let pin = crate::views::history::session_pin(app, host, session, info.session.tool);
     let mut x = bar.right() - 6.0;
     let tools: [(&str, &str); 4] = [
         (icons::ELLIPSIS, "더 보기"),
@@ -49,9 +50,28 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
     let mut clicked = None;
     let mut more_resp = None;
     for (i, (g, name)) in tools.iter().enumerate() {
+        if i == 2 && !info.session.tool.is_agent() {
+            continue;
+        }
         let r = Rect::from_min_size(Pos2::new(x - 28.0, cy - 13.0), Vec2::new(28.0, 26.0));
         let resp = ui
-            .scope_builder(egui::UiBuilder::new().max_rect(r), |ui| widgets::icon_btn(ui, g, name, 28.0, 26.0, 14.0))
+            .scope_builder(egui::UiBuilder::new().max_rect(r), |ui| {
+                if i == 2 {
+                    let pinned = pin.is_some_and(|(_, pinned)| pinned);
+                    let tip = if pinned {
+                        "마지막 응답의 핀을 해제해요"
+                    } else {
+                        "마지막 응답을 핀에 고정해요"
+                    };
+                    ui.add_enabled_ui(pin.is_some(), |ui| {
+                        crate::views::history::pin_toggle_button(ui, pinned, tip, 26.0)
+                    })
+                    .inner
+                    .on_disabled_hover_text("아직 고정할 응답이 없거나 기록을 불러오는 중이에요")
+                } else {
+                    widgets::icon_btn(ui, g, name, 28.0, 26.0, 14.0)
+                }
+            })
             .inner;
         // Ember dot on 세션 새로고침 when settings changed since this run started (S12).
         if i == 1 && crate::views::refresh::pending(app, host, session) {
@@ -170,7 +190,11 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, ws: WsKey, host: HostKey, session:
     }
     match clicked {
         Some(3) => crate::views::history::toggle_from_session_bar(app),
-        Some(2) => crate::views::history::pin_from_session_bar(app, host, session, info.session.tool),
+        Some(2) => {
+            if let Some((message, _)) = pin {
+                crate::views::history::pin_from_session_bar(app, host, session, message);
+            }
+        }
         Some(1) => app.ui.modal = Some(Modal::Refresh { host, session }),
         _ => {}
     }

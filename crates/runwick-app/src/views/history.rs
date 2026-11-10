@@ -11,6 +11,7 @@ mod pins;
 mod search;
 
 pub use pins::source_line as pins_source_line;
+pub(crate) use pins::toggle_button as pin_toggle_button;
 
 use crate::App;
 use crate::client::HostKey;
@@ -19,8 +20,11 @@ use crate::state::{RightPanel, TabKind};
 use crate::theme::{Seg, c, font, ty};
 use egui::{Margin, RichText};
 use runwick_core::api::projects::{ById, ProjectId, WorkspaceQuery, WorkspacesList};
-use runwick_core::api::records::{Anchor, Context, MessageId, NewPin, PinId, PinSource, PinsCreate};
-use runwick_core::api::sessions::{ScreenQuery, SessionId, SessionsGet, SessionsScreenText, Tool};
+use runwick_core::api::records::{
+    Anchor, Context, MessageId, NewPin, Pin, PinId, PinKind, PinQuery, PinSource, PinsCreate, PinsList, RecordsTurn,
+};
+use runwick_core::api::sessions::{SessionId, SessionsGet, Tool};
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -71,14 +75,21 @@ pub struct Opened {
     pub terms: Vec<String>,
 }
 
-/// Title and memo being edited for a pin.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PinField {
+    Title,
+    Note,
+}
+
+/// Only the field explicitly chosen by the person is edited.
 #[derive(Debug, Clone)]
 pub struct PinDraft {
     pub host: HostKey,
     pub id: PinId,
-    pub title: String,
-    pub note: String,
-    /// Move keyboard focus to the title once.
+    pub field: PinField,
+    pub text: String,
+    pub original: String,
+    /// Move keyboard focus to the field once.
     pub focus: bool,
 }
 
@@ -103,6 +114,7 @@ pub struct State {
     /// Anchor the reader last scrolled to (scroll once per newly opened anchor).
     scrolled: Option<Anchor>,
     pub edit_pin: Option<PinDraft>,
+    pending_pins: HashSet<(HostKey, MessageId)>,
     pub confirm_unpin: Option<PinId>,
     /// Message being cut down to an excerpt pin.
     pub excerpt: Option<MessageId>,
@@ -343,62 +355,69 @@ fn open(app: &mut App, o: Opened) {
     }
 }
 
-/// Show the pins list with one pin outlined (and its title ready to edit when `edit`).
-pub fn show_pin(app: &mut App, host: HostKey, pin: &runwick_core::api::records::Pin, edit: bool) {
-    let st = &mut app.feat.history;
-    st.mode = Mode::Pins;
-    st.highlight_pin = Some(pin.id);
-    if edit {
-        st.edit_pin =
-            Some(PinDraft { host, id: pin.id, title: pin.title.clone(), note: pin.note.clone(), focus: true });
-    }
-    app.ui.right = Some(RightPanel::History);
-}
-
-fn create_pin(app: &mut App, host: HostKey, source: PinSource, done: &'static str) {
-    app.hub.call::<PinsCreate>(host, NewPin { source, title: None, note: None }, move |app, res| match res {
-        Ok(pin) => {
-            app.toast(crate::state::ToastKind::Success, done);
-            show_pin(app, host, &pin, true);
-        }
+fn create_pin(app: &mut App, host: HostKey, source: PinSource) {
+    app.hub.call::<PinsCreate>(host, NewPin { source, title: None, note: None }, |app, res| match res {
+        Ok(_) => app.toast(crate::state::ToastKind::Success, "핀에 고정했어요"),
         Err(e) => app.toast_error(&format!("핀을 고정하지 못했어요: {}", e.message)),
     });
 }
 
 /// Pin text selected in a terminal ("터미널 발췌": not linked to a message).
 pub fn pin_terminal_excerpt(app: &mut App, host: HostKey, session: SessionId, text: String) {
-    create_pin(app, host, PinSource::Terminal { session_id: session, text }, "터미널 발췌를 핀에 고정했어요");
+    create_pin(app, host, PinSource::Terminal { session_id: session, text });
 }
 
-/// The session bar's 핀: the newest collected answer of an agent session; for shells (or when
-/// no answer is collected yet) the visible terminal screen as a terminal excerpt.
-pub fn pin_from_session_bar(app: &mut App, host: HostKey, session: SessionId, tool: Tool) {
-    if tool.is_agent() {
-        let src = PinSource::LatestAnswer { session_id: session };
-        app.hub.call::<PinsCreate>(host, NewPin { source: src, title: None, note: None }, move |app, res| match res {
-            Ok(pin) => {
-                app.toast(crate::state::ToastKind::Success, "마지막 응답을 핀에 고정했어요");
-                show_pin(app, host, &pin, true);
-            }
-            Err(e) if e.code == runwick_core::rpc::codes::NOT_FOUND => pin_screen(app, host, session),
-            Err(e) => app.toast_error(&format!("핀을 고정하지 못했어요: {}", e.message)),
-        });
-    } else {
-        pin_screen(app, host, session);
+/// Excerpts attached to the same message are independent copies, not its toggle state.
+fn message_pin(list: &[Pin], message: MessageId) -> Option<PinId> {
+    list.iter().find(|p| p.kind == PinKind::Message && p.message_id == Some(message)).map(|p| p.id)
+}
+
+/// The answer shown by the session bar. There is no terminal-screen fallback.
+pub fn session_pin(app: &mut App, host: HostKey, session: SessionId, tool: Tool) -> Option<(MessageId, bool)> {
+    if !tool.is_agent() {
+        return None;
     }
+    let turn = app.hub.query::<RecordsTurn>(host, &ById { id: session }).data?;
+    let answer = turn.last_answer.as_ref()?;
+    let list = app.hub.query::<PinsList>(host, &PinQuery { session_id: Some(session), project_id: None }).data?;
+    Some((answer.id, message_pin(&list, answer.id).is_some()))
 }
 
-fn pin_screen(app: &mut App, host: HostKey, session: SessionId) {
-    app.hub.call::<SessionsScreenText>(host, ScreenQuery { id: session, scrollback: 0 }, move |app, res| match res {
-        Ok(text) if !text.trim().is_empty() => create_pin(
-            app,
-            host,
-            PinSource::Terminal { session_id: session, text },
-            "지금 터미널 화면을 발췌해 핀에 고정했어요",
-        ),
-        Ok(_) => app.toast_info("고정할 터미널 내용이 없어요"),
-        Err(e) => app.toast_error(&format!("터미널 화면을 읽지 못했어요: {}", e.message)),
-    });
+/// Toggle the exact message shown when clicked, even if a newer answer arrives meanwhile.
+pub fn pin_from_session_bar(app: &mut App, host: HostKey, session: SessionId, message: MessageId) {
+    toggle_message_pin(app, host, session, message);
+}
+
+fn toggle_message_pin(app: &mut App, host: HostKey, session: SessionId, message: MessageId) {
+    let key = (host, message);
+    if !app.feat.history.pending_pins.insert(key) {
+        return;
+    }
+    // Read current state on click so a still-refreshing UI cache cannot invert the action.
+    app.hub.call::<PinsList>(
+        host,
+        PinQuery { session_id: Some(session), project_id: None },
+        move |app, res| match res {
+            Ok(list) => {
+                if let Some(id) = message_pin(&list, message) {
+                    pins::remove(app, host, id, Some(message));
+                } else {
+                    let source = PinSource::Message { message_id: message };
+                    app.hub.call::<PinsCreate>(host, NewPin { source, title: None, note: None }, move |app, res| {
+                        app.feat.history.pending_pins.remove(&key);
+                        match res {
+                            Ok(_) => app.toast(crate::state::ToastKind::Success, "핀에 고정했어요"),
+                            Err(e) => app.toast_error(&format!("핀을 고정하지 못했어요: {}", e.message)),
+                        }
+                    });
+                }
+            }
+            Err(e) => {
+                app.feat.history.pending_pins.remove(&key);
+                app.toast_error(&format!("핀 상태를 확인하지 못했어요: {}", e.message));
+            }
+        },
+    );
 }
 
 /// Muted one-line note (empty and info states).

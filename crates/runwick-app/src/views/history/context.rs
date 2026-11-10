@@ -7,7 +7,6 @@
 use super::{Opened, fmt, note};
 use crate::App;
 use crate::client::HostKey;
-use crate::icons;
 use crate::shell::widgets;
 use crate::shell::{actions, data};
 use crate::state::WsKey;
@@ -15,7 +14,7 @@ use crate::theme::{self, c, font, medium, semibold, ty};
 use egui::{CornerRadius, Margin, RichText};
 use runwick_core::api::projects::ById;
 use runwick_core::api::records::{
-    Anchor, Context, ContextQuery, Message, NewPin, PinSource, PinsCreate, RecordsContext, RecordsStatus, Role,
+    Anchor, Context, ContextQuery, Message, PinQuery, PinSource, PinsList, RecordsContext, RecordsStatus, Role,
     StatusQuery,
 };
 use runwick_core::api::sessions::{Phase, SessionInfo, SessionsGet};
@@ -157,6 +156,7 @@ fn header(app: &mut App, ui: &mut egui::Ui, open: &Opened, cx: &Context, info: O
 }
 
 fn messages(app: &mut App, ui: &mut egui::Ui, open: &Opened, cx: &Arc<Context>, in_panel: bool) {
+    let pins = app.hub.query::<PinsList>(open.host, &PinQuery { session_id: Some(cx.session_id), project_id: None });
     let mut load = (0u32, 0u32);
     let mut pin = None;
     let mut excerpt_done = None;
@@ -200,7 +200,7 @@ fn messages(app: &mut App, ui: &mut egui::Ui, open: &Opened, cx: &Arc<Context>, 
                     selected: selected == Some(m.id),
                     hovered: hovered == Some(m.id),
                     keyboard: keyboard_before == Some(m.id),
-                    pinned: cx.pins.iter().any(|(mid, _)| *mid == m.id),
+                    pinned: pins.data.as_ref().is_some_and(|list| super::message_pin(list, m.id).is_some()),
                     focus_actions: focus_actions == Some(m.id),
                 };
                 let r = message(app, ui, cx, m, look, &open.terms);
@@ -286,25 +286,12 @@ fn messages(app: &mut App, ui: &mut egui::Ui, open: &Opened, cx: &Arc<Context>, 
     }
     let host = open.host;
     if let Some(id) = pin {
-        app.hub.call::<PinsCreate>(
-            host,
-            NewPin { source: PinSource::Message { message_id: id }, title: None, note: None },
-            |app, res| match res {
-                Ok(_) => app.toast(crate::state::ToastKind::Success, "핀에 고정했어요"),
-                Err(e) => app.toast_error(&format!("핀을 고정하지 못했어요: {}", e.message)),
-            },
-        );
+        super::toggle_message_pin(app, host, cx.session_id, id);
     }
     if let Some((id, text)) = excerpt_done {
         app.feat.history.excerpt = None;
         let src = PinSource::Excerpt { message_id: id, text };
-        app.hub.call::<PinsCreate>(host, NewPin { source: src, title: None, note: None }, move |app, res| match res {
-            Ok(pin) => {
-                app.toast(crate::state::ToastKind::Success, "고른 부분을 핀에 고정했어요");
-                super::show_pin(app, host, &pin, true);
-            }
-            Err(e) => app.toast_error(&format!("핀을 고정하지 못했어요: {}", e.message)),
-        });
+        super::create_pin(app, host, src);
     }
 }
 
@@ -380,15 +367,14 @@ fn toolbar(ui: &mut egui::Ui, pinned: bool, h: f32, floating: bool, focus_first:
         // The row is exactly as tall as the buttons (the time line must not grow on hover).
         ui.spacing_mut().interact_size.y = h;
         ui.horizontal(|ui| {
-            let (label, fill) = if pinned { ("핀 고정됨", c::CONTROL_HOVER) } else { ("핀", c::CONTROL) };
-            let pin = widgets::pill_button(ui, Some(icons::PIN), label, h, fill);
+            let tip = if pinned { "핀 해제" } else { "메시지 전체를 핀에 고정해요" };
+            let pin = super::pin_toggle_button(ui, pinned, tip, h);
+            crate::terminal::verify::target("context:핀", pin.rect);
             if focus_first {
                 pin.request_focus();
             }
             focused |= pin.has_focus();
-            if pinned {
-                pin.on_hover_text("이미 핀에 있어요. 오른쪽 패널의 '핀'에서 볼 수 있어요");
-            } else if pin.on_hover_text("메시지 전체를 핀에 고정해요").clicked() {
+            if pin.clicked() {
                 out = Some(Tool::Pin);
             }
             let part = widgets::pill_button(ui, None, "일부만 핀", h, c::CONTROL);

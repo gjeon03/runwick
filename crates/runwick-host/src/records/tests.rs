@@ -241,3 +241,30 @@ fn session_titles_are_shown_without_invisible_direction_marks() {
     let r = find(&d, "만료 시각", Scope::All);
     assert_eq!(r.hits[0].session_title, "회귀토검");
 }
+
+#[test]
+fn message_unpin_and_repin_preserve_the_record_and_excerpt() {
+    let d = data();
+    let source = PinSource::LatestAnswer { session_id: d.session };
+    let new = |source| NewPin { source, title: None, note: None };
+    let (whole, _) = pins::create(&d.store, &new(source.clone())).unwrap();
+    let message_id = whole.message_id.unwrap();
+    assert_eq!(message_id, d.ids[3]);
+    let (excerpt, _) =
+        pins::create(&d.store, &new(PinSource::Excerpt { message_id, text: "src/auth/session.ts".into() })).unwrap();
+    let (same, created) = pins::create(&d.store, &new(PinSource::Message { message_id })).unwrap();
+    assert_eq!((same.id, created), (whole.id, false));
+
+    assert!(pins::remove(&d.store, whole.id).unwrap());
+    assert!(!pins::remove(&d.store, whole.id).unwrap());
+    let q = PinQuery { session_id: Some(d.session), project_id: None };
+    let remaining = d.store.with(|c| pins::list(c, &q, None)).unwrap();
+    assert_eq!(remaining.iter().map(|p| p.id).collect::<Vec<_>>(), vec![excerpt.id]);
+    let answer = d.store.with(|c| db::latest_answer(c, d.session)).unwrap().unwrap();
+    assert_eq!((answer.id, &answer.text), (message_id, &whole.text));
+
+    let (again, created) = pins::create(&d.store, &new(source)).unwrap();
+    assert!(created);
+    assert_ne!(again.id, whole.id);
+    assert_eq!((again.message_id, again.title, again.text), (whole.message_id, whole.title, whole.text));
+}
